@@ -523,6 +523,49 @@ p { margin: 0; }
 .hero__text .eyebrow { margin-bottom: 0; }
 .hero__text .hero__lede { margin: 0; }
 .hero__text .hero__trust { margin-top: 8px; }
+
+/* Secondary lede — slightly smaller, slightly muted, italic accent inline */
+.hero__lede--secondary {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+  line-height: 1.55;
+  color: rgba(247, 242, 234, 0.78);
+  max-width: 640px;
+}
+.hero__lede--secondary em {
+  font-style: italic;
+  color: var(--color-champagne);
+  font-weight: 400;
+}
+
+/* Keywords strip — editorial product/service ticker */
+.hero__keywords {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.hero__keywords li {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(247, 242, 234, 0.78);
+  padding: 6px 12px;
+  border: 1px solid rgba(247, 242, 234, 0.22);
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: border-color var(--dur-quick), color var(--dur-quick);
+}
+.hero__keywords li:hover {
+  border-color: var(--color-brass-hot);
+  color: var(--color-bg);
+}
 .hero__content .eyebrow { color: var(--color-champagne); }
 .hero h1 {
   font-family: var(--font-display);
