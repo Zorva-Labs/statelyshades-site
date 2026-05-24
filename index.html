@@ -208,6 +208,86 @@
         ]
       },
       {
+        "@type": "WebPage",
+        "@id": "https://statelyshades.com/#webpage",
+        "url": "https://statelyshades.com/",
+        "isPartOf": { "@id": "https://statelyshades.com/#website" },
+        "primaryImageOfPage": { "@id": "https://statelyshades.com/#hero-image" },
+        "about": { "@id": "https://statelyshades.com/#localbusiness" },
+        "speakable": {
+          "@type": "SpeakableSpecification",
+          "cssSelector": ["h1", ".hero__lede", ".faq__item summary", ".faq__item p"]
+        },
+        "inLanguage": "en-US"
+      },
+      {
+        "@type": "ImageObject",
+        "@id": "https://statelyshades.com/#hero-image",
+        "url": "https://statelyshades.com/assets/images/hero-shades-opening.webp",
+        "width": 1280,
+        "height": 720,
+        "caption": "Cream motorized roller shades in a luxurious Tennessee dining room at golden hour"
+      },
+      {
+        "@type": "Person",
+        "@id": "https://statelyshades.com/#owner",
+        "name": "Stately Shades Family",
+        "jobTitle": "Owners",
+        "description": "The family that owns and operates Stately Shades. We design, measure, source, and install every custom window treatment ourselves — start to finish.",
+        "worksFor": { "@id": "https://statelyshades.com/#organization" },
+        "knowsAbout": [
+          "Custom plantation shutters",
+          "Motorized smart shades",
+          "Cellular and honeycomb shades",
+          "Sheer fabric shades with floating vanes",
+          "Zebra and banded shades",
+          "Woven wood and bamboo shades",
+          "Outdoor shades and retractable awnings",
+          "Smart-home integration with Alexa, Google Home, and Apple HomeKit",
+          "Window-treatment repair and restoration"
+        ]
+      },
+      {
+        "@type": "HowTo",
+        "@id": "https://statelyshades.com/#process",
+        "name": "How Stately Shades installs custom window treatments",
+        "description": "Our four-step process for outfitting any home with custom shutters, motorized shades, and drapery — from first consultation through final install.",
+        "totalTime": "P21D",
+        "estimatedCost": { "@type": "MonetaryAmount", "currency": "USD", "value": "0", "description": "The consultation is free." },
+        "supply": [],
+        "tool": [
+          { "@type": "HowToTool", "name": "Physical material samples" },
+          { "@type": "HowToTool", "name": "Laser measurement equipment" },
+          { "@type": "HowToTool", "name": "Sketch pad for on-site options" }
+        ],
+        "step": [
+          {
+            "@type": "HowToStep",
+            "position": 1,
+            "name": "Consult",
+            "text": "A relaxed conversation in your home. We bring physical samples, walk the rooms with you, and talk about light, privacy, and how you actually live. No charge, no obligation, within our 90-mile service area."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 2,
+            "name": "Measure",
+            "text": "We measure every window to a sixteenth of an inch, laser-confirmed, and sketch your product options on site. You receive a full written quote before we leave — no pressure, no waiting period."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 3,
+            "name": "Craft",
+            "text": "Your treatments are built to exact specification by our manufacturing partners — Hunter Douglas, Norman, Somfy, Graber, Sol-Lux. Most orders ship within two to four weeks."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 4,
+            "name": "Install",
+            "text": "We install carefully with drop cloths and dust protection, demonstrate every motor and remote, and don't leave until every window is right. Flexible financing is available on most projects."
+          }
+        ]
+      },
+      {
         "@type": "FAQPage",
         "@id": "https://statelyshades.com/#faq",
         "mainEntity": [
@@ -934,7 +1014,7 @@
         <div class="contact__intro" data-reveal>
           <span class="section__num" style="color: var(--color-brass-hot);">Free Consultation</span>
           <h2 class="display">Let's design <em>your windows.</em></h2>
-          <p style="color: rgba(247,242,234,.78); font-family: var(--font-display); font-style: italic; font-size: 1.2rem; line-height: 1.55; max-width: 480px; margin-top: 12px;">
+          <p class="contact__intro-lede">
             Tell us a little about your project. We'll be in touch within one
             business day to schedule your complimentary in-home consultation.
           </p>

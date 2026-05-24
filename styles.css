@@ -1456,6 +1456,15 @@ p { margin: 0; }
   gap: clamp(56px, 7vw, 110px);
   align-items: start;
 }
+.contact__intro-lede {
+  color: rgba(247, 242, 234, 0.78);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.55;
+  max-inline-size: 30em;
+  margin-top: 12px;
+}
 .contact__direct {
   display: flex; flex-direction: column;
   gap: 28px;
