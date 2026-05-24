@@ -107,9 +107,9 @@
         success.className = isCompact ? 'form__success form__success--light' : 'form form__success';
         success.innerHTML = isCompact
           ? `
-            <span class="eyebrow" style="color: var(--color-brass);">Thank You</span>
-            <h3 style="font-family: var(--font-display); font-size: clamp(1.5rem, 2.2vw, 2rem); font-weight: 400; color: var(--color-ink); margin: 6px 0 12px;">Request sent.</h3>
-            <p style="color: var(--color-ink-soft); font-family: var(--font-display); font-style: italic; font-size: 1.05rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your free in-home consultation. For anything urgent, call <a href="tel:+16292988241" style="color: var(--color-brass); border-bottom: 1px solid currentColor;">629-298-8241</a>.</p>
+            <span class="eyebrow" style="color: var(--color-brass-hot);">Thank You</span>
+            <h3 style="font-family: var(--font-display); font-size: clamp(1.5rem, 2.2vw, 2rem); font-weight: 400; color: var(--color-bg); margin: 6px 0 12px;">Request sent.</h3>
+            <p style="color: rgba(247, 242, 234, 0.82); font-family: var(--font-display); font-style: italic; font-size: 1.05rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your free in-home consultation. For anything urgent, call <a href="tel:+16292988241" style="color: var(--color-bg); border-bottom: 1px solid var(--color-brass-hot);">629-298-8241</a>.</p>
           `
           : `
             <span class="eyebrow eyebrow--light">Thank You</span>

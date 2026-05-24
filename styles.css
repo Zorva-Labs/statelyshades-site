@@ -550,20 +550,21 @@ p { margin: 0; }
   margin-bottom: 60px;
 }
 
-/* Hero inline form card — sits on the right of the hero */
+/* Hero inline form card — frosted glass over the hero photo */
 .hero__form-card {
-  background: rgba(247, 242, 234, 0.95);
-  color: var(--color-ink);
+  background: rgba(20, 17, 13, 0.22);
+  color: var(--color-bg);
   padding: clamp(24px, 2.4vw, 36px) clamp(22px, 2.2vw, 32px);
   border-radius: 2px;
-  box-shadow: 0 50px 120px -50px rgba(10, 8, 5, 0.7);
-  backdrop-filter: saturate(140%) blur(10px);
-  -webkit-backdrop-filter: saturate(140%) blur(10px);
-  border-top: 1px solid var(--color-brass);
+  box-shadow: 0 50px 120px -50px rgba(10, 8, 5, 0.85);
+  backdrop-filter: saturate(150%) blur(28px);
+  -webkit-backdrop-filter: saturate(150%) blur(28px);
+  border: 1px solid rgba(247, 242, 234, 0.18);
+  border-top: 1.5px solid var(--color-brass-hot);
   margin-top: 24px;
 }
 .hero__form-card .eyebrow {
-  color: var(--color-brass);
+  color: var(--color-brass-hot);
   margin-bottom: 8px;
 }
 .hero__form-title {
@@ -572,12 +573,12 @@ p { margin: 0; }
   font-size: clamp(1.7rem, 2.6vw, 2.2rem);
   line-height: 1.05;
   letter-spacing: -0.012em;
-  color: var(--color-ink);
+  color: var(--color-bg);
   margin: 0 0 18px;
 }
 .hero__form-title em {
   font-style: italic;
-  color: var(--color-brass);
+  color: var(--color-brass-hot);
 }
 
 /* Compact form variant — sits on a cream card instead of the dark section */
@@ -589,7 +590,7 @@ p { margin: 0; }
 }
 .form--compact::before { display: none; }
 .form--compact label {
-  color: var(--color-ink);
+  color: rgba(247, 242, 234, 0.92);
   font-size: 0.74rem;
   letter-spacing: 0.18em;
   font-weight: 500;
@@ -638,14 +639,14 @@ p { margin: 0; }
   margin-top: 6px;
 }
 .form--compact .form__fineprint {
-  color: var(--color-ink-soft) !important;
+  color: rgba(247, 242, 234, 0.72) !important;
   font-size: 0.82rem !important;
   letter-spacing: 0.04em;
   margin: 4px 0 0;
 }
 .form--compact .form__fineprint a {
-  color: var(--color-ink);
-  border-bottom: 1px solid var(--color-brass);
+  color: var(--color-bg);
+  border-bottom: 1px solid var(--color-brass-hot);
   font-weight: 500;
 }
 
