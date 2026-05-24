@@ -58,5 +58,17 @@ generate "consultation-detail" \
   1080 1080 &
 
 wait
-echo "[done] all images generated"
+echo "[done] all PNGs generated, converting to WebP..."
+
+# Convert to WebP for web delivery (much smaller files)
+if command -v cwebp >/dev/null 2>&1; then
+  for f in "$OUT_DIR"/*.png; do
+    [ "$(basename "$f")" = "logo.png" ] && continue
+    cwebp -q 82 -m 6 "$f" -o "${f%.png}.webp" 2>/dev/null && rm "$f"
+  done
+  echo "[done] WebP conversion complete, PNG originals removed"
+else
+  echo "[warn] cwebp not installed — keeping PNGs (install with: brew install webp)"
+fi
+
 ls -lh "$OUT_DIR"
