@@ -629,6 +629,22 @@ p { margin: 0; }
   background: var(--color-espresso);
   color: var(--color-bg);
 }
+.product-card--service {
+  background:
+    linear-gradient(180deg, rgba(157,122,62,.12) 0%, transparent 30%),
+    var(--color-espresso);
+  border-top: 1px solid var(--color-brass);
+}
+.product-card--service .product-card__body::after {
+  content: "Service · Any Brand";
+  position: absolute;
+  top: 18px; left: clamp(48px, 5vw, 72px);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-brass-hot);
+}
 .product-card--wide .product-card__body { padding: clamp(48px, 5vw, 72px); }
 .product-card--wide .eyebrow { color: var(--color-champagne); }
 .product-card--wide h3 { color: var(--color-bg); }
