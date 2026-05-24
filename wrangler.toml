@@ -1,0 +1,9 @@
+name = "statelyshades"
+compatibility_date = "2026-05-24"
+pages_build_output_dir = "."
+
+# D1 binding used by the Pages Functions in /functions/api/*
+[[d1_databases]]
+binding = "DB"
+database_name = "statelyshades-crm"
+database_id = "59824c9b-8fe2-42e9-8fbc-47ec4c5e81bb"

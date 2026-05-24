@@ -88,27 +88,68 @@ ${message || "(no message)"}
     }),
   });
 
+  let mailError = null;
   if (!purelyResp.ok) {
     const errText = await purelyResp.text().catch(() => "");
     console.error("Purelymail send failed:", purelyResp.status, errText);
+    mailError = "purelymail_http_" + purelyResp.status;
+  } else {
+    let payload = null;
+    try { payload = await purelyResp.json(); } catch (_) {}
+    if (payload && payload.type && payload.type !== "success") {
+      console.error("Purelymail returned non-success:", payload);
+      mailError = "purelymail_" + (payload.type || "unknown");
+    }
+  }
+
+  // Persist lead to D1 (CRM) regardless of mail outcome
+  if (env.DB) {
+    try {
+      const ipRaw = request.headers.get("CF-Connecting-IP") || "";
+      const ipHash = ipRaw ? await sha256B64Trunc(ipRaw, 22) : null;
+      const ua = (request.headers.get("user-agent") || "").slice(0, 240);
+      const ref = (request.headers.get("referer") || "").slice(0, 500) || null;
+      const urlObj = new URL(request.url);
+      const utm_source = urlObj.searchParams.get("utm_source");
+      const utm_medium = urlObj.searchParams.get("utm_medium");
+      const utm_campaign = urlObj.searchParams.get("utm_campaign");
+      const utm_term = urlObj.searchParams.get("utm_term");
+      const utm_content = urlObj.searchParams.get("utm_content");
+
+      await env.DB.prepare(
+        `INSERT INTO leads
+          (name, phone, email, location, interest, message,
+           source_page, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+           referrer, user_agent, ip_hash)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'home', ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`
+      )
+        .bind(
+          name, phone, email, location || null, interest || null, message || null,
+          utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+          ref, ua, ipHash
+        )
+        .run();
+    } catch (e) {
+      console.error("D1 lead insert failed:", e.message);
+      // don't fail the user request just because CRM write failed
+    }
+  }
+
+  if (mailError) {
     return json(
-      { error: "We couldn't send your request. Please call us at 629-298-8241." },
+      { error: "We couldn't send your request right now. Please call us at 629-298-8241." },
       502
     );
   }
-
-  // Best-effort: parse Purelymail's response
-  let payload = null;
-  try { payload = await purelyResp.json(); } catch (_) {}
-  if (payload && payload.type && payload.type !== "success") {
-    console.error("Purelymail returned non-success:", payload);
-    return json(
-      { error: "We couldn't send your request. Please call us at 629-298-8241." },
-      502
-    );
-  }
-
   return json({ success: true }, 200);
+}
+
+async function sha256B64Trunc(s, n) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  let str = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).slice(0, n);
 }
 
 // CORS / non-POST handler — small but polite

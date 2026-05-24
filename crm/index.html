@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leads · Stately Shades CRM</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/crm/admin.css" />
+  <link rel="icon" href="/assets/images/logo-v4.png" />
+</head>
+<body>
+  <div class="admin">
+    <aside class="admin__nav">
+      <a href="/crm/" class="admin__brand">
+        <span class="admin__brand-monogram" aria-hidden="true">S<span>S</span></span>
+        <span class="admin__brand-text">
+          <strong>Stately Shades</strong>
+          <span>CRM</span>
+        </span>
+      </a>
+      <div class="admin__nav-section">
+        <span class="admin__nav-label">Pipeline</span>
+        <div class="js-status-nav"></div>
+      </div>
+      <div class="admin__nav-user">
+        <span><span data-user-email>—</span></span>
+        <button onclick="SSAdmin.logout()">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <header class="admin__header">
+        <h1 id="page-title"><em>Leads</em></h1>
+        <div class="admin__search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" id="search" placeholder="Search name, email, phone, city…" autocomplete="off" />
+        </div>
+      </header>
+
+      <div id="lead-table" class="lead-table">
+        <div class="lead-table__empty">Loading…</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/crm/admin.js"></script>
+  <script>
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const status = params.get("status");
+      const q = params.get("q") || "";
+
+      // Render sidebar with status counts
+      await SSAdmin.renderSidebar({ activeStatus: status });
+
+      // Update title
+      const title = document.getElementById("page-title");
+      const label = status ? SSAdmin.STATUS_LABELS[status] : "Leads";
+      title.innerHTML = status ? `<em>${SSAdmin.esc(label)}</em>` : `<em>Leads</em>`;
+
+      // Wire search
+      const searchInput = document.getElementById("search");
+      searchInput.value = q;
+      let timer;
+      searchInput.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const url = new URL(location.href);
+          if (searchInput.value.trim()) url.searchParams.set("q", searchInput.value.trim());
+          else url.searchParams.delete("q");
+          location.href = url.toString();
+        }, 350);
+      });
+
+      // Load and render leads
+      const queryString = new URLSearchParams();
+      if (status) queryString.set("status", status);
+      if (q) queryString.set("q", q);
+      const { leads } = await SSAdmin.fetchJSON("/api/leads?" + queryString.toString());
+
+      const container = document.getElementById("lead-table");
+      if (!leads || !leads.length) {
+        container.innerHTML = `<div class="lead-table__empty">No leads ${q ? "match that search" : "yet"}.</div>`;
+        return;
+      }
+
+      const rows = leads.map((l) => `
+        <tr onclick="location.href='/crm/lead.html?id=${l.id}'">
+          <td>
+            <div class="lead-table__name">${SSAdmin.esc(l.name)}</div>
+            <div class="lead-table__when">${SSAdmin.fmtDate(l.created_at)}</div>
+          </td>
+          <td>
+            <div>${l.email ? `<a href="mailto:${SSAdmin.esc(l.email)}">${SSAdmin.esc(l.email)}</a>` : ""}</div>
+            <div class="lead-table__location">${l.phone ? `<a href="tel:${SSAdmin.esc(l.phone)}">${SSAdmin.esc(l.phone)}</a>` : ""}</div>
+          </td>
+          <td><div class="lead-table__interest">${SSAdmin.esc(l.interest || "—")}</div></td>
+          <td><div class="lead-table__location">${SSAdmin.esc(l.location || "—")}</div></td>
+          <td>${SSAdmin.pill(l.status)}</td>
+        </tr>
+      `).join("");
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Contact</th>
+              <th>Considering</th>
+              <th>Location</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    })().catch((err) => {
+      if (err.message !== "Unauthorized") {
+        document.getElementById("lead-table").innerHTML = `<div class="lead-table__empty">Couldn't load leads: ${SSAdmin.esc(err.message)}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

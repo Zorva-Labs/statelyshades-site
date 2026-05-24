@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lead · Stately Shades CRM</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/crm/admin.css" />
+  <link rel="icon" href="/assets/images/logo-v4.png" />
+</head>
+<body>
+  <div class="admin">
+    <aside class="admin__nav">
+      <a href="/crm/" class="admin__brand">
+        <span class="admin__brand-monogram" aria-hidden="true">S<span>S</span></span>
+        <span class="admin__brand-text">
+          <strong>Stately Shades</strong>
+          <span>CRM</span>
+        </span>
+      </a>
+      <div class="admin__nav-section">
+        <span class="admin__nav-label">Pipeline</span>
+        <div class="js-status-nav"></div>
+      </div>
+      <div class="admin__nav-user">
+        <span><span data-user-email>—</span></span>
+        <button onclick="SSAdmin.logout()">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <header class="admin__header">
+        <h1 id="page-title"><em>Loading…</em></h1>
+        <a href="/crm/" style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-muted);">← All leads</a>
+      </header>
+
+      <div id="detail" class="lead-detail"></div>
+    </main>
+  </div>
+
+  <script src="/crm/admin.js"></script>
+  <script>
+    (async () => {
+      const id = new URLSearchParams(location.search).get("id");
+      if (!id) { location.href = "/crm/"; return; }
+
+      await SSAdmin.renderSidebar({});
+      const { lead, notes } = await SSAdmin.fetchJSON("/api/leads/" + id);
+
+      document.getElementById("page-title").innerHTML = `<em>${SSAdmin.esc(lead.name)}</em>`;
+
+      const detail = document.getElementById("detail");
+      detail.innerHTML = `
+        <div class="lead-card">
+          <h2>${SSAdmin.esc(lead.name)}</h2>
+          <div class="row"><strong>Status</strong>${SSAdmin.pill(lead.status)}</div>
+          <div class="row"><strong>Phone</strong><a href="tel:${SSAdmin.esc(lead.phone)}">${SSAdmin.esc(lead.phone)}</a></div>
+          <div class="row"><strong>Email</strong><a href="mailto:${SSAdmin.esc(lead.email)}">${SSAdmin.esc(lead.email)}</a></div>
+          <div class="row"><strong>Location</strong>${SSAdmin.esc(lead.location || "—")}</div>
+          <div class="row"><strong>Considering</strong>${SSAdmin.esc(lead.interest || "—")}</div>
+          <div class="row"><strong>Submitted</strong>${SSAdmin.fmtDateTime(lead.created_at)}</div>
+          ${lead.utm_source ? `<div class="row"><strong>UTM Source</strong>${SSAdmin.esc(lead.utm_source)}</div>` : ""}
+          ${lead.utm_campaign ? `<div class="row"><strong>UTM Campaign</strong>${SSAdmin.esc(lead.utm_campaign)}</div>` : ""}
+          ${lead.referrer ? `<div class="row"><strong>Referrer</strong>${SSAdmin.esc(lead.referrer.slice(0, 60))}</div>` : ""}
+          ${lead.message ? `<div class="message">${SSAdmin.esc(lead.message)}</div>` : ""}
+        </div>
+
+        <div class="lead-actions">
+          <div>
+            <h3>Pipeline status</h3>
+            <select id="status-select">
+              ${SSAdmin.STATUS_ORDER.map((s) => `<option value="${s}" ${s === lead.status ? "selected" : ""}>${SSAdmin.STATUS_LABELS[s]}</option>`).join("")}
+            </select>
+          </div>
+
+          <div>
+            <h3>Notes</h3>
+            <div class="notes" id="notes-list">${renderNotes(notes)}</div>
+            <form class="note-form" id="note-form" style="margin-top: 14px;">
+              <textarea name="body" placeholder="Add a note (call summary, follow-up, etc.)" required></textarea>
+              <button type="submit">Add note</button>
+            </form>
+          </div>
+
+          <div>
+            <h3>Danger zone</h3>
+            <button id="delete-btn" style="background: transparent; color: #B85450; border: 1px solid #B85450; padding: 10px 16px; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; border-radius: 2px;">Delete lead</button>
+          </div>
+        </div>
+      `;
+
+      function renderNotes(arr) {
+        if (!arr || !arr.length) return `<p style="color: var(--color-muted); font-style: italic; font-family: var(--font-display);">No notes yet.</p>`;
+        return arr.map((n) => `
+          <div class="note">
+            <div class="note__meta">${SSAdmin.esc(n.author || "—")} · ${SSAdmin.fmtDateTime(n.created_at)}</div>
+            <div class="note__body">${SSAdmin.esc(n.body)}</div>
+          </div>
+        `).join("");
+      }
+
+      document.getElementById("status-select").addEventListener("change", async (e) => {
+        const newStatus = e.target.value;
+        try {
+          await SSAdmin.fetchJSON("/api/leads/" + id, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus }),
+          });
+          // Update visible pill
+          const pill = document.querySelector('.lead-card .pill');
+          if (pill) {
+            pill.dataset.status = newStatus;
+            pill.textContent = SSAdmin.STATUS_LABELS[newStatus];
+          }
+        } catch (err) {
+          alert("Couldn't update: " + err.message);
+        }
+      });
+
+      document.getElementById("note-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const body = form.body.value.trim();
+        if (!body) return;
+        const btn = form.querySelector("button");
+        btn.disabled = true;
+        try {
+          const { notes: newNotes } = await SSAdmin.fetchJSON("/api/leads/" + id + "/notes", {
+            method: "POST",
+            body: JSON.stringify({ body }),
+          });
+          form.body.value = "";
+          document.getElementById("notes-list").innerHTML = renderNotes(newNotes);
+        } catch (err) {
+          alert("Couldn't add note: " + err.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById("delete-btn").addEventListener("click", async () => {
+        if (!confirm("Permanently delete this lead and all its notes?")) return;
+        await SSAdmin.fetchJSON("/api/leads/" + id, { method: "DELETE" });
+        location.href = "/crm/";
+      });
+
+    })().catch((err) => {
+      if (err.message !== "Unauthorized") {
+        document.getElementById("detail").innerHTML = `<div class="lead-table__empty">Couldn't load: ${SSAdmin.esc(err.message)}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>
