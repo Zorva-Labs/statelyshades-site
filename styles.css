@@ -330,7 +330,7 @@ p { margin: 0; }
 .nav__lockup {
   display: inline-flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   line-height: 1;
 }
 .nav__wordmark {
@@ -343,8 +343,11 @@ p { margin: 0; }
   white-space: nowrap;
   transition: font-size var(--dur) var(--ease);
 }
-.nav__wordmark > span {
-  margin-left: 0.06em;
+.nav__rule {
+  display: block;
+  width: 38px;
+  height: 1px;
+  background: var(--color-brass);
 }
 .nav__tagline {
   font-family: var(--font-mono);
