@@ -510,8 +510,8 @@ p { margin: 0; }
   position: relative; z-index: 1;
   padding-top: 80px; padding-bottom: clamp(80px, 10vw, 130px);
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: clamp(40px, 6vw, 84px);
+  grid-template-columns: 1fr 1.2fr;
+  gap: clamp(32px, 4vw, 64px);
   align-items: start;
 }
 .hero__text {
