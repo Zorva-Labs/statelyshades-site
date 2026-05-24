@@ -592,6 +592,16 @@ p { margin: 0; }
     letter-spacing: 0.16em;
     padding: 5px 10px;
   }
+  /* Hero eyebrow was clipping on the right — inline-block + tight letter-spacing
+     stopped the browser from finding break points at the · characters. Force
+     block + smaller tracking so it definitively wraps. */
+  .hero .eyebrow {
+    display: block;
+    white-space: normal;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    max-width: 100%;
+  }
 }
 .hero__keywords li:hover {
   border-color: var(--color-brass-hot);
