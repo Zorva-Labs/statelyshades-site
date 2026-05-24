@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stately Shades placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1A1814"/>
+      <stop offset="0.55" stop-color="#3A2F25"/>
+      <stop offset="1" stop-color="#1A1814"/>
+    </linearGradient>
+    <linearGradient id="light" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#E8DFD0" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#E8DFD0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#D4B896" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EFE6D6"/>
+      <stop offset="1" stop-color="#C7B79A"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A2017"/>
+      <stop offset="1" stop-color="#0B0907"/>
+    </linearGradient>
+    <pattern id="slats" x="0" y="0" width="100" height="32" patternUnits="userSpaceOnUse">
+      <rect width="100" height="32" fill="url(#shade)"/>
+      <line x1="0" y1="31" x2="100" y2="31" stroke="#9C8B6D" stroke-width="0.8" opacity="0.55"/>
+      <line x1="0" y1="16" x2="100" y2="16" stroke="#9C8B6D" stroke-width="0.3" opacity="0.25"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#bg)"/>
+
+  <!-- Floor -->
+  <rect x="0" y="640" width="1200" height="160" fill="url(#floor)"/>
+
+  <!-- Window frame -->
+  <g>
+    <rect x="220" y="90" width="760" height="560" fill="#0E0B07"/>
+    <!-- Outer trim -->
+    <rect x="220" y="90" width="760" height="560" fill="none" stroke="#1F1812" stroke-width="14"/>
+    <!-- Inner glass area -->
+    <rect x="248" y="118" width="704" height="504" fill="#15110C"/>
+    <!-- Light wash through glass -->
+    <rect x="248" y="118" width="704" height="504" fill="url(#light)"/>
+
+    <!-- Shade (half drawn) -->
+    <rect x="248" y="118" width="704" height="288" fill="url(#slats)"/>
+    <!-- Shade bottom rail -->
+    <rect x="244" y="400" width="712" height="10" fill="#8C7A5C"/>
+    <line x1="244" y1="411" x2="956" y2="411" stroke="#5A4A36" stroke-width="1" opacity="0.6"/>
+
+    <!-- Mullion (center vertical) -->
+    <line x1="600" y1="408" x2="600" y2="622" stroke="#1F1812" stroke-width="6"/>
+  </g>
+
+  <!-- Sconce dots / brass accents -->
+  <circle cx="140" cy="380" r="3" fill="#B08D57" opacity="0.5"/>
+  <circle cx="1060" cy="380" r="3" fill="#B08D57" opacity="0.5"/>
+
+  <!-- Vignette -->
+  <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
+    <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+  </radialGradient>
+  <rect width="1200" height="800" fill="url(#vignette)"/>
+</svg>
