@@ -1732,16 +1732,18 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 .mobile-cta { display: none; }
 
 /* ============================================================
-   Scroll reveal
+   Scroll reveal — opt-in via html.js class so the page is fully
+   visible if JS doesn't run / hasn't run yet (no-JS users + slow
+   networks + paint-before-script-execution don't see blank sections).
    ============================================================ */
 @media (prefers-reduced-motion: no-preference) {
-  [data-reveal] {
+  html.js [data-reveal]:not(.is-visible) {
     opacity: 0;
-    transform: translateY(28px);
-    transition: opacity 900ms var(--ease-out), transform 900ms var(--ease-out);
+    transform: translateY(20px);
+    transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
     transition-delay: var(--reveal-delay, 0ms);
   }
-  [data-reveal].is-visible {
+  html.js [data-reveal].is-visible {
     opacity: 1;
     transform: translateY(0);
   }

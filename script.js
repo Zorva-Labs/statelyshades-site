@@ -30,36 +30,42 @@
   const year = document.getElementById('year');
   if (year) year.textContent = new Date().getFullYear();
 
-  // Scroll reveal — staggered editorial cascade via IntersectionObserver
+  // Scroll reveal — opt-in via html.js class so the page is fully visible
+  // if JS fails / is slow / disabled. Per-element observer with generous
+  // rootMargin so the reveal fires well before the user can see the element,
+  // never leaving a 'wall of cream' in any section.
   const prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!prefersReduce && 'IntersectionObserver' in window) {
+  if ('IntersectionObserver' in window && !prefersReduce) {
+    document.documentElement.classList.add('js');
+
     const io = new IntersectionObserver((entries, observer) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
-        const targets = entry.target.querySelectorAll('[data-reveal]');
-        const list = targets.length ? Array.from(targets) : [entry.target];
-        list.forEach((el, i) => {
-          el.style.setProperty('--reveal-delay', `${i * 90}ms`);
-          el.classList.add('is-visible');
-        });
+        entry.target.classList.add('is-visible');
         observer.unobserve(entry.target);
       });
-    }, { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
-
-    document.querySelectorAll('[data-reveal-group]').forEach((g) => io.observe(g));
-    document.querySelectorAll('[data-reveal]:not([data-reveal-group] [data-reveal])').forEach((el) => {
-      const wrapper = document.createElement('span');
-      // simple individual observer
-      const indiv = new IntersectionObserver((entries, ob) => {
-        entries.forEach(e => {
-          if (e.isIntersecting) { e.target.classList.add('is-visible'); ob.unobserve(e.target); }
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
-      indiv.observe(el);
+    }, {
+      root: null,
+      // 400px early-fire on both sides — element is revealed long before
+      // the user scrolls into it, so even slow finger-scrolls never catch
+      // a hidden block on screen.
+      rootMargin: '400px 0px 400px 0px',
+      threshold: 0,
     });
-  } else {
-    document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-visible'));
+
+    document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+
+    // Stagger children of a [data-reveal-group] by 60ms apiece so the
+    // sequence still feels orchestrated even with the early-fire window.
+    document.querySelectorAll('[data-reveal-group]').forEach((g) => {
+      const kids = g.querySelectorAll('[data-reveal]');
+      kids.forEach((el, i) => {
+        el.style.setProperty('--reveal-delay', `${i * 60}ms`);
+      });
+    });
   }
+  // If JS doesn't run, html.js never gets added → CSS never hides anything →
+  // content is fully visible. Same for prefers-reduced-motion users.
 
   // Graceful image fallback: if a content image fails, swap to brand placeholder
   document.querySelectorAll('img').forEach(img => {
