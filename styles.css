@@ -315,11 +315,14 @@ p { margin: 0; }
 .nav__monogram {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 2.9rem;
+  font-size: 2.65rem;
   line-height: 1;
   letter-spacing: -0.1em;
   color: var(--color-ink);
   display: inline-block;
+  /* Pull up to compensate for inner span's translateY(0.22em) overflow,
+     so visible cap-to-baseline aligns with wordmark cap to tagline baseline */
+  transform: translateY(-0.05em);
   transition: font-size var(--dur) var(--ease);
 }
 .nav__monogram > span {
@@ -358,7 +361,7 @@ p { margin: 0; }
   line-height: 1;
   white-space: nowrap;
 }
-.nav.is-scrolled .nav__monogram { font-size: 2.7rem; }
+.nav.is-scrolled .nav__monogram { font-size: 2.45rem; }
 .nav.is-scrolled .nav__wordmark { font-size: 1.15rem; }
 .nav__links { display: flex; gap: 40px; align-items: center; }
 .nav__links a {
@@ -1178,12 +1181,14 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 .footer__monogram {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 3.6rem;
+  font-size: 3.35rem;
   line-height: 1;
   letter-spacing: -0.1em;
   color: var(--color-bg);
   display: inline-block;
   flex-shrink: 0;
+  /* Pull up to compensate for inner span's translateY(0.22em) overflow */
+  transform: translateY(-0.05em);
 }
 .footer__monogram > span {
   display: inline-block;
@@ -1280,7 +1285,7 @@ a.contact__line:hover strong { color: var(--color-champagne); }
    Responsive
    ============================================================ */
 @media (max-width: 980px) {
-  .nav__monogram { font-size: 2.55rem; }
+  .nav__monogram { font-size: 2.35rem; }
   .nav__wordmark { font-size: 1.1rem; }
   .nav__tagline { font-size: 0.52rem; letter-spacing: 0.24em; }
   .nav__links {
@@ -1377,7 +1382,7 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 
 @media (max-width: 600px) {
   .nav__brand { gap: 10px; }
-  .nav__monogram { font-size: 1.6rem; }
+  .nav__monogram { font-size: 1.45rem; }
   .nav__wordmark { font-size: 0.95rem; letter-spacing: 0.05em; }
   .nav__tagline,
   .nav__rule { display: none; }
