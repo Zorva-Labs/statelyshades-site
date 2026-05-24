@@ -52,7 +52,13 @@
    Base
    ============================================================ */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  /* Safety net: prevent any rogue element from causing horizontal scroll */
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -64,7 +70,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   position: relative;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
+img, picture, video, svg { max-width: 100%; }
 
 /* Subtle paper-grain overlay — adds tactility */
 body::before {
@@ -1818,9 +1827,9 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 }
 
 @media (max-width: 600px) {
-  .nav__brand { gap: 10px; }
-  .nav__monogram { font-size: 1.45rem; }
-  .nav__wordmark { font-size: 0.95rem; letter-spacing: 0.05em; }
+  .nav__brand { gap: 12px; }
+  .nav__monogram { font-size: 1.7rem; }
+  .nav__wordmark { font-size: 1.05rem; letter-spacing: 0.04em; }
   .nav__tagline,
   .nav__rule { display: none; }
 
