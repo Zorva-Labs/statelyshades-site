@@ -1117,13 +1117,13 @@ p { margin: 0; }
    ============================================================ */
 .services__bento {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(12, 1fr);
   gap: 1px;
   background: rgba(157,122,62,.2);
   border: 1px solid rgba(157,122,62,.2);
 }
-.bento { grid-column: span 2; }
-.bento--feature { grid-column: span 3; }
+.bento { grid-column: span 3; }
+.bento--feature { grid-column: span 6; }
 .bento {
   background: var(--color-espresso);
   padding: clamp(36px, 4vw, 56px);
@@ -1654,9 +1654,9 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .product-card--wide { grid-column: span 1; grid-row: auto; }
   .product-card--lg { flex-direction: column; }
 
-  .services__bento { grid-template-columns: repeat(6, 1fr); }
-  .bento--feature { grid-column: span 6; }
-  .bento { grid-column: span 2; }
+  .services__bento { grid-template-columns: repeat(12, 1fr); }
+  .bento--feature { grid-column: span 12; }
+  .bento { grid-column: span 6; }
 
   .process__steps {
     grid-template-columns: 1fr 1fr;
