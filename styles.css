@@ -605,6 +605,9 @@ p { margin: 0; }
   border: 1px solid rgba(247, 242, 234, 0.18);
   border-top: 1.5px solid var(--color-brass-hot);
   margin-top: 24px;
+  /* 20px wider than the grid cell — extends left into the column gap */
+  width: calc(100% + 20px);
+  margin-left: -20px;
 }
 .hero__form-card .eyebrow {
   color: var(--color-brass-hot);
@@ -1676,7 +1679,11 @@ a.contact__line:hover strong { color: var(--color-champagne); }
     align-items: stretch;
   }
   .hero__text { max-width: 720px; }
-  .hero__form-card { margin-top: 0; }
+  .hero__form-card {
+    margin-top: 0;
+    width: 100%;
+    margin-left: 0;
+  }
 
   .mobile-cta {
     display: flex;
