@@ -1,7 +1,7 @@
 #!/bin/bash
-# Generate logo variants from the original Stately Shades logo:
-#   logo-dark.png  — dark espresso text on transparent (for navbar / light backgrounds)
-#   logo-light.png — white/cream text on transparent (for footer / dark backgrounds)
+# Regenerate logo variants from the authoritative statelylogo.png:
+#   logo-dark.webp  — dark text on transparent (for navbar / light backgrounds)
+#   logo-light.webp — cream text on transparent (for footer / dark backgrounds)
 
 set -e
 source ~/.env
@@ -14,8 +14,8 @@ if [ ! -f "$SRC" ]; then
   exit 1
 fi
 
-# Base64-encode source image
-SRC_B64=$(base64 < "$SRC" | tr -d '\n')
+SRC_B64_FILE="/tmp/stately_logo_b64.txt"
+base64 < "$SRC" | tr -d '\n' > "$SRC_B64_FILE"
 
 edit_variant() {
   local name="$1"
@@ -23,7 +23,7 @@ edit_variant() {
   echo "[edit] $name..."
   jq -n \
     --arg m "nano-banana-pro-edit" \
-    --arg i "$SRC_B64" \
+    --rawfile i "$SRC_B64_FILE" \
     --arg p "$prompt" \
     '{model:$m, image:$i, prompt:$p, aspect_ratio:"auto"}' > "/tmp/venice_${name}_body.json"
 
@@ -42,14 +42,25 @@ edit_variant() {
   fi
 }
 
-# Dark variant (for light navbar)
+# Dark variant (for light navbar) — just strip the cream background, keep colors
 edit_variant "logo-dark" \
-  "Remove the solid black background from this logo completely, making it fully transparent (alpha 0). Recolor all the white text (the SS monogram and the STATELY SHADES wordmark) to a deep dark espresso color (#14110D). Recolor the cream/champagne tagline 'CUSTOM BLINDS, SHUTTERS & SHADES' and the thin divider line to a warm brass color (#9D7A3E). Preserve the exact typography, composition, proportions, and serif style. Output: PNG with transparent background." &
+  "Remove the off-white/cream background from this logo completely, making it fully transparent (alpha channel 0). Keep all the existing dark text (the SS monogram and the STATELY SHADES wordmark) and the warm brass/champagne accents (divider line and small tagline) exactly as they are — same color, same position, same typography. Output: PNG with transparent background." &
 
-# Light variant (for dark footer)
+# Light variant (for dark footer) — strip bg + recolor dark text to cream
 edit_variant "logo-light" \
-  "Remove the solid black background from this logo completely, making it fully transparent (alpha 0). Keep the white text (SS monogram and STATELY SHADES wordmark) exactly as white (#F7F2EA). Keep the cream/champagne tagline and divider line in their original warm cream/champagne color. Preserve the exact typography, composition, proportions, and serif style. Output: PNG with transparent background." &
+  "Remove the off-white/cream background from this logo completely, making it fully transparent (alpha channel 0). Recolor the dark SS monogram and the STATELY SHADES wordmark text to warm white/cream (#F7F2EA). Keep the warm brass/champagne divider line and small CUSTOM BLINDS, SHUTTERS & SHADES tagline exactly as they are. Preserve typography, proportions, and composition. Output: PNG with transparent background." &
 
 wait
 echo "[done] both variants generated"
-ls -lh "$OUT_DIR"/logo-*.png 2>/dev/null
+
+# Convert to WebP
+if command -v cwebp >/dev/null 2>&1; then
+  for v in logo-dark logo-light; do
+    if [ -f "$OUT_DIR/${v}.png" ]; then
+      cwebp -q 90 -m 6 -alpha_q 100 "$OUT_DIR/${v}.png" -o "$OUT_DIR/${v}.webp" 2>/dev/null && rm "$OUT_DIR/${v}.png"
+      echo "[webp] $OUT_DIR/${v}.webp"
+    fi
+  done
+fi
+
+ls -lh "$OUT_DIR"/logo* 2>/dev/null
