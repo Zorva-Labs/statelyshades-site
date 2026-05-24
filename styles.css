@@ -512,9 +512,17 @@ p { margin: 0; }
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: clamp(40px, 6vw, 84px);
-  align-items: end;
+  align-items: start;
 }
-.hero__text { max-width: 640px; }
+.hero__text {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.hero__text .eyebrow { margin-bottom: 0; }
+.hero__text .hero__lede { margin: 0; }
+.hero__text .hero__trust { margin-top: 8px; }
 .hero__content .eyebrow { color: var(--color-champagne); }
 .hero h1 {
   font-family: var(--font-display);
@@ -581,7 +589,7 @@ p { margin: 0; }
 }
 .form--compact::before { display: none; }
 .form--compact label {
-  color: var(--color-ink-soft);
+  color: var(--color-ink);
   font-size: 0.74rem;
   letter-spacing: 0.18em;
   font-weight: 500;
@@ -630,14 +638,15 @@ p { margin: 0; }
   margin-top: 6px;
 }
 .form--compact .form__fineprint {
-  color: var(--color-ink-soft);
-  font-size: 0.78rem;
+  color: var(--color-ink-soft) !important;
+  font-size: 0.82rem !important;
   letter-spacing: 0.04em;
   margin: 4px 0 0;
 }
 .form--compact .form__fineprint a {
-  color: var(--color-brass);
-  border-bottom: 1px solid currentColor;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-brass);
+  font-weight: 500;
 }
 
 /* Mobile: 3-col address row stacks State + ZIP under City */
@@ -1353,7 +1362,7 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-champagne);
+  color: rgba(247, 242, 234, 0.92);
   font-weight: 500;
 }
 .form input, .form select, .form textarea {
@@ -1363,22 +1372,31 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   letter-spacing: normal;
   text-transform: none;
   color: var(--color-bg);
-  background: rgba(247,242,234,.05);
+  background: rgba(247,242,234,.06);
   border: 0;
-  border-bottom: 1px solid rgba(212,184,150,.4);
+  border-bottom: 1px solid rgba(247,242,234,.35);
   padding: 14px 12px 14px 4px;
   border-radius: 0;
   transition: border-color var(--dur-quick), background var(--dur-quick);
   width: 100%;
 }
 .form input::placeholder, .form textarea::placeholder {
-  color: rgba(247,242,234,.4);
+  color: rgba(247,242,234,.5);
   font-style: italic;
 }
 .form input:focus, .form select:focus, .form textarea:focus {
   outline: none;
-  border-bottom-color: var(--color-brass-hot);
-  background: rgba(247,242,234,.09);
+  border-bottom-color: var(--color-bg);
+  background: rgba(247,242,234,.1);
+}
+.form select option { color: var(--color-ink); }
+.form__fineprint {
+  color: rgba(247,242,234,.7) !important;
+  font-size: 0.84rem !important;
+}
+.form__fineprint a {
+  color: var(--color-bg);
+  border-bottom: 1px solid rgba(247,242,234,.4);
 }
 .form select {
   appearance: none;
