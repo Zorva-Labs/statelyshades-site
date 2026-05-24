@@ -30,6 +30,10 @@ export async function onRequestPost({ request, env }) {
   const name = (data.name || "").toString().trim();
   const phone = (data.phone || "").toString().trim();
   const email = (data.email || "").toString().trim();
+  const addressStreet = (data.address_street || "").toString().trim();
+  const addressCity = (data.address_city || "").toString().trim();
+  const addressState = (data.address_state || "").toString().trim().toUpperCase().slice(0, 2);
+  const addressZip = (data.address_zip || "").toString().trim().slice(0, 10);
   const location = (data.location || "").toString().trim();
   const interest = (data.interest || "").toString().trim();
   const message = (data.message || "").toString().trim();
@@ -38,9 +42,17 @@ export async function onRequestPost({ request, env }) {
   if (!name || !phone || !email) {
     return json({ error: "Name, phone, and email are required." }, 400);
   }
+  if (!addressStreet || !addressCity || !addressState || !addressZip) {
+    return json({ error: "Please provide your full service address (street, city, state, ZIP)." }, 400);
+  }
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return json({ error: "That email address looks invalid." }, 400);
   }
+
+  // Composed single-line address for emails and the legacy `location` column
+  const fullAddress = [addressStreet, [addressCity, addressState].filter(Boolean).join(", "), addressZip]
+    .filter(Boolean)
+    .join(" · ");
 
   const subject = `New consultation request — ${name}`;
 
@@ -52,7 +64,8 @@ Source form: ${source}
 Name:        ${name}
 Phone:       ${phone}
 Email:       ${email}
-City / ZIP:  ${location || "(not provided)"}
+Address:     ${addressStreet}
+             ${addressCity}, ${addressState} ${addressZip}
 Considering: ${interest || "(not specified)"}
 
 Message:
@@ -70,7 +83,7 @@ https://statelyshades.com/crm/
     <tr><td style="padding: 8px 12px 8px 0; color: #56493C; width: 130px;">Name</td><td style="padding: 8px 0;"><strong>${esc(name)}</strong></td></tr>
     <tr><td style="padding: 8px 12px 8px 0; color: #56493C;">Phone</td><td style="padding: 8px 0;"><a href="tel:${esc(phone)}" style="color: #9D7A3E;">${esc(phone)}</a></td></tr>
     <tr><td style="padding: 8px 12px 8px 0; color: #56493C;">Email</td><td style="padding: 8px 0;"><a href="mailto:${esc(email)}" style="color: #9D7A3E;">${esc(email)}</a></td></tr>
-    <tr><td style="padding: 8px 12px 8px 0; color: #56493C;">City / ZIP</td><td style="padding: 8px 0;">${esc(location || "(not provided)")}</td></tr>
+    <tr><td style="padding: 8px 12px 8px 0; color: #56493C; vertical-align: top;">Address</td><td style="padding: 8px 0;"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addressStreet}, ${addressCity}, ${addressState} ${addressZip}`)}" style="color: #9D7A3E;">${esc(addressStreet)}<br/>${esc(addressCity)}, ${esc(addressState)} ${esc(addressZip)}</a></td></tr>
     <tr><td style="padding: 8px 12px 8px 0; color: #56493C;">Considering</td><td style="padding: 8px 0;">${esc(interest || "(not specified)")}</td></tr>
   </table>
   <p style="margin: 0 0 8px; color: #56493C;">Message:</p>
@@ -126,13 +139,17 @@ https://statelyshades.com/crm/
 
       await env.DB.prepare(
         `INSERT INTO leads
-          (name, phone, email, location, interest, message,
+          (name, phone, email,
+           address_street, address_city, address_state, address_zip, location,
+           interest, message,
            source_page, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
            referrer, user_agent, ip_hash)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)`
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`
       )
         .bind(
-          name, phone, email, location || null, interest || null, message || null,
+          name, phone, email,
+          addressStreet, addressCity, addressState, addressZip, fullAddress,
+          interest || null, message || null,
           source,
           utm_source, utm_medium, utm_campaign, utm_term, utm_content,
           ref, ua, ipHash

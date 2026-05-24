@@ -280,23 +280,41 @@
           <h2 class="hero__form-title">Schedule <em>yours.</em></h2>
           <form class="form form--compact" action="/api/contact" method="POST" novalidate data-form-source="hero">
             <label>
-              <span>Name</span>
-              <input type="text" name="name" required autocomplete="name" />
+              <span>Full Name</span>
+              <input type="text" name="name" required autocomplete="name" placeholder="Your name" />
             </label>
             <div class="form__row">
               <label>
                 <span>Phone</span>
-                <input type="tel" name="phone" required autocomplete="tel" />
+                <input type="tel" name="phone" required autocomplete="tel" placeholder="(629) 555-0100" />
               </label>
               <label>
                 <span>Email</span>
-                <input type="email" name="email" required autocomplete="email" />
+                <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+              </label>
+            </div>
+            <label>
+              <span>Street Address</span>
+              <input type="text" name="address_street" required autocomplete="street-address" placeholder="123 Main Street" />
+            </label>
+            <div class="form__row form__row--3">
+              <label>
+                <span>City</span>
+                <input type="text" name="address_city" required autocomplete="address-level2" placeholder="Gallatin" />
+              </label>
+              <label>
+                <span>State</span>
+                <input type="text" name="address_state" required autocomplete="address-level1" placeholder="TN" maxlength="2" />
+              </label>
+              <label>
+                <span>ZIP</span>
+                <input type="text" name="address_zip" required autocomplete="postal-code" placeholder="37066" maxlength="10" inputmode="numeric" />
               </label>
             </div>
             <label>
               <span>What are you considering?</span>
               <select name="interest">
-                <option value="">Optional</option>
+                <option value="">Optional — we can help you decide</option>
                 <option>Plantation Shutters</option>
                 <option>Motorized Shades</option>
                 <option>Cellular / Honeycomb</option>
@@ -777,22 +795,36 @@
         <form class="form" action="/api/contact" method="POST" novalidate data-reveal data-form-source="contact">
           <div class="form__row">
             <label>
-              <span>Name</span>
-              <input type="text" name="name" required autocomplete="name" />
+              <span>Full Name</span>
+              <input type="text" name="name" required autocomplete="name" placeholder="Your name" />
             </label>
             <label>
               <span>Phone</span>
-              <input type="tel" name="phone" required autocomplete="tel" />
+              <input type="tel" name="phone" required autocomplete="tel" placeholder="(629) 555-0100" />
             </label>
           </div>
           <label>
             <span>Email</span>
-            <input type="email" name="email" required autocomplete="email" />
+            <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
           </label>
           <label>
-            <span>City / ZIP</span>
-            <input type="text" name="location" autocomplete="address-level2" />
+            <span>Street Address</span>
+            <input type="text" name="address_street" required autocomplete="street-address" placeholder="123 Main Street" />
           </label>
+          <div class="form__row form__row--3">
+            <label>
+              <span>City</span>
+              <input type="text" name="address_city" required autocomplete="address-level2" placeholder="Gallatin" />
+            </label>
+            <label>
+              <span>State</span>
+              <input type="text" name="address_state" required autocomplete="address-level1" placeholder="TN" maxlength="2" />
+            </label>
+            <label>
+              <span>ZIP</span>
+              <input type="text" name="address_zip" required autocomplete="postal-code" placeholder="37066" maxlength="10" inputmode="numeric" />
+            </label>
+          </div>
           <label>
             <span>What are you considering?</span>
             <select name="interest">
@@ -800,11 +832,13 @@
               <option>Plantation Shutters</option>
               <option>Motorized Shades</option>
               <option>Cellular / Honeycomb</option>
-              <option>Roller / Solar Shades</option>
-              <option>Roman Shades</option>
-              <option>Wood / Faux Wood Blinds</option>
-              <option>Outdoor Shades</option>
-              <option>Drapery</option>
+              <option>Sheer Fabric Shades</option>
+              <option>Zebra / Banded</option>
+              <option>Woven Wood / Bamboo</option>
+              <option>Roller / Solar</option>
+              <option>Outdoor / Awnings</option>
+              <option>Blinds &amp; Drapery</option>
+              <option>Repair Service</option>
               <option>Whole-home — not sure yet</option>
             </select>
           </label>

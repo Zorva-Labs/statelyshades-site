@@ -34,8 +34,9 @@ export async function onRequestGet(context) {
   }
 
   const sql = `
-    SELECT id, created_at, updated_at, name, phone, email, location, interest,
-           message, source_page, status, assigned_to, quoted_amount_cents
+    SELECT id, created_at, updated_at, name, phone, email,
+           address_street, address_city, address_state, address_zip, location,
+           interest, message, source_page, status, assigned_to, quoted_amount_cents
     FROM leads
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY datetime(created_at) DESC

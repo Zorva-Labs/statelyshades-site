@@ -59,8 +59,9 @@
           <div class="row"><strong>Status</strong>${SSAdmin.pill(lead.status)}</div>
           <div class="row"><strong>Phone</strong><a href="tel:${SSAdmin.esc(lead.phone)}">${SSAdmin.esc(lead.phone)}</a></div>
           <div class="row"><strong>Email</strong><a href="mailto:${SSAdmin.esc(lead.email)}">${SSAdmin.esc(lead.email)}</a></div>
-          <div class="row"><strong>Location</strong>${SSAdmin.esc(lead.location || "—")}</div>
+          <div class="row"><strong>Address</strong>${renderAddress(lead)}</div>
           <div class="row"><strong>Considering</strong>${SSAdmin.esc(lead.interest || "—")}</div>
+          <div class="row"><strong>Source</strong>${SSAdmin.esc(lead.source_page || "—")}</div>
           <div class="row"><strong>Submitted</strong>${SSAdmin.fmtDateTime(lead.created_at)}</div>
           ${lead.utm_source ? `<div class="row"><strong>UTM Source</strong>${SSAdmin.esc(lead.utm_source)}</div>` : ""}
           ${lead.utm_campaign ? `<div class="row"><strong>UTM Campaign</strong>${SSAdmin.esc(lead.utm_campaign)}</div>` : ""}
@@ -91,6 +92,14 @@
           </div>
         </div>
       `;
+
+      function renderAddress(l) {
+        const parts = [l.address_street, [l.address_city, l.address_state].filter(Boolean).join(", "), l.address_zip].filter(Boolean);
+        if (!parts.length) return SSAdmin.esc(l.location || "—");
+        const oneLine = parts.join(", ");
+        const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(oneLine);
+        return `<a href="${mapUrl}" target="_blank" rel="noopener">${SSAdmin.esc(parts.join(" · "))}</a>`;
+      }
 
       function renderNotes(arr) {
         if (!arr || !arr.length) return `<p style="color: var(--color-muted); font-style: italic; font-family: var(--font-display);">No notes yet.</p>`;

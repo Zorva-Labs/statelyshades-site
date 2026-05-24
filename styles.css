@@ -577,50 +577,77 @@ p { margin: 0; }
   background: transparent;
   border: 0;
   padding: 0;
-  gap: 14px;
+  gap: 18px;
 }
 .form--compact::before { display: none; }
 .form--compact label {
   color: var(--color-ink-soft);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  gap: 7px;
 }
-.form--compact .form__row { gap: 12px; }
+.form--compact .form__row { gap: 14px; }
+.form--compact .form__row--3 {
+  grid-template-columns: 1.8fr 0.7fr 1fr;
+  gap: 12px;
+}
 .form--compact input,
 .form--compact select,
 .form--compact textarea {
   color: var(--color-ink);
-  background: var(--color-bg);
+  background: rgba(255,255,255,0.65);
   border: 0;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1.5px solid var(--color-line);
   border-radius: 0;
-  padding: 8px 0 10px;
-  font-size: 0.95rem;
+  padding: 12px 12px 12px 4px;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.form--compact input::placeholder, .form--compact textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 0.7;
+  font-style: italic;
 }
 .form--compact input:focus,
 .form--compact select:focus,
 .form--compact textarea:focus {
   outline: none;
   border-bottom-color: var(--color-brass);
-  background: transparent;
+  background: rgba(255,255,255,0.9);
 }
 .form--compact select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239D7A3E' stroke-width='1.2'><path d='M1 1l5 5 5-5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239D7A3E' stroke-width='1.4'><path d='M1 1l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 11px;
+  padding-right: 26px;
 }
 .form--compact .btn {
-  padding: 14px;
-  font-size: 0.74rem;
-  margin-top: 4px;
+  padding: 16px;
+  font-size: 0.78rem;
+  margin-top: 6px;
 }
 .form--compact .form__fineprint {
-  color: var(--color-muted);
-  font-size: 0.72rem;
+  color: var(--color-ink-soft);
+  font-size: 0.78rem;
   letter-spacing: 0.04em;
-  margin: 2px 0 0;
+  margin: 4px 0 0;
 }
 .form--compact .form__fineprint a {
   color: var(--color-brass);
   border-bottom: 1px solid currentColor;
+}
+
+/* Mobile: 3-col address row stacks State + ZIP under City */
+@media (max-width: 540px) {
+  .form__row--3 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .form__row--3 label:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Success state, regardless of form variant */

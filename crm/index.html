@@ -98,7 +98,7 @@
             <div class="lead-table__location">${l.phone ? `<a href="tel:${SSAdmin.esc(l.phone)}">${SSAdmin.esc(l.phone)}</a>` : ""}</div>
           </td>
           <td><div class="lead-table__interest">${SSAdmin.esc(l.interest || "—")}</div></td>
-          <td><div class="lead-table__location">${SSAdmin.esc(l.location || "—")}</div></td>
+          <td><div class="lead-table__location">${SSAdmin.esc([l.address_city, l.address_state].filter(Boolean).join(", ") || l.location || "—")}</div></td>
           <td>${SSAdmin.pill(l.status)}</td>
         </tr>
       `).join("");
