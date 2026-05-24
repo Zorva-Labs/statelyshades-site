@@ -604,26 +604,26 @@ p { margin: 0; }
 .form--compact select,
 .form--compact textarea {
   color: var(--color-ink);
-  background: rgba(255,255,255,0.65);
-  border: 0;
-  border-bottom: 1.5px solid var(--color-line);
-  border-radius: 0;
-  padding: 12px 12px 12px 4px;
+  background: #FFFFFF;
+  border: 1px solid var(--color-line);
+  border-radius: 2px;
+  padding: 12px 14px;
   font-size: 1rem;
   font-weight: 400;
   letter-spacing: 0;
 }
 .form--compact input::placeholder, .form--compact textarea::placeholder {
   color: var(--color-muted);
-  opacity: 0.7;
+  opacity: 1;
   font-style: italic;
 }
 .form--compact input:focus,
 .form--compact select:focus,
 .form--compact textarea:focus {
   outline: none;
-  border-bottom-color: var(--color-brass);
-  background: rgba(255,255,255,0.9);
+  border-color: var(--color-brass);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(157, 122, 62, 0.12);
 }
 .form--compact select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239D7A3E' stroke-width='1.4'><path d='M1 1l5 5 5-5'/></svg>");
@@ -1372,22 +1372,21 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   letter-spacing: normal;
   text-transform: none;
   color: var(--color-bg);
-  background: rgba(247,242,234,.06);
-  border: 0;
-  border-bottom: 1px solid rgba(247,242,234,.35);
-  padding: 14px 12px 14px 4px;
-  border-radius: 0;
+  background: rgba(247, 242, 234, 0.12);
+  border: 1px solid rgba(247, 242, 234, 0.28);
+  padding: 14px 14px;
+  border-radius: 2px;
   transition: border-color var(--dur-quick), background var(--dur-quick);
   width: 100%;
 }
 .form input::placeholder, .form textarea::placeholder {
-  color: rgba(247,242,234,.5);
+  color: rgba(247, 242, 234, 0.6);
   font-style: italic;
 }
 .form input:focus, .form select:focus, .form textarea:focus {
   outline: none;
-  border-bottom-color: var(--color-bg);
-  background: rgba(247,242,234,.1);
+  border-color: var(--color-bg);
+  background: rgba(247, 242, 234, 0.18);
 }
 .form select option { color: var(--color-ink); }
 .form__fineprint {
