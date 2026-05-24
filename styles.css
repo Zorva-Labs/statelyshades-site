@@ -1343,32 +1343,42 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 .form__row {
   display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
 }
+.form__row--3 {
+  grid-template-columns: 2fr 0.7fr 1fr;
+}
 .form label {
   display: flex; flex-direction: column;
   gap: 10px;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.24em;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-champagne);
+  font-weight: 500;
 }
 .form input, .form select, .form textarea {
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 1.05rem;
+  font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
   color: var(--color-bg);
-  background: transparent;
+  background: rgba(247,242,234,.05);
   border: 0;
-  border-bottom: 1px solid rgba(212,184,150,.3);
-  padding: 12px 0;
+  border-bottom: 1px solid rgba(212,184,150,.4);
+  padding: 14px 12px 14px 4px;
   border-radius: 0;
   transition: border-color var(--dur-quick), background var(--dur-quick);
   width: 100%;
 }
+.form input::placeholder, .form textarea::placeholder {
+  color: rgba(247,242,234,.4);
+  font-style: italic;
+}
 .form input:focus, .form select:focus, .form textarea:focus {
   outline: none;
   border-bottom-color: var(--color-brass-hot);
+  background: rgba(247,242,234,.09);
 }
 .form select {
   appearance: none;
