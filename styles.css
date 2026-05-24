@@ -1379,7 +1379,8 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .nav__brand { gap: 10px; }
   .nav__monogram { font-size: 1.8rem; }
   .nav__wordmark { font-size: 0.95rem; letter-spacing: 0.05em; }
-  .nav__tagline { display: none; }
+  .nav__tagline,
+  .nav__rule { display: none; }
 
   .form__row { grid-template-columns: 1fr; }
   .services__bento { grid-template-columns: 1fr; }
