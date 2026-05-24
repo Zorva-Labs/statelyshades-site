@@ -70,14 +70,17 @@
     }, { once: true });
   });
 
-  // Contact form: POST to /api/contact (Pages Function -> Purelymail).
-  // Replace the form with a success message inline on success.
-  const form = document.querySelector('form.form');
-  if (form) {
+  // Contact forms: POST to /api/contact (saves to CRM + sends Purelymail email).
+  // All <form class="form"> elements wire up the same way. Each carries a
+  // data-form-source attribute so we can tell which form fired the lead.
+  document.querySelectorAll('form.form').forEach((form) => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = form.querySelector('button[type="submit"]');
       const originalLabel = btn ? btn.innerHTML : '';
+      const isCompact = form.classList.contains('form--compact');
+      const source = form.dataset.formSource || 'unknown';
+
       const setBusy = (busy) => {
         if (!btn) return;
         btn.disabled = busy;
@@ -89,6 +92,7 @@
 
       setBusy(true);
       const data = Object.fromEntries(new FormData(form).entries());
+      data.source = source;
 
       try {
         const res = await fetch(form.action, {
@@ -100,21 +104,27 @@
         if (!res.ok || body.error) throw new Error(body.error || 'Network error');
 
         const success = document.createElement('div');
-        success.className = 'form form__success';
-        success.innerHTML = `
-          <span class="eyebrow eyebrow--light">Thank You</span>
-          <h3 style="font-family: var(--font-display); font-size: clamp(1.6rem, 2.3vw, 2.1rem); font-weight: 400; color: var(--color-bg); margin: 8px 0 14px;">Your request has been sent.</h3>
-          <p style="color: rgba(247,242,234,.82); font-family: var(--font-display); font-style: italic; font-size: 1.08rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your complimentary in-home consultation. For anything urgent, call or text <a href="tel:+16292988241" style="color: var(--color-champagne); border-bottom: 1px solid currentColor;">629-298-8241</a>.</p>
-        `;
+        success.className = isCompact ? 'form__success form__success--light' : 'form form__success';
+        success.innerHTML = isCompact
+          ? `
+            <span class="eyebrow" style="color: var(--color-brass);">Thank You</span>
+            <h3 style="font-family: var(--font-display); font-size: clamp(1.5rem, 2.2vw, 2rem); font-weight: 400; color: var(--color-ink); margin: 6px 0 12px;">Request sent.</h3>
+            <p style="color: var(--color-ink-soft); font-family: var(--font-display); font-style: italic; font-size: 1.05rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your free in-home consultation. For anything urgent, call <a href="tel:+16292988241" style="color: var(--color-brass); border-bottom: 1px solid currentColor;">629-298-8241</a>.</p>
+          `
+          : `
+            <span class="eyebrow eyebrow--light">Thank You</span>
+            <h3 style="font-family: var(--font-display); font-size: clamp(1.6rem, 2.3vw, 2.1rem); font-weight: 400; color: var(--color-bg); margin: 8px 0 14px;">Your request has been sent.</h3>
+            <p style="color: rgba(247,242,234,.82); font-family: var(--font-display); font-style: italic; font-size: 1.08rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your complimentary in-home consultation. For anything urgent, call or text <a href="tel:+16292988241" style="color: var(--color-champagne); border-bottom: 1px solid currentColor;">629-298-8241</a>.</p>
+          `;
         form.replaceWith(success);
       } catch (err) {
         const errBox = document.createElement('p');
         errBox.className = 'form__error';
-        errBox.style.cssText = 'color: #E89B7C; font-size: 0.9rem; margin: 0; text-align: center; font-family: var(--font-body);';
+        errBox.style.cssText = (isCompact ? 'color: #B85450;' : 'color: #E89B7C;') + ' font-size: 0.9rem; margin: 0; text-align: center; font-family: var(--font-body);';
         errBox.textContent = err.message || 'Something went wrong. Please call us at 629-298-8241.';
         btn.parentNode.insertBefore(errBox, btn);
         setBusy(false);
       }
     });
-  }
+  });
 })();

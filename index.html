@@ -23,7 +23,8 @@
   <meta name="twitter:description" content="Custom shutters, blinds, motorized shades, fabric sheers, woven wood, drapery, and outdoor systems. Family-owned in Gallatin, TN. Free in-home consultations within 90 miles." />
   <meta name="twitter:image" content="https://statelyshades.com/assets/images/hero-shades-opening.webp" />
 
-  <!-- Favicons -->
+  <!-- Favicons: SVG monogram for modern browsers, PNG fallback for older + Apple home screen -->
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg" />
   <link rel="icon" type="image/png" href="/assets/images/logo-v4.png" />
   <link rel="apple-touch-icon" href="/assets/images/logo-v4.png" />
 
@@ -255,26 +256,64 @@
       <div class="hero__edge" aria-hidden="true">Gallatin · Tennessee</div>
 
       <div class="container hero__content">
-        <span class="eyebrow" data-reveal>Custom Blinds · Shutters · Shades</span>
-        <h1 data-reveal>Window treatments,<br/><em>perfectly tailored.</em></h1>
-        <p class="hero__lede" data-reveal>
-          Family-owned in Gallatin, Tennessee. An independent dealer of the world's
-          finest window treatments — Hunter Douglas, Somfy, Graber, Sol-Lux — we
-          design, measure, and install in your home.
-        </p>
-        <div class="hero__ctas" data-reveal>
-          <a class="btn" href="#contact">Book Free Consultation <span class="arrow"></span></a>
-          <a class="btn btn--ghost" href="tel:+16292988241">629-298-8241</a>
+        <div class="hero__text">
+          <span class="eyebrow" data-reveal>Custom Blinds · Shutters · Shades</span>
+          <h1 data-reveal>Window treatments,<br/><em>perfectly tailored.</em></h1>
+          <p class="hero__lede" data-reveal>
+            Family-owned in Gallatin, Tennessee. An independent dealer of the world's
+            finest window treatments — Hunter Douglas, Somfy, Graber, Sol-Lux — we
+            design, measure, and install in your home.
+          </p>
+          <div class="hero__trust" data-reveal>
+            <span>Free In-Home Quotes</span>
+            <span class="dot">·</span>
+            <span>Lifetime Warranties</span>
+            <span class="dot">·</span>
+            <span>Repair Service</span>
+            <span class="dot">·</span>
+            <span>90-Mile Radius</span>
+          </div>
         </div>
-        <div class="hero__trust" data-reveal>
-          <span>Free In-Home Quotes</span>
-          <span class="dot">·</span>
-          <span>Lifetime Warranties</span>
-          <span class="dot">·</span>
-          <span>Repair Service</span>
-          <span class="dot">·</span>
-          <span>90-Mile Radius</span>
-        </div>
+
+        <aside class="hero__form-card" data-reveal>
+          <span class="eyebrow">Free Consultation</span>
+          <h2 class="hero__form-title">Schedule <em>yours.</em></h2>
+          <form class="form form--compact" action="/api/contact" method="POST" novalidate data-form-source="hero">
+            <label>
+              <span>Name</span>
+              <input type="text" name="name" required autocomplete="name" />
+            </label>
+            <div class="form__row">
+              <label>
+                <span>Phone</span>
+                <input type="tel" name="phone" required autocomplete="tel" />
+              </label>
+              <label>
+                <span>Email</span>
+                <input type="email" name="email" required autocomplete="email" />
+              </label>
+            </div>
+            <label>
+              <span>What are you considering?</span>
+              <select name="interest">
+                <option value="">Optional</option>
+                <option>Plantation Shutters</option>
+                <option>Motorized Shades</option>
+                <option>Cellular / Honeycomb</option>
+                <option>Sheer Fabric Shades</option>
+                <option>Zebra / Banded</option>
+                <option>Woven Wood / Bamboo</option>
+                <option>Roller / Solar</option>
+                <option>Outdoor / Awnings</option>
+                <option>Blinds &amp; Drapery</option>
+                <option>Repair Service</option>
+                <option>Whole-home — not sure yet</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn--block">Schedule My Consultation <span class="arrow"></span></button>
+            <p class="form__fineprint">No obligation · Or call <a href="tel:+16292988241">629-298-8241</a></p>
+          </form>
+        </aside>
       </div>
     </section>
 
@@ -735,7 +774,7 @@
           </div>
         </div>
 
-        <form class="form" action="/api/contact" method="POST" novalidate data-reveal>
+        <form class="form" action="/api/contact" method="POST" novalidate data-reveal data-form-source="contact">
           <div class="form__row">
             <label>
               <span>Name</span>

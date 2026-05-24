@@ -509,8 +509,12 @@ p { margin: 0; }
 .hero__content {
   position: relative; z-index: 1;
   padding-top: 80px; padding-bottom: clamp(80px, 10vw, 130px);
-  max-width: 1100px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(40px, 6vw, 84px);
+  align-items: end;
 }
+.hero__text { max-width: 640px; }
 .hero__content .eyebrow { color: var(--color-champagne); }
 .hero h1 {
   font-family: var(--font-display);
@@ -537,6 +541,100 @@ p { margin: 0; }
   display: flex; flex-wrap: wrap; gap: 16px;
   margin-bottom: 60px;
 }
+
+/* Hero inline form card — sits on the right of the hero */
+.hero__form-card {
+  background: rgba(247, 242, 234, 0.95);
+  color: var(--color-ink);
+  padding: clamp(24px, 2.4vw, 36px) clamp(22px, 2.2vw, 32px);
+  border-radius: 2px;
+  box-shadow: 0 50px 120px -50px rgba(10, 8, 5, 0.7);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-top: 1px solid var(--color-brass);
+  margin-top: 24px;
+}
+.hero__form-card .eyebrow {
+  color: var(--color-brass);
+  margin-bottom: 8px;
+}
+.hero__form-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.012em;
+  color: var(--color-ink);
+  margin: 0 0 18px;
+}
+.hero__form-title em {
+  font-style: italic;
+  color: var(--color-brass);
+}
+
+/* Compact form variant — sits on a cream card instead of the dark section */
+.form--compact {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 14px;
+}
+.form--compact::before { display: none; }
+.form--compact label {
+  color: var(--color-ink-soft);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+}
+.form--compact .form__row { gap: 12px; }
+.form--compact input,
+.form--compact select,
+.form--compact textarea {
+  color: var(--color-ink);
+  background: var(--color-bg);
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  border-radius: 0;
+  padding: 8px 0 10px;
+  font-size: 0.95rem;
+}
+.form--compact input:focus,
+.form--compact select:focus,
+.form--compact textarea:focus {
+  outline: none;
+  border-bottom-color: var(--color-brass);
+  background: transparent;
+}
+.form--compact select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239D7A3E' stroke-width='1.2'><path d='M1 1l5 5 5-5'/></svg>");
+}
+.form--compact .btn {
+  padding: 14px;
+  font-size: 0.74rem;
+  margin-top: 4px;
+}
+.form--compact .form__fineprint {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  margin: 2px 0 0;
+}
+.form--compact .form__fineprint a {
+  color: var(--color-brass);
+  border-bottom: 1px solid currentColor;
+}
+
+/* Success state, regardless of form variant */
+.form__success {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  padding: clamp(24px, 2.4vw, 36px) clamp(22px, 2.2vw, 32px);
+}
+.form--compact ~ .form__success,
+.hero__form-card .form__success {
+  background: rgba(247, 242, 234, 0.95);
+  color: var(--color-ink);
+}
+
 .hero__trust {
   display: flex; flex-wrap: wrap; gap: 12px 24px;
   font-family: var(--font-mono);
@@ -1463,6 +1561,13 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .utility-bar__inner { justify-content: center; }
 
   .hero__edge { display: none; }
+  .hero__content {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    align-items: stretch;
+  }
+  .hero__text { max-width: 720px; }
+  .hero__form-card { margin-top: 0; }
 
   .mobile-cta {
     display: flex;
