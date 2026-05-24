@@ -744,25 +744,62 @@ p { margin: 0; }
   padding: 0;
 }
 .workrooms__list li {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  font-weight: 400;
-  letter-spacing: -0.012em;
   color: var(--color-ink);
   line-height: 1.1;
   position: relative;
   white-space: nowrap;
   transition: color var(--dur-quick) var(--ease);
 }
-.workrooms__list li em {
-  font-style: italic;
-  color: var(--color-brass);
-  font-weight: 400;
-}
-.workrooms__list li span {
-  margin-right: 0.18em;
-}
 .workrooms__list li:hover { color: var(--color-brass); }
+
+/* Brand-specific typography — each evokes its manufacturer's visual identity */
+
+/* Hunter Douglas — refined heritage serif, all caps */
+.brand--hd {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Somfy — bold lowercase sans, modern engineering */
+.brand--somfy {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 2.9vw, 2.3rem);
+  text-transform: lowercase;
+  letter-spacing: -0.03em;
+}
+
+/* Graber — geometric sans, wide caps tracking */
+.brand--graber {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: clamp(1.3rem, 2.3vw, 1.8rem);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  padding-right: 0.22em; /* compensate for trailing tracking */
+}
+
+/* Sol-Lux — light boutique serif italic */
+.brand--sollux {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+/* Specialized Shading Systems — technical mono caps, smaller */
+.brand--sss {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: clamp(0.78rem, 1.3vw, 1rem);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  line-height: 1.4;
+}
 
 /* Brass dot separators between brand names */
 .workrooms__list li + li::before {
