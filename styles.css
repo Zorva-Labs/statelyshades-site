@@ -273,13 +273,26 @@ p { margin: 0; }
   height: 44px;
 }
 .utility-bar__item { opacity: 0.85; }
+.utility-bar__contacts {
+  display: inline-flex; align-items: center; gap: 22px;
+}
+.utility-bar__email,
 .utility-bar__phone {
   display: inline-flex; align-items: center; gap: 10px;
   color: var(--color-champagne);
   transition: color var(--dur-quick) var(--ease);
+  text-transform: none;
+  letter-spacing: 0.04em;
 }
+.utility-bar__email:hover,
 .utility-bar__phone:hover { color: var(--color-brass-hot); }
+.utility-bar__email svg,
 .utility-bar__phone svg { display: block; opacity: 0.8; }
+
+/* On phones, only the phone link fits — email collapses */
+@media (max-width: 720px) {
+  .utility-bar__email { display: none; }
+}
 
 /* ============================================================
    Navigation

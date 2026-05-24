@@ -66,6 +66,7 @@
         },
         "description": "Family-owned independent dealer of premium window treatments — Hunter Douglas, Somfy, Graber, Sol-Lux. Blinds, plantation shutters, motorized and outdoor shades.",
         "telephone": "+1-629-298-8241",
+        "email": "hello@statelyshades.com",
         "areaServed": [
           { "@type": "City", "name": "Gallatin", "containedInPlace": { "@type": "State", "name": "Tennessee" } },
           { "@type": "City", "name": "Nashville", "containedInPlace": { "@type": "State", "name": "Tennessee" } },
@@ -82,6 +83,7 @@
         "image": "https://statelyshades.com/assets/images/logo.png?v=2",
         "url": "https://statelyshades.com/",
         "telephone": "+1-629-298-8241",
+        "email": "hello@statelyshades.com",
         "priceRange": "$$-$$$",
         "address": {
           "@type": "PostalAddress",
@@ -200,10 +202,16 @@
   <div class="utility-bar">
     <div class="container utility-bar__inner">
       <span class="utility-bar__item">Family-owned · Gallatin, Tennessee</span>
-      <a class="utility-bar__phone" href="tel:+16292988241" aria-label="Call or text six two nine, two nine eight, eight two four one">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
-        Call or Text · 629-298-8241
-      </a>
+      <span class="utility-bar__contacts">
+        <a class="utility-bar__email" href="mailto:hello@statelyshades.com">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          hello@statelyshades.com
+        </a>
+        <a class="utility-bar__phone" href="tel:+16292988241" aria-label="Call or text six two nine, two nine eight, eight two four one">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
+          Call or Text · 629-298-8241
+        </a>
+      </span>
     </div>
   </div>
 
@@ -712,6 +720,10 @@
               <span class="eyebrow eyebrow--light">Call or Text</span>
               <strong>629-298-8241</strong>
             </a>
+            <a href="mailto:hello@statelyshades.com" class="contact__line">
+              <span class="eyebrow eyebrow--light">Email</span>
+              <strong>hello@statelyshades.com</strong>
+            </a>
             <div class="contact__line">
               <span class="eyebrow eyebrow--light">Service Area</span>
               <strong>90 mi · Gallatin, TN</strong>
@@ -723,7 +735,7 @@
           </div>
         </div>
 
-        <form class="form" action="https://formspree.io/f/your-form-id" method="POST" novalidate data-reveal>
+        <form class="form" action="/api/contact" method="POST" novalidate data-reveal>
           <div class="form__row">
             <label>
               <span>Name</span>
@@ -807,6 +819,7 @@
         <span class="eyebrow eyebrow--light">Contact</span>
         <ul>
           <li><a href="tel:+16292988241">629-298-8241</a></li>
+          <li><a href="mailto:hello@statelyshades.com">hello@statelyshades.com</a></li>
           <li>Gallatin, Tennessee</li>
           <li>Mon–Sat · 8am–6pm</li>
         </ul>

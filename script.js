@@ -69,4 +69,52 @@
       img.src = '/assets/images/placeholder.svg';
     }, { once: true });
   });
+
+  // Contact form: POST to /api/contact (Pages Function -> Purelymail).
+  // Replace the form with a success message inline on success.
+  const form = document.querySelector('form.form');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      const originalLabel = btn ? btn.innerHTML : '';
+      const setBusy = (busy) => {
+        if (!btn) return;
+        btn.disabled = busy;
+        btn.innerHTML = busy ? 'Sending&hellip;' : originalLabel;
+      };
+
+      // Clear any previous error
+      form.querySelectorAll('.form__error').forEach(n => n.remove());
+
+      setBusy(true);
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || body.error) throw new Error(body.error || 'Network error');
+
+        const success = document.createElement('div');
+        success.className = 'form form__success';
+        success.innerHTML = `
+          <span class="eyebrow eyebrow--light">Thank You</span>
+          <h3 style="font-family: var(--font-display); font-size: clamp(1.6rem, 2.3vw, 2.1rem); font-weight: 400; color: var(--color-bg); margin: 8px 0 14px;">Your request has been sent.</h3>
+          <p style="color: rgba(247,242,234,.82); font-family: var(--font-display); font-style: italic; font-size: 1.08rem; line-height: 1.55; margin: 0;">We'll be in touch within one business day to schedule your complimentary in-home consultation. For anything urgent, call or text <a href="tel:+16292988241" style="color: var(--color-champagne); border-bottom: 1px solid currentColor;">629-298-8241</a>.</p>
+        `;
+        form.replaceWith(success);
+      } catch (err) {
+        const errBox = document.createElement('p');
+        errBox.className = 'form__error';
+        errBox.style.cssText = 'color: #E89B7C; font-size: 0.9rem; margin: 0; text-align: center; font-family: var(--font-body);';
+        errBox.textContent = err.message || 'Something went wrong. Please call us at 629-298-8241.';
+        btn.parentNode.insertBefore(errBox, btn);
+        setBusy(false);
+      }
+    });
+  }
 })();
