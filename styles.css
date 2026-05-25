@@ -2373,6 +2373,209 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 }
 
 /* ============================================================
+   Sitewide Search — injected by JS into every nav
+   ============================================================ */
+
+.nav__search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: border-color var(--dur-quick) var(--ease), background var(--dur-quick) var(--ease);
+  flex-shrink: 0;
+}
+.nav__search:hover {
+  border-color: var(--color-line);
+  background: rgba(20, 17, 13, 0.04);
+}
+.nav__search svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+}
+
+/* On desktop, search button sits between nav__links and CTA */
+@media (min-width: 901px) {
+  .nav__inner { gap: 18px; }
+}
+
+/* On mobile, search button is in the nav row right of the brand, left of hamburger */
+@media (max-width: 900px) {
+  .nav__search {
+    margin-left: auto;
+  }
+}
+
+/* ----- Modal ----- */
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  padding: clamp(60px, 12vh, 140px) clamp(16px, 4vw, 40px);
+  background: rgba(20, 17, 13, 0.55);
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  animation: search-fade-in 220ms var(--ease-out);
+}
+.search-modal[data-open="true"] { display: flex; flex-direction: column; align-items: center; }
+@keyframes search-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.search-modal__card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 30px 80px -20px rgba(10, 8, 5, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+  animation: search-card-in 280ms var(--ease-out);
+}
+@keyframes search-card-in {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.search-modal__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+.search-modal__head svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--color-brass);
+  stroke-width: 1.6;
+  fill: none;
+  flex-shrink: 0;
+}
+.search-modal__input {
+  flex: 1;
+  font: inherit;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-ink);
+  padding: 8px 4px;
+}
+.search-modal__input::placeholder { color: var(--color-muted); }
+.search-modal__close {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-line);
+  padding: 6px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.search-modal__close:hover { color: var(--color-ink); border-color: var(--color-brass); }
+
+.search-modal__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.search-modal__result {
+  display: block;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--color-line-soft);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--dur-quick) var(--ease);
+  cursor: pointer;
+}
+.search-modal__result:last-child { border-bottom: 0; }
+.search-modal__result:hover,
+.search-modal__result[aria-selected="true"] {
+  background: var(--color-bg-2);
+}
+.search-modal__result-section {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+  margin-bottom: 6px;
+}
+.search-modal__result-title {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-ink);
+  margin: 0 0 4px;
+}
+.search-modal__result-title em { color: var(--color-brass); font-style: italic; }
+.search-modal__result-excerpt {
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+  margin: 0;
+}
+.search-modal__result mark {
+  background: rgba(201, 161, 88, 0.25);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.search-modal__empty {
+  padding: 32px 22px;
+  text-align: center;
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.02rem;
+}
+
+.search-modal__footer {
+  padding: 12px 22px;
+  border-top: 1px solid var(--color-line-soft);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  text-align: center;
+  background: var(--color-bg-2);
+}
+.search-modal__footer kbd {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin: 0 4px;
+}
+
+/* lock body scroll when modal is open */
+body[data-search-open="true"] { overflow: hidden; }
+
+/* ============================================================
    Journal (Blog)
    ============================================================ */
 

@@ -11,7 +11,7 @@ import textwrap
 ROOT = Path(__file__).resolve().parent.parent
 BLOG = ROOT / "blog"
 DATE = "2026-05-25"
-VERSION = "blog3"
+VERSION = "blog5"
 
 # ------------ Content table -----------------------------------------------
 

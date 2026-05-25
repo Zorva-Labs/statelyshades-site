@@ -91,6 +91,209 @@
     }, { once: true });
   });
 
+  // ============================================================
+  // Sitewide search — inject button into every nav, modal overlay
+  // with live filter against /search-index.json. Runs on every page
+  // because script.js is loaded sitewide.
+  // ============================================================
+  (function initSearch() {
+    const navInner = document.querySelector('.nav .nav__inner');
+    const navToggle = document.querySelector('.nav__toggle');
+    if (!navInner || !navToggle) return;
+
+    // ----- Inject the search button before the hamburger toggle -----
+    const btn = document.createElement('button');
+    btn.className = 'nav__search';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Search the site');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="11" cy="11" r="7"></circle>' +
+      '<line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round"></line>' +
+      '</svg>';
+    navInner.insertBefore(btn, navToggle);
+
+    // ----- Build modal DOM once, append to body -----
+    const modal = document.createElement('div');
+    modal.className = 'search-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Search');
+    modal.innerHTML =
+      '<div class="search-modal__card">' +
+        '<div class="search-modal__head">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+            '<circle cx="11" cy="11" r="7"></circle>' +
+            '<line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round"></line>' +
+          '</svg>' +
+          '<input type="search" class="search-modal__input" ' +
+            'placeholder="Search guides, products, services…" ' +
+            'autocomplete="off" autocapitalize="off" spellcheck="false" />' +
+          '<button class="search-modal__close" type="button" aria-label="Close search">Esc</button>' +
+        '</div>' +
+        '<ul class="search-modal__results" role="listbox"></ul>' +
+        '<div class="search-modal__footer">' +
+          'Type to search · ' +
+          '<kbd>↑</kbd><kbd>↓</kbd> navigate · ' +
+          '<kbd>Enter</kbd> open · ' +
+          '<kbd>Esc</kbd> close' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector('.search-modal__input');
+    const resultsEl = modal.querySelector('.search-modal__results');
+    const closeBtn = modal.querySelector('.search-modal__close');
+
+    let indexCache = null;
+    let activeIdx = -1;
+    let lastResults = [];
+
+    // ----- Fetch the index (once, on first open) -----
+    async function loadIndex() {
+      if (indexCache) return indexCache;
+      try {
+        const res = await fetch('/search-index.json', { credentials: 'same-origin' });
+        const data = await res.json();
+        indexCache = (data && data.items) || [];
+      } catch (e) {
+        indexCache = [];
+      }
+      return indexCache;
+    }
+
+    // ----- Open / close -----
+    async function open() {
+      modal.setAttribute('data-open', 'true');
+      document.body.setAttribute('data-search-open', 'true');
+      await loadIndex();
+      input.value = '';
+      runQuery('');
+      // Focus on the next tick so the animation doesn't fight us
+      setTimeout(() => input.focus(), 30);
+    }
+
+    function close() {
+      modal.removeAttribute('data-open');
+      document.body.removeAttribute('data-search-open');
+      activeIdx = -1;
+    }
+
+    // ----- Query / ranking -----
+    function runQuery(rawQ) {
+      const q = (rawQ || '').toLowerCase().trim();
+      const items = indexCache || [];
+
+      let results;
+      if (!q) {
+        // Empty query: show curated default set
+        results = items.slice(0, 8);
+      } else {
+        const tokens = q.split(/\s+/).filter(Boolean);
+        results = items
+          .map((it) => {
+            const hay = (
+              it.title + ' ' + it.excerpt + ' ' + (it.tags || []).join(' ')
+            ).toLowerCase();
+            let score = 0;
+            for (const t of tokens) {
+              if (it.title.toLowerCase().includes(t)) score += 5;
+              if ((it.tags || []).some((tag) => tag.toLowerCase().includes(t))) score += 3;
+              if (hay.includes(t)) score += 1;
+            }
+            return { it, score };
+          })
+          .filter((x) => x.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 12)
+          .map((x) => x.it);
+      }
+
+      lastResults = results;
+      activeIdx = results.length ? 0 : -1;
+      renderResults(results, q);
+    }
+
+    function highlight(text, q) {
+      if (!q) return text;
+      const tokens = q.split(/\s+/).filter((t) => t.length >= 2);
+      if (!tokens.length) return text;
+      // Escape regex special chars in tokens
+      const escaped = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const re = new RegExp('(' + escaped.join('|') + ')', 'gi');
+      return text.replace(re, '<mark>$1</mark>');
+    }
+
+    function renderResults(results, q) {
+      if (!results.length) {
+        resultsEl.innerHTML =
+          '<li class="search-modal__empty">No matches. Try a product, room, or city.</li>';
+        return;
+      }
+      const html = results
+        .map((r, i) =>
+          '<li role="option" aria-selected="' + (i === activeIdx ? 'true' : 'false') + '">' +
+            '<a class="search-modal__result" href="' + r.url + '" data-idx="' + i + '" ' +
+              (i === activeIdx ? 'aria-selected="true"' : '') + '>' +
+              '<span class="search-modal__result-section">' + r.section + '</span>' +
+              '<h3 class="search-modal__result-title">' + highlight(r.title, q) + '</h3>' +
+              '<p class="search-modal__result-excerpt">' + highlight(r.excerpt, q) + '</p>' +
+            '</a>' +
+          '</li>'
+        )
+        .join('');
+      resultsEl.innerHTML = html;
+    }
+
+    function setActive(newIdx) {
+      const links = resultsEl.querySelectorAll('.search-modal__result');
+      if (!links.length) return;
+      activeIdx = (newIdx + links.length) % links.length;
+      links.forEach((a, i) => {
+        a.setAttribute('aria-selected', i === activeIdx ? 'true' : 'false');
+        a.parentElement.setAttribute('aria-selected', i === activeIdx ? 'true' : 'false');
+        if (i === activeIdx) {
+          a.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    function openActive() {
+      if (activeIdx < 0 || activeIdx >= lastResults.length) return;
+      window.location.href = lastResults[activeIdx].url;
+    }
+
+    // ----- Event wiring -----
+    btn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+
+    modal.addEventListener('click', (e) => {
+      // Click on backdrop (not on card) closes
+      if (e.target === modal) close();
+    });
+
+    input.addEventListener('input', (e) => runQuery(e.target.value));
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); openActive(); }
+      else if (e.key === 'Escape') { close(); }
+    });
+
+    // Global '/' shortcut opens search (unless typing in an input)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && !modal.getAttribute('data-open')) {
+        const tag = (document.activeElement && document.activeElement.tagName) || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        open();
+      } else if (e.key === 'Escape' && modal.getAttribute('data-open')) {
+        close();
+      }
+    });
+  })();
+
   // Contact forms: POST to /api/contact (saves to CRM + sends Purelymail email).
   // All <form class="form"> elements wire up the same way. Each carries a
   // data-form-source attribute so we can tell which form fired the lead.
