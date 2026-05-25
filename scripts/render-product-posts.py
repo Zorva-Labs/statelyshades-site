@@ -11,7 +11,7 @@ import textwrap
 ROOT = Path(__file__).resolve().parent.parent
 BLOG = ROOT / "blog"
 DATE = "2026-05-25"
-VERSION = "blog5"
+VERSION = "blog6"
 
 # ------------ Content table -----------------------------------------------
 
@@ -1437,7 +1437,7 @@ TEMPLATE = """<!DOCTYPE html>
         <span class="nav__lockup">
           <span class="nav__wordmark">STATELY SHADES</span>
           <span class="nav__rule" aria-hidden="true"></span>
-          <span class="nav__tagline">Custom Blinds, Shutters &amp; Shades</span>
+          <span class="nav__tagline">Blinds, Shutters &amp; Shades</span>
         </span>
       </a>
       <nav class="nav__links" aria-label="Primary">
@@ -1507,7 +1507,7 @@ TEMPLATE = """<!DOCTYPE html>
           <span class="footer__words">
             <span class="footer__wordmark">STATELY SHADES</span>
             <span class="footer__rule" aria-hidden="true"></span>
-            <span class="footer__tagline">Custom Blinds, Shutters &amp; Shades</span>
+            <span class="footer__tagline">Blinds, Shutters &amp; Shades</span>
           </span>
         </a>
         <p>Family-owned in Gallatin, Tennessee.</p>
