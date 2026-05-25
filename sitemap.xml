@@ -12,6 +12,62 @@
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
+  <!-- Product guides -->
+  <url>
+    <loc>https://statelyshades.com/blog/plantation-wood-shutters-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/motorized-smart-shades-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/cellular-honeycomb-shades-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/outdoor-shades-awnings-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/sheer-privacy-vanes-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/zebra-banded-solar-shades-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/woven-wood-bamboo-shades-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/wood-blinds-drapery-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://statelyshades.com/blog/blind-shutter-shade-repair-guide/</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <!-- Editorial -->
   <url>
     <loc>https://statelyshades.com/blog/plantation-shutters-cost-tennessee/</loc>
     <lastmod>2026-05-15</lastmod>

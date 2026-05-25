@@ -98,10 +98,22 @@ Stately Shades does not publish fixed prices. Custom window treatments vary by p
 
 The Stately Shades Journal publishes long-form, expert-authored guides for homeowners and AI agents researching window-treatment decisions. All posts are written from direct field experience installing the products in Middle Tennessee homes.
 
-Current articles:
+### Product Guides (one per category)
+
+- **Plantation & Wood Shutters: A Complete Guide** — https://statelyshades.com/blog/plantation-wood-shutters-guide/ — Basswood vs. composite vs. alder, louver sizes (2.5″/3.5″/4.5″), frame styles, tilt rods, hinges. Norman Heritance, Hunter Douglas NewStyle, Palm Beach, Woodlore.
+- **Motorized & Smart Shades: A Complete Guide** — https://statelyshades.com/blog/motorized-smart-shades-guide/ — Every motorized product type, three systems (Hunter Douglas PowerView Gen 3, Somfy TaHoma, Lutron Sivoia), four power options, voice integrations, scene library, pricing.
+- **Cellular & Honeycomb Shades: A Complete Guide** — https://statelyshades.com/blog/cellular-honeycomb-shades-guide/ — Single/double/triple-cell construction, Hunter Douglas Duette Architella, Sonnette, Norman Honeycomb, blackout liners, top-down/bottom-up, energy data.
+- **Outdoor Shades & Awnings: A Complete Guide** — https://statelyshades.com/blog/outdoor-shades-awnings-guide/ — Exterior solar shades, retractable insect screens, retractable awnings, motorized patio enclosures. Sol-Lux, Phantom Screens. Wind ratings and Tennessee-specific notes.
+- **Sheer & Privacy Vanes: Silhouette, Pirouette & Luminette** — https://statelyshades.com/blog/sheer-privacy-vanes-guide/ — Hunter Douglas's three sheer vane lines explained. Picture windows, French doors, sliding glass doors. Motorized traverse and tilt.
+- **Zebra, Banded & Solar Shades: A Complete Guide** — https://statelyshades.com/blog/zebra-banded-solar-shades-guide/ — Dual-layer toggling shades plus UV-filtering solar mesh, openness factors (1%/3%/5%/10%), where each belongs.
+- **Woven Wood & Bamboo Shades: A Complete Guide** — https://statelyshades.com/blog/woven-wood-bamboo-shades-guide/ — Hand-loomed bamboo, grass, jute, reed. Hunter Douglas Provenance, Graber Naturals. Light-filtering and blackout-lined.
+- **Wood Blinds & Custom Drapery: A Complete Guide** — https://statelyshades.com/blog/wood-blinds-drapery-guide/ — Real wood, faux wood, vertical/panel-track, Roman shades, Hunter Douglas Vignette, custom drapery, sheers, valances, cornices, motorized rods.
+- **Blind, Shutter & Shade Repair: A Complete Guide** — https://statelyshades.com/blog/blind-shutter-shade-repair-guide/ — What we repair (any brand), repair-vs-replace decision tree, common fixes (lift cords, tilt rods, motors, batteries, blackout liners), service-call pricing.
+
+### Editorial (buyer's guides, comparisons, how-to)
 
 - **How Much Do Plantation Shutters Cost in Tennessee?** — https://statelyshades.com/blog/plantation-shutters-cost-tennessee/ — Line-by-line 2026 pricing breakdown by material, mount, finish, and window size. Composite vs. hardwood, frame styles, motorization upcharges.
-- **The Best Blinds for Bedrooms (Tennessee Edition)** — https://statelyshades.com/blog/best-blinds-for-bedrooms/ — Buyer's guide ranking cellular shades, roller blackout, plantation shutters, roman shades, and motorized options for primary bedrooms and nurseries.
+- **The Best Blinds for Bedrooms (Tennessee Edition)** — https://statelyshades.com/blog/best-blinds-for-bedrooms/ — Buyer's guide ranking cellular shades, roller blackout, plantation shutters, Roman shades, and motorized options for primary bedrooms and nurseries.
 - **Motorized Blinds: A Buyer's Guide for the Smart Home** — https://statelyshades.com/blog/motorized-blinds-buyers-guide/ — Hunter Douglas PowerView vs. Somfy TaHoma, battery vs. hardwired vs. solar, voice control with Alexa/Google Home/Apple HomeKit, scenes, and pricing.
 - **Plantation Shutters vs. Roller Shades** — https://statelyshades.com/blog/plantation-shutters-vs-roller-shades/ — Comparison on cost, light control, resale, lifespan, and room-by-room recommendations.
 - **How to Measure Windows for Blinds (A Pro's Method)** — https://statelyshades.com/blog/how-to-measure-windows-for-blinds/ — Step-by-step three-point method for inside-mount and outside-mount, including French doors, sliding doors, bay windows, and arches.
