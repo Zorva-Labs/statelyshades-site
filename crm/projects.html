@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projects · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/crm/admin.css" />
+</head>
+<body>
+<div id="app"></div>
+<script src="/crm/admin.js"></script>
+<script>
+(async () => {
+  const user = await SSAdmin.mount({ title: "Projects", subtitle: "All active and historical jobs." });
+  if (!user) return;
+  const { projects } = await SSAdmin.fetchJSON("/api/projects");
+  document.getElementById("page").innerHTML = projects.length
+    ? `<div class="data-table"><table>
+        <thead><tr><th>Project</th><th>Customer</th><th>Status</th><th>Updated</th></tr></thead>
+        <tbody>${projects.map((p) => `
+          <tr onclick="location.href='/crm/project.html?id=${p.id}'">
+            <td><strong>${SSAdmin.esc(p.name)}</strong></td>
+            <td>${SSAdmin.esc(p.contact_name)}<div class="muted">${SSAdmin.esc(p.contact_email)}</div></td>
+            <td><span class="status" data-s="${SSAdmin.esc(p.status)}">${SSAdmin.esc(p.status)}</span></td>
+            <td class="muted">${SSAdmin.fmtDate(p.updated_at)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`
+    : `<div class="data-table"><div class="empty">No projects yet. Open a contact and click "New project".</div></div>`;
+})();
+</script>
+</body>
+</html>

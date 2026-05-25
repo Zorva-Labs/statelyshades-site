@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/crm/admin.css" />
+</head>
+<body>
+<div id="app"></div>
+<script src="/crm/admin.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get("id");
+if (!id) location.href = "/crm/projects.html";
+
+(async () => {
+  const user = await SSAdmin.mount({ title: "Project", actions: `<a class="btn-secondary" href="/crm/projects.html">← All projects</a>` });
+  if (!user) return;
+  await render();
+})();
+
+async function render() {
+  const data = await SSAdmin.fetchJSON("/api/projects/" + id);
+  const { project, windows, estimates, proposals, contracts } = data;
+  document.getElementById("page-title").innerHTML = SSAdmin.esc(project.name);
+
+  document.getElementById("page").innerHTML = `
+    <div class="cols-2">
+      <div>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2>Windows <span class="muted" style="font-size:.8rem;font-weight:normal">${windows.length}</span></h2>
+            <button class="btn-ghost" onclick="addWindow()">+ Window</button>
+          </div>
+          <div id="windows-editor">${renderWindows(windows)}</div>
+          <div class="form-actions"><button class="btn-primary" onclick="saveWindows()">Save windows</button></div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2>Estimates</h2>
+            <button class="btn-primary" onclick="newEstimate()">+ Estimate</button>
+          </div>
+          ${docList(estimates, "estimate", "EST")}
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2>Proposals</h2>
+            <button class="btn-primary" onclick="newProposal()">+ Proposal</button>
+          </div>
+          ${docList(proposals, "proposal", "PROP")}
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2>Contracts</h2>
+            <button class="btn-primary" onclick="newContract()">+ Contract</button>
+          </div>
+          ${docList(contracts, "contract", "C")}
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>Project</h2>
+          <div class="form-grid">
+            <label><span>Name</span><input id="p-name" value="${SSAdmin.esc(project.name)}"/></label>
+            <label><span>Description</span><textarea id="p-desc" rows="3">${SSAdmin.esc(project.description || '')}</textarea></label>
+            <label><span>Site address</span><input id="p-addr" value="${SSAdmin.esc(project.site_address || '')}"/></label>
+            <label><span>Status</span>
+              <select id="p-status">
+                ${["new","scheduled","quoted","proposed","contracted","installing","completed","lost"].map((s) => `<option ${s===project.status?"selected":""}>${s}</option>`).join("")}
+              </select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveProject()">Save</button>
+          </div>
+          <hr style="margin:18px 0;border:0;border-top:1px solid var(--c-line-soft)"/>
+          <p class="muted" style="font-size:.85rem"><strong>Customer:</strong><br/>
+            <a href="/crm/contact.html?id=${project.contact_id}">${SSAdmin.esc(project.contact_name)}</a><br/>
+            ${SSAdmin.esc(project.contact_email)}<br/>
+            ${SSAdmin.esc(project.contact_phone || '')}
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWindows(ws) {
+  if (!ws.length) ws = [{}];
+  return `<table class="lines-table"><thead><tr>
+    <th style="width:25%">Room</th><th>Label</th><th>W″</th><th>H″</th><th>Mount</th><th>Depth″</th><th>Notes</th><th></th>
+  </tr></thead><tbody>${ws.map((w, i) => winRow(w, i)).join("")}</tbody></table>`;
+}
+function winRow(w, i) {
+  return `<tr data-idx="${i}">
+    <td><input data-f="room" value="${SSAdmin.esc(w.room || '')}" placeholder="Living"/></td>
+    <td><input data-f="label" value="${SSAdmin.esc(w.label || '')}" placeholder="North"/></td>
+    <td><input class="num" data-f="width_in" value="${w.width_in ?? ''}" type="number" step="0.125"/></td>
+    <td><input class="num" data-f="height_in" value="${w.height_in ?? ''}" type="number" step="0.125"/></td>
+    <td><select data-f="mount"><option value="">—</option><option ${w.mount==='inside'?'selected':''}>inside</option><option ${w.mount==='outside'?'selected':''}>outside</option></select></td>
+    <td><input class="num" data-f="depth_in" value="${w.depth_in ?? ''}" type="number" step="0.125"/></td>
+    <td><input data-f="notes" value="${SSAdmin.esc(w.notes || '')}"/></td>
+    <td><button class="lt-remove" onclick="this.closest('tr').remove()" title="Remove">×</button></td>
+  </tr>`;
+}
+function addWindow() {
+  const t = document.querySelector("#windows-editor tbody");
+  t.insertAdjacentHTML("beforeend", winRow({}, t.children.length));
+}
+async function saveWindows() {
+  const rows = [...document.querySelectorAll("#windows-editor tbody tr")].map((tr) => {
+    const o = {};
+    tr.querySelectorAll("[data-f]").forEach((el) => { const v = el.value.trim(); o[el.dataset.f] = v === "" ? null : v; });
+    return o;
+  }).filter((w) => w.room);
+  try { await SSAdmin.fetchJSON("/api/projects/" + id + "/windows", { method: "PUT", body: JSON.stringify({ windows: rows }) }); SSAdmin.toast("Windows saved", "success"); }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function saveProject() {
+  try {
+    await SSAdmin.fetchJSON("/api/projects/" + id, { method: "PATCH", body: JSON.stringify({
+      name: document.getElementById("p-name").value.trim(),
+      description: document.getElementById("p-desc").value.trim(),
+      site_address: document.getElementById("p-addr").value.trim(),
+      status: document.getElementById("p-status").value,
+    })});
+    SSAdmin.toast("Saved", "success");
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+
+function docList(rows, kind, prefix) {
+  if (!rows.length) return `<p style="color:var(--c-ink-soft);font-size:.9rem;margin-top:8px">No ${kind}s yet.</p>`;
+  return `<div class="data-table"><table><thead><tr><th>${prefix}-#</th><th>Status</th><th>Total</th><th>Created</th></tr></thead><tbody>${rows.map((r) => `
+    <tr onclick="location.href='/crm/${kind}.html?id=${r.id}'">
+      <td><strong>${SSAdmin.esc(r.number || '')}</strong></td>
+      <td><span class="status" data-s="${SSAdmin.esc(r.status)}">${SSAdmin.esc(r.status)}</span></td>
+      <td class="num">${SSAdmin.fmtMoney(r.total_cents || r.selected_total_cents || 0)}</td>
+      <td class="muted">${SSAdmin.fmtDate(r.created_at)}</td>
+    </tr>`).join("")}</tbody></table></div>`;
+}
+
+async function newEstimate() {
+  try { const { id: nid } = await SSAdmin.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/estimate.html?id=" + nid; }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function newProposal() {
+  try { const { id: nid } = await SSAdmin.fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/proposal.html?id=" + nid; }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function newContract() {
+  try { const { id: nid } = await SSAdmin.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/contract.html?id=" + nid; }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+</script>
+</body>
+</html>

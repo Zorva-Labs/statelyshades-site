@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contracts · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/crm/admin.css" /></head><body><div id="app"></div>
+<script src="/crm/admin.js"></script><script>
+(async () => {
+  const user = await SSAdmin.mount({ title: "Contracts" });
+  if (!user) return;
+  const { contracts } = await SSAdmin.fetchJSON("/api/contracts");
+  document.getElementById("page").innerHTML = contracts.length
+    ? `<div class="data-table"><table>
+        <thead><tr><th>#</th><th>Project</th><th>Customer</th><th>Status</th><th>Total</th><th>Deposit</th><th>Created</th></tr></thead>
+        <tbody>${contracts.map((c) => `
+          <tr onclick="location.href='/crm/contract.html?id=${c.id}'">
+            <td><strong>${SSAdmin.esc(c.number)}</strong></td>
+            <td>${SSAdmin.esc(c.project_name)}</td>
+            <td>${SSAdmin.esc(c.contact_name)}<div class="muted">${SSAdmin.esc(c.contact_email)}</div></td>
+            <td><span class="status" data-s="${c.status}">${c.status.replace(/_/g, ' ')}</span></td>
+            <td class="num">${SSAdmin.fmtMoney(c.total_cents)}</td>
+            <td class="num">${c.deposit_paid ? "✓ " : ""}${SSAdmin.fmtMoney(c.deposit_cents)}</td>
+            <td class="muted">${SSAdmin.fmtDate(c.created_at)}</td>
+          </tr>`).join("")}</tbody></table></div>`
+    : `<div class="data-table"><div class="empty">No contracts yet. Open a project and click "+ Contract".</div></div>`;
+})();
+</script></body></html>

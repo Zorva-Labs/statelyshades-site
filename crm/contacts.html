@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contacts · Stately Shades CRM</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/crm/admin.css" />
+  <link rel="icon" href="/assets/images/logo-v4.png" />
+</head>
+<body>
+<div id="app"></div>
+<script src="/crm/admin.js"></script>
+<script>
+(async () => {
+  const user = await SSAdmin.mount({
+    title: "Contacts",
+    subtitle: "Every person we've talked to.",
+    actions: `<input type="search" id="q" placeholder="Search name, email, phone…" />
+              <button class="btn-primary" onclick="newContact()">+ New contact</button>`,
+  });
+  if (!user) return;
+  const q = document.getElementById("q");
+  q.style.cssText = "padding:9px 14px;border:1px solid var(--c-line);min-width:260px;font:inherit;font-size:.9rem";
+  q.oninput = debounce(load, 250);
+  await load();
+
+  async function load() {
+    const url = "/api/contacts" + (q.value ? "?q=" + encodeURIComponent(q.value) : "");
+    const { contacts } = await SSAdmin.fetchJSON(url);
+    const page = document.getElementById("page");
+    if (!contacts.length) { page.innerHTML = `<div class="data-table"><div class="empty">No contacts yet.</div></div>`; return; }
+    page.innerHTML = `
+      <div class="data-table"><table>
+        <thead><tr>
+          <th>Name</th><th>Email</th><th>Phone</th><th>City</th><th>Added</th>
+        </tr></thead>
+        <tbody>${contacts.map((c) => `
+          <tr onclick="location.href='/crm/contact.html?id=${c.id}'">
+            <td><strong>${SSAdmin.esc(c.name)}</strong></td>
+            <td>${SSAdmin.esc(c.email)}</td>
+            <td class="muted">${SSAdmin.esc(c.phone || "")}</td>
+            <td class="muted">${SSAdmin.esc(c.address_city || "")}</td>
+            <td class="muted">${SSAdmin.fmtDate(c.created_at)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+    `;
+  }
+})();
+
+async function newContact() {
+  const name = prompt("Full name?"); if (!name) return;
+  const email = prompt("Email?"); if (!email) return;
+  const phone = prompt("Phone (optional)?") || null;
+  try {
+    const { id } = await SSAdmin.fetchJSON("/api/contacts", {
+      method: "POST", body: JSON.stringify({ name, email, phone }),
+    });
+    location.href = `/crm/contact.html?id=${id}`;
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+</body>
+</html>

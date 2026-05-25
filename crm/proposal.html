@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Proposal · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/crm/admin.css" /></head>
+<body><div id="app"></div>
+<script src="/crm/admin.js"></script><script>
+const id = new URLSearchParams(location.search).get("id");
+(async () => {
+  if (!id) { location.href = "/crm/proposals.html"; return; }
+  const user = await SSAdmin.mount({ title: "Proposal", actions: `<a class="btn-secondary" href="/crm/proposals.html">← All proposals</a>` });
+  if (!user) return;
+  await render();
+})();
+
+async function render() {
+  const { proposal, tiers, comments } = await SSAdmin.fetchJSON("/api/proposals/" + id);
+  document.getElementById("page-title").innerHTML = `${SSAdmin.esc(proposal.number)} · <em>${SSAdmin.esc(proposal.project_name)}</em>`;
+  const customerURL = `/proposal/?t=${proposal.view_token}`;
+
+  document.getElementById("page").innerHTML = `
+    <div class="cols-2">
+      <div>
+        <div class="panel">
+          <h2>Intro (customer-visible)</h2>
+          <textarea id="intro" rows="3" style="width:100%;padding:10px 12px;border:1px solid var(--c-line);font:inherit;font-size:.92rem">${SSAdmin.esc(proposal.intro || '')}</textarea>
+        </div>
+        ${tiers.map((t) => tierPanel(t)).join("")}
+        <div class="form-actions"><button class="btn-primary" onclick="saveAll()">Save proposal</button></div>
+
+        ${comments.length ? `<div class="panel"><h2>Customer comments</h2>${comments.map(renderComment).join("")}</div>` : ""}
+      </div>
+      <div>
+        <div class="panel">
+          <h2>Status</h2>
+          <p><span class="status" data-s="${proposal.status}">${proposal.status}</span></p>
+          ${proposal.sent_at ? `<p class="muted" style="font-size:.82rem">Sent ${SSAdmin.fmtDateTime(proposal.sent_at)}</p>` : ""}
+          ${proposal.view_count ? `<p class="muted" style="font-size:.82rem">Viewed ${proposal.view_count}×</p>` : ""}
+          ${proposal.selected_tier ? `<p class="muted" style="font-size:.82rem;color:var(--c-brass)">Selected: <strong>${proposal.selected_tier}</strong> · ${SSAdmin.fmtMoney(proposal.selected_total_cents)}</p>` : ""}
+          ${proposal.accepted_at ? `<p style="font-size:.82rem;color:#3d6b3d">Accepted by ${SSAdmin.esc(proposal.accepted_by_name)} on ${SSAdmin.fmtDateTime(proposal.accepted_at)}</p>` : ""}
+          <div class="form-actions" style="flex-direction:column;align-items:stretch">
+            <button class="btn-primary" onclick="sendIt()">Send to customer</button>
+            <a class="btn-secondary" href="${customerURL}" target="_blank">Preview customer view</a>
+            ${proposal.selected_tier ? `<button class="btn-secondary" onclick="convertToContract('${proposal.selected_tier}')">Convert to contract</button>` : ""}
+            <button class="btn-danger" onclick="del()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tierPanel(t) {
+  const lines = t.lines.length ? t.lines : [{}];
+  return `
+    <div class="panel" data-tier-id="${t.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>${tierLabel(t.tier)} · <input class="t-title" value="${SSAdmin.esc(t.title || '')}" style="font:inherit;font-size:1.4rem;border:0;border-bottom:1px solid var(--c-line);padding:2px 4px;width:280px"/></h2>
+        <span class="muted">${SSAdmin.fmtMoney(t.total_cents)}</span>
+      </div>
+      <p style="margin-top:6px;font-size:.85rem;color:var(--c-ink-soft)">Internal title shown to the customer alongside the price.</p>
+      <table class="lines-table" data-lines-for="${t.id}">
+        <thead><tr><th style="width:18%">Room</th><th>Description</th><th style="width:9%">Qty</th><th style="width:14%">Unit</th><th style="width:14%">Total</th><th></th></tr></thead>
+        <tbody>${lines.map(tlRow).join("")}</tbody>
+      </table>
+      <div style="display:flex;justify-content:space-between;margin-top:8px">
+        <button class="btn-ghost" onclick="addTierLine(${t.id})">+ Line</button>
+        <label style="font-size:.82rem;color:var(--c-ink-soft)">Tax $ <input class="t-tax" value="${((t.tax_cents||0)/100).toFixed(2)}" style="width:80px;padding:4px 6px;border:1px solid var(--c-line);font:inherit;font-size:.86rem"/></label>
+      </div>
+    </div>
+  `;
+}
+function tierLabel(t) { return { good: "GOOD", better: "BETTER", best: "BEST" }[t] || t; }
+function tlRow(l) {
+  return `<tr>
+    <td><input data-f="room" value="${SSAdmin.esc(l.room || '')}"/></td>
+    <td><input data-f="description" value="${SSAdmin.esc(l.description || '')}"/></td>
+    <td><input class="num" data-f="quantity" type="number" step="1" value="${l.quantity ?? 1}"/></td>
+    <td><input class="num" data-f="unit_dollars" value="${(((l.unit_price_cents||0)/100).toFixed(2))}"/></td>
+    <td><input class="num" data-f="total_display" readonly value="${(((l.line_total_cents||0)/100).toFixed(2))}"/></td>
+    <td><button class="lt-remove" onclick="this.closest('tr').remove()">×</button></td>
+  </tr>`;
+}
+function addTierLine(tierId) {
+  const tbody = document.querySelector(`[data-lines-for='${tierId}'] tbody`);
+  tbody.insertAdjacentHTML("beforeend", tlRow({}));
+}
+function renderComment(c) {
+  return `<div style="border-left:2px solid var(--c-brass);padding:8px 12px;margin:8px 0;font-size:.9rem">
+    <strong>${SSAdmin.esc(c.author_name || 'Anonymous')}</strong> ${c.tier ? `· ${c.tier}` : ''}
+    <span class="muted" style="font-size:.78rem">${SSAdmin.fmtDateTime(c.created_at)}</span>
+    <div style="margin-top:4px">${SSAdmin.esc(c.body)}</div>
+  </div>`;
+}
+
+async function saveAll() {
+  const tierPanels = [...document.querySelectorAll("[data-tier-id]")];
+  const tiers = tierPanels.map((p) => {
+    const tid = parseInt(p.dataset.tierId, 10);
+    const title = p.querySelector(".t-title").value;
+    const tax_cents = SSAdmin.parseMoney(p.querySelector(".t-tax").value);
+    const lines = [...p.querySelectorAll("tbody tr")].map((tr) => {
+      const get = (f) => tr.querySelector(`[data-f='${f}']`)?.value || "";
+      return {
+        room: get("room") || null,
+        description: get("description"),
+        quantity: Number(get("quantity") || 1),
+        unit_price_cents: SSAdmin.parseMoney(get("unit_dollars")),
+      };
+    }).filter((l) => l.description);
+    return { id: tid, title, tax_cents, lines };
+  });
+  try {
+    await SSAdmin.fetchJSON("/api/proposals/" + id, { method: "PATCH", body: JSON.stringify({
+      intro: document.getElementById("intro").value,
+      tiers,
+    })});
+    SSAdmin.toast("Saved", "success"); render();
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+
+async function sendIt() {
+  if (!(await SSAdmin.confirmDialog("Email this proposal to the customer?"))) return;
+  try { await SSAdmin.fetchJSON("/api/proposals/" + id + "/send", { method: "POST" }); SSAdmin.toast("Sent", "success"); render(); }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function convertToContract(tier) {
+  if (!(await SSAdmin.confirmDialog(`Create a contract from the "${tier}" tier?`))) return;
+  const { proposal, tiers } = await SSAdmin.fetchJSON("/api/proposals/" + id);
+  const t = tiers.find((x) => x.tier === tier);
+  try {
+    const { id: cid } = await SSAdmin.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: proposal.project_id, proposal_id: parseInt(id), proposal_tier_id: t.id }) });
+    location.href = "/crm/contract.html?id=" + cid;
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function del() {
+  if (!(await SSAdmin.confirmDialog("Delete this proposal?"))) return;
+  try { await SSAdmin.fetchJSON("/api/proposals/" + id, { method: "DELETE" }); location.href = "/crm/proposals.html"; }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+</script></body></html>

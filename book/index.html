@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book a Free Consultation · Stately Shades</title>
+  <meta name="description" content="Book your free in-home consultation with Stately Shades. We measure every window, bring samples, and leave you with a written quote — no obligation. Middle Tennessee." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://statelyshades.com/book/" />
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg" />
+  <link rel="icon" type="image/png" href="/assets/images/logo-v4.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css?v=blog9" />
+  <style>
+    .book-hero { padding: clamp(140px, 18vw, 200px) 0 clamp(40px, 6vw, 80px); text-align: center; }
+    .book-hero h1 { font-size: clamp(2.4rem, 5.6vw, 4rem); margin-top: 18px; }
+    .book-hero h1 em { color: var(--color-brass); }
+    .book-hero p { color: var(--color-ink-soft); max-width: 56ch; margin: 22px auto 0; font-family: var(--font-display); font-style: italic; font-size: 1.18rem; }
+    .book-wrap { max-width: 920px; margin: 0 auto; padding: 0 var(--gutter) clamp(80px, 12vw, 140px); }
+    .book-step { background: var(--color-bg); border: 1px solid var(--color-line-soft); padding: clamp(28px, 4vw, 44px); margin-bottom: 22px; }
+    .book-step__head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .book-step__num { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.28em; color: var(--color-brass); }
+    .book-step h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.4rem, 2.4vw, 1.8rem); margin: 0; }
+    .day-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .day-chip { background: transparent; border: 1px solid var(--color-line); padding: 10px 14px; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; color: var(--color-ink-soft); }
+    .day-chip strong { display: block; font-family: var(--font-display); font-size: 1.2rem; color: var(--color-ink); font-weight: 500; margin-top: 4px; letter-spacing: -0.01em; }
+    .day-chip:hover { border-color: var(--color-brass); }
+    .day-chip.is-active { background: var(--color-ink); color: var(--color-bg); border-color: var(--color-ink); }
+    .day-chip.is-active strong { color: var(--color-bg); }
+    .book-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .book-slot { background: #fff; border: 1px solid var(--color-line); padding: 12px 6px; text-align: center; cursor: pointer; transition: border-color 200ms ease, background 200ms ease; font-size: 0.92rem; font-family: var(--font-display); }
+    .book-slot:hover { border-color: var(--color-brass); background: var(--color-bg-2); }
+    .book-slot.is-selected { background: var(--color-ink); color: var(--color-bg); border-color: var(--color-ink); }
+    .book-form { display: grid; gap: 16px; max-width: 560px; }
+    .book-form label > span { display: block; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--color-ink-soft); margin-bottom: 6px; }
+    .book-form input, .book-form textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--color-line); background: #fff; font: inherit; font-size: 1rem; color: var(--color-ink); border-radius: 2px; }
+    .book-form .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .book-form .row-3 { display: grid; grid-template-columns: 2fr 80px 1fr; gap: 14px; }
+    .summary { background: var(--color-bg-2); border-left: 3px solid var(--color-brass); padding: 16px 20px; font-size: 0.95rem; margin-bottom: 20px; }
+    .success { text-align: center; padding: 40px 20px; }
+    .success h2 { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 400; }
+    .success h2 em { color: var(--color-brass); }
+    .success p { color: var(--color-ink-soft); margin-top: 14px; }
+  </style>
+</head>
+<body>
+
+  <header class="nav" id="nav">
+    <div class="container nav__inner">
+      <a class="nav__brand" href="/" aria-label="Stately Shades home">
+        <span class="nav__monogram" aria-hidden="true">S<span>S</span></span>
+        <span class="nav__lockup">
+          <span class="nav__wordmark">STATELY SHADES</span>
+          <span class="nav__rule" aria-hidden="true"></span>
+          <span class="nav__tagline">Blinds, Shutters &amp; Shades</span>
+        </span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="/#products">Products</a>
+        <a href="/#services">Services</a>
+        <a href="/blog/">Journal</a>
+        <a href="/#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="book-hero">
+      <div class="container">
+        <span class="eyebrow">Free In-Home Consultation</span>
+        <h1>Pick your <em>time.</em></h1>
+        <p>Free, no obligation. We come to you with samples, measure every window, and leave you with a written quote — usually 45 to 75 minutes on site.</p>
+      </div>
+    </section>
+
+    <div class="book-wrap">
+      <div id="root"></div>
+    </div>
+  </main>
+
+  <script src="/script.js?v=blog9" defer></script>
+  <script>
+  (() => {
+    const params = new URLSearchParams(location.search);
+    const cancelToken = params.get("cancel");
+
+    const state = {
+      slots: {},
+      activeDay: null,
+      selectedSlot: null,
+      submitting: false,
+    };
+
+    if (cancelToken) {
+      renderCancel();
+    } else {
+      load();
+    }
+
+    async function load() {
+      render(loadingHtml());
+      try {
+        const res = await fetch("/api/public/slots");
+        const data = await res.json();
+        state.slots = data.slots || {};
+        const days = Object.keys(state.slots);
+        state.activeDay = days[0] || null;
+        renderPicker();
+      } catch (e) {
+        render(`<p style="text-align:center;color:#B85450">Couldn't load available times. Please call us at <a href="tel:+16292988241">629-298-8241</a>.</p>`);
+      }
+    }
+
+    function loadingHtml() { return `<p style="text-align:center;color:var(--color-ink-soft);font-style:italic">Loading available times…</p>`; }
+
+    function renderPicker() {
+      const days = Object.keys(state.slots);
+      if (!days.length) {
+        render(`<div class="book-step"><p style="text-align:center;color:var(--color-ink-soft)">No available slots in the next two weeks. Please call us at <a href="tel:+16292988241">629-298-8241</a> and we'll find a time.</p></div>`);
+        return;
+      }
+      let html = `
+        <div class="book-step">
+          <div class="book-step__head"><span class="book-step__num">— 01 —</span><h2>When works best?</h2></div>
+          <div class="day-nav">${days.map(dayChip).join("")}</div>
+          <div class="book-slots" id="slots">${slotsHtml(state.activeDay)}</div>
+        </div>
+        <div id="step2"></div>
+      `;
+      render(html);
+      bindSlotClicks();
+      if (state.selectedSlot) renderForm();
+    }
+
+    function dayChip(d) {
+      const dt = new Date(d + "T12:00:00Z");
+      const dow = dt.toLocaleDateString(undefined, { weekday: "short" });
+      const dayNum = dt.getUTCDate();
+      const isActive = d === state.activeDay;
+      return `<button class="day-chip${isActive ? " is-active" : ""}" data-d="${d}">${dow}<strong>${dayNum}</strong></button>`;
+    }
+
+    function slotsHtml(d) {
+      const slots = state.slots[d] || [];
+      if (!slots.length) return `<p style="color:var(--color-ink-soft);grid-column:1/-1">No slots that day.</p>`;
+      return slots.map((s) => {
+        const h = parseInt(s.start.slice(11, 13), 10);
+        const m = s.start.slice(14, 16);
+        const ampm = h < 12 ? "am" : "pm";
+        const h12 = ((h + 11) % 12) + 1;
+        const label = `${h12}:${m} ${ampm}`;
+        const sel = state.selectedSlot && state.selectedSlot.start === s.start;
+        return `<button class="book-slot${sel ? " is-selected" : ""}" data-start="${s.start}" data-end="${s.end}">${label}</button>`;
+      }).join("");
+    }
+
+    function bindSlotClicks() {
+      document.querySelectorAll(".day-chip").forEach((c) => {
+        c.onclick = () => { state.activeDay = c.dataset.d; renderPicker(); };
+      });
+      document.querySelectorAll(".book-slot").forEach((s) => {
+        s.onclick = () => { state.selectedSlot = { start: s.dataset.start, end: s.dataset.end }; renderPicker(); renderForm(); };
+      });
+    }
+
+    function renderForm() {
+      const start = state.selectedSlot.start;
+      document.getElementById("step2").innerHTML = `
+        <div class="book-step">
+          <div class="book-step__head"><span class="book-step__num">— 02 —</span><h2>Where to come.</h2></div>
+          <div class="summary"><strong>${prettyDate(start)}</strong></div>
+          <form id="book-form" class="book-form" novalidate>
+            <label><span>Full name</span><input type="text" name="name" required autocomplete="name"/></label>
+            <div class="row">
+              <label><span>Phone</span><input type="tel" name="phone" required autocomplete="tel" placeholder="(629) 555-0100"/></label>
+              <label><span>Email</span><input type="email" name="email" required autocomplete="email"/></label>
+            </div>
+            <label><span>Street address</span><input type="text" name="street" required autocomplete="street-address" placeholder="123 Main Street"/></label>
+            <div class="row-3">
+              <label><span>City</span><input type="text" name="city" required autocomplete="address-level2"/></label>
+              <label><span>State</span><input type="text" name="state" required maxlength="2" value="TN"/></label>
+              <label><span>ZIP</span><input type="text" name="zip" required autocomplete="postal-code" inputmode="numeric"/></label>
+            </div>
+            <label><span>Which rooms? (optional)</span><input type="text" name="rooms" placeholder="Living, primary bed, 2 baths…"/></label>
+            <label><span>Anything else? (optional)</span><textarea name="notes" rows="3" placeholder="Window count, products you're considering, parking notes…"></textarea></label>
+            <button type="submit" class="btn">Confirm Booking <span class="arrow"></span></button>
+            <p class="muted" style="font-size:.85rem;text-align:center">No charge · No obligation · You'll get a confirmation email + calendar invite.</p>
+          </form>
+        </div>
+      `;
+      document.getElementById("book-form").onsubmit = submit;
+    }
+
+    async function submit(e) {
+      e.preventDefault();
+      if (state.submitting) return;
+      state.submitting = true;
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+      const body = {
+        start_at: state.selectedSlot.start,
+        duration_min: 60,
+        name: data.name, email: data.email, phone: data.phone,
+        address: { street: data.street, city: data.city, state: data.state, zip: data.zip },
+        rooms: data.rooms || null,
+        notes: data.notes || null,
+      };
+      const btn = form.querySelector("button[type='submit']");
+      btn.disabled = true; btn.innerHTML = "Booking…";
+      try {
+        const res = await fetch("/api/public/book", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const out = await res.json();
+        if (!res.ok || out.error) throw new Error(out.error || "Couldn't book");
+        renderSuccess(state.selectedSlot.start, data.email, out.cancel_token);
+      } catch (err) {
+        alert(err.message || "Something went wrong. Please call 629-298-8241.");
+        btn.disabled = false; btn.innerHTML = "Confirm Booking";
+        state.submitting = false;
+      }
+    }
+
+    function renderSuccess(start, email, cancel) {
+      render(`
+        <div class="book-step success">
+          <span class="eyebrow">Confirmed</span>
+          <h2>You're <em>booked.</em></h2>
+          <p>Check <strong>${esc(email)}</strong> for the confirmation + a calendar invite for <strong>${prettyDate(start)}</strong>.</p>
+          <p>Need to reschedule? You can <a href="/book/?cancel=${cancel}">cancel and rebook here</a>, or just call us at <a href="tel:+16292988241">629-298-8241</a>.</p>
+        </div>
+      `);
+    }
+
+    async function renderCancel() {
+      if (!confirm("Cancel your appointment?")) { location.href = "/book/"; return; }
+      render(loadingHtml());
+      try {
+        const res = await fetch("/api/public/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: cancelToken }) });
+        const out = await res.json();
+        if (out.ok) {
+          render(`<div class="book-step success"><span class="eyebrow">Cancelled</span><h2>All set.</h2><p>Your appointment has been cancelled. <a href="/book/">Pick a new time →</a></p></div>`);
+        } else {
+          throw new Error(out.error || "Could not cancel");
+        }
+      } catch (e) {
+        render(`<p style="text-align:center;color:#B85450">${esc(e.message)}</p>`);
+      }
+    }
+
+    function render(html) { document.getElementById("root").innerHTML = html; }
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function prettyDate(iso) {
+      const [date, time] = iso.split("T");
+      const dt = new Date(date + "T12:00:00Z");
+      const [h, m] = time.split(":").map((n) => parseInt(n, 10));
+      const ampm = h < 12 ? "am" : "pm";
+      const h12 = ((h + 11) % 12) + 1;
+      return `${dt.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} at ${h12}:${String(m).padStart(2,'0')} ${ampm} Central`;
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -91,4 +91,123 @@ async function renderSidebar({ activeStatus = null } = {}) {
   }
 }
 
-window.SSAdmin = { fetchJSON, fmtDate, fmtDateTime, esc, pill, logout, renderSidebar, STATUS_LABELS, STATUS_ORDER };
+// --------------------------------------------------------------
+// Section nav — the lifecycle modules. Built dynamically so any page can
+// drop a `<div class="js-section-nav"></div>` into its sidebar to get it.
+// --------------------------------------------------------------
+const SECTIONS = [
+  { href: "/crm/",            label: "Leads" },
+  { href: "/crm/calendar.html", label: "Calendar" },
+  { href: "/crm/contacts.html", label: "Contacts" },
+  { href: "/crm/projects.html", label: "Projects" },
+  { href: "/crm/estimates.html", label: "Estimates" },
+  { href: "/crm/proposals.html", label: "Proposals" },
+  { href: "/crm/contracts.html", label: "Contracts" },
+  { href: "/crm/products.html", label: "Products" },
+  { href: "/crm/availability.html", label: "Availability" },
+];
+
+function renderSectionNav(activeHref) {
+  const el = document.querySelector(".js-section-nav");
+  if (!el) return;
+  const path = activeHref || location.pathname;
+  el.innerHTML = SECTIONS.map((s) => {
+    const isActive = s.href === path || (s.href !== "/crm/" && path.startsWith(s.href.replace(".html", "")));
+    return `<a class="admin__nav-link${isActive ? " is-active" : ""}" href="${s.href}">${s.label}</a>`;
+  }).join("");
+}
+
+// --------------------------------------------------------------
+// Inject a complete sidebar into any admin page that has just
+// <body><script>SSAdmin.mount({ title: '…' })</script></body>
+// --------------------------------------------------------------
+async function mount({ title = "", subtitle = "", actions = "" } = {}) {
+  const me = await fetchJSON("/api/auth/me").catch(() => null);
+  if (!me) return; // fetchJSON already redirected to login
+  document.title = `${title} · Stately Shades CRM`;
+  const root = document.getElementById("app") || document.body;
+  root.innerHTML = `
+    <div class="admin">
+      <aside class="admin__nav">
+        <a href="/crm/" class="admin__brand">
+          <span class="admin__brand-monogram" aria-hidden="true">S<span>S</span></span>
+          <span class="admin__brand-text"><strong>Stately Shades</strong><span>CRM</span></span>
+        </a>
+        <div class="admin__nav-section">
+          <span class="admin__nav-label">Workspace</span>
+          <div class="js-section-nav"></div>
+        </div>
+        <div class="admin__nav-user">
+          <span>${esc(me.user.email)}</span>
+          <button onclick="SSAdmin.logout()">Sign out</button>
+        </div>
+      </aside>
+      <main class="admin__main">
+        <header class="admin__header">
+          <div>
+            <h1 id="page-title">${title}</h1>
+            ${subtitle ? `<p class="admin__sub">${subtitle}</p>` : ""}
+          </div>
+          <div class="admin__actions">${actions}</div>
+        </header>
+        <div id="page"></div>
+      </main>
+    </div>
+  `;
+  renderSectionNav();
+  return me.user;
+}
+
+// --------------------------------------------------------------
+// Money helpers (cents <-> dollars)
+// --------------------------------------------------------------
+function fmtMoney(cents) {
+  if (cents == null) return "—";
+  return "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function parseMoney(str) {
+  if (!str) return 0;
+  const n = Number(String(str).replace(/[^0-9.\-]/g, ""));
+  return Math.round((isNaN(n) ? 0 : n) * 100);
+}
+
+// --------------------------------------------------------------
+// Toast notifications
+// --------------------------------------------------------------
+function toast(msg, kind = "info") {
+  let host = document.querySelector(".toast-host");
+  if (!host) { host = document.createElement("div"); host.className = "toast-host"; document.body.appendChild(host); }
+  const t = document.createElement("div");
+  t.className = `toast toast--${kind}`;
+  t.textContent = msg;
+  host.appendChild(t);
+  setTimeout(() => { t.classList.add("toast--out"); setTimeout(() => t.remove(), 320); }, 3000);
+}
+
+// --------------------------------------------------------------
+// Simple confirm/prompt modals (avoid window.confirm — ugly UX)
+// --------------------------------------------------------------
+function confirmDialog(msg) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal">
+        <p>${esc(msg)}</p>
+        <div class="modal__buttons">
+          <button class="btn-secondary" data-no>Cancel</button>
+          <button class="btn-primary" data-yes>Confirm</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector("[data-no]").onclick = () => { overlay.remove(); resolve(false); };
+    overlay.querySelector("[data-yes]").onclick = () => { overlay.remove(); resolve(true); };
+  });
+}
+
+window.SSAdmin = {
+  fetchJSON, fmtDate, fmtDateTime, fmtMoney, parseMoney,
+  esc, pill, logout, renderSidebar, renderSectionNav, mount, toast, confirmDialog,
+  STATUS_LABELS, STATUS_ORDER, SECTIONS,
+};

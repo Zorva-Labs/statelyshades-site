@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contract · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/crm/admin.css" /></head>
+<body><div id="app"></div>
+<script src="/crm/admin.js"></script><script>
+const id = new URLSearchParams(location.search).get("id");
+(async () => {
+  if (!id) { location.href = "/crm/contracts.html"; return; }
+  const user = await SSAdmin.mount({ title: "Contract", actions: `<a class="btn-secondary" href="/crm/contracts.html">← All contracts</a>` });
+  if (!user) return;
+  await render();
+})();
+
+async function render() {
+  const { contract: k, lines } = await SSAdmin.fetchJSON("/api/contracts/" + id);
+  document.getElementById("page-title").innerHTML = `${SSAdmin.esc(k.number)} · <em>${SSAdmin.esc(k.project_name)}</em>`;
+  const customerURL = `/contract/?t=${k.view_token}`;
+
+  document.getElementById("page").innerHTML = `
+    <div class="cols-2">
+      <div>
+        <div class="panel">
+          <h2>Line items</h2>
+          <table class="lines-table" id="lines">
+            <thead><tr><th>Room</th><th>Description</th><th style="width:9%">Qty</th><th style="width:14%">Unit</th><th style="width:14%">Total</th><th></th></tr></thead>
+            <tbody>${(lines.length ? lines : [{}]).map(lineRow).join("")}</tbody>
+          </table>
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <button class="btn-ghost" onclick="addLine()">+ Line</button>
+            <strong>Total: ${SSAdmin.fmtMoney(k.total_cents)}</strong>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Scope (customer-visible)</h2>
+          <textarea id="scope" rows="4" style="width:100%;padding:10px 12px;border:1px solid var(--c-line);font:inherit;font-size:.92rem">${SSAdmin.esc(k.scope_html || '')}</textarea>
+          <h2 style="margin-top:18px">Intro</h2>
+          <textarea id="intro" rows="2" style="width:100%;padding:10px 12px;border:1px solid var(--c-line);font:inherit;font-size:.92rem">${SSAdmin.esc(k.intro || '')}</textarea>
+          <h2 style="margin-top:18px">Terms &amp; Conditions (HTML)</h2>
+          <textarea id="terms" rows="14" style="width:100%;padding:10px 12px;border:1px solid var(--c-line);font:inherit;font-size:.82rem;font-family:var(--font-mono)">${SSAdmin.esc(k.terms_html || '')}</textarea>
+          <div class="form-actions"><button class="btn-primary" onclick="saveAll()">Save contract</button></div>
+        </div>
+
+        ${k.signed_by_customer_at ? renderCustomerSig(k) : ""}
+        ${k.status === "signed_by_customer" ? renderCounterSign(k) : ""}
+        ${k.counter_signed_at ? renderCounterSig(k) : ""}
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>Status</h2>
+          <p><span class="status" data-s="${k.status}">${k.status.replace(/_/g, ' ')}</span></p>
+          ${k.sent_at ? `<p class="muted" style="font-size:.82rem">Sent ${SSAdmin.fmtDateTime(k.sent_at)}</p>` : ""}
+          ${k.view_count ? `<p class="muted" style="font-size:.82rem">Viewed ${k.view_count}×</p>` : ""}
+          <div class="form-actions" style="flex-direction:column;align-items:stretch">
+            ${k.status === "draft" || k.status === "sent" ? `<button class="btn-primary" onclick="sendIt()">Send to customer</button>` : ""}
+            <a class="btn-secondary" href="${customerURL}" target="_blank">Preview customer view</a>
+            <button class="btn-danger" onclick="del()">Delete</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Deposit</h2>
+          <div class="form-grid">
+            <label><span>Deposit due $</span><input id="deposit" type="text" value="${((k.deposit_cents||0)/100).toFixed(2)}"/></label>
+            <label><span>Install window</span><input id="install-window" value="${SSAdmin.esc(k.estimated_install_window || '')}"/></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--c-ink-soft)">
+              <input id="deposit-paid" type="checkbox" ${k.deposit_paid ? "checked" : ""}/> Deposit received
+            </label>
+            <label><span>Payment method</span><input id="deposit-method" value="${SSAdmin.esc(k.deposit_paid_method || '')}" placeholder="check #1234, ACH, Venmo…"/></label>
+          </div>
+          <div class="form-actions"><button class="btn-secondary" onclick="saveDeposit()">Save</button></div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.querySelectorAll("#lines input").forEach((inp) => inp.oninput = recalc);
+}
+
+function lineRow(l) {
+  return `<tr>
+    <td><input data-f="room" value="${SSAdmin.esc(l.room || '')}"/></td>
+    <td><input data-f="description" value="${SSAdmin.esc(l.description || '')}"/></td>
+    <td><input class="num" data-f="quantity" type="number" step="1" value="${l.quantity ?? 1}"/></td>
+    <td><input class="num" data-f="unit_dollars" value="${(((l.unit_price_cents||0)/100).toFixed(2))}"/></td>
+    <td><input class="num" data-f="total_display" readonly value="${(((l.line_total_cents||0)/100).toFixed(2))}"/></td>
+    <td><button class="lt-remove" onclick="this.closest('tr').remove()">×</button></td>
+  </tr>`;
+}
+function addLine() {
+  const t = document.querySelector("#lines tbody");
+  t.insertAdjacentHTML("beforeend", lineRow({}));
+  t.lastElementChild.querySelectorAll("input").forEach((i) => i.oninput = recalc);
+}
+function recalc() {
+  const row = this.closest("tr");
+  const u = SSAdmin.parseMoney(row.querySelector("[data-f='unit_dollars']").value);
+  const q = Number(row.querySelector("[data-f='quantity']").value || 1);
+  row.querySelector("[data-f='total_display']").value = (u * q / 100).toFixed(2);
+}
+
+async function saveAll() {
+  const lines = [...document.querySelectorAll("#lines tbody tr")].map((tr) => {
+    const get = (f) => tr.querySelector(`[data-f='${f}']`)?.value || "";
+    return {
+      room: get("room") || null,
+      description: get("description"),
+      quantity: Number(get("quantity") || 1),
+      unit_price_cents: SSAdmin.parseMoney(get("unit_dollars")),
+    };
+  }).filter((l) => l.description);
+  try {
+    await SSAdmin.fetchJSON("/api/contracts/" + id, { method: "PATCH", body: JSON.stringify({
+      lines, intro: document.getElementById("intro").value, scope_html: document.getElementById("scope").value, terms_html: document.getElementById("terms").value,
+    })});
+    SSAdmin.toast("Saved", "success"); render();
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function saveDeposit() {
+  try {
+    await SSAdmin.fetchJSON("/api/contracts/" + id, { method: "PATCH", body: JSON.stringify({
+      deposit_cents: SSAdmin.parseMoney(document.getElementById("deposit").value),
+      estimated_install_window: document.getElementById("install-window").value,
+      deposit_paid: document.getElementById("deposit-paid").checked,
+      deposit_paid_method: document.getElementById("deposit-method").value || null,
+      deposit_paid_at: document.getElementById("deposit-paid").checked ? new Date().toISOString().replace("T", " ").slice(0, 19) : null,
+    })});
+    SSAdmin.toast("Saved", "success"); render();
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function sendIt() {
+  if (!(await SSAdmin.confirmDialog("Email this contract to the customer for signing?"))) return;
+  try { await SSAdmin.fetchJSON("/api/contracts/" + id + "/send", { method: "POST" }); SSAdmin.toast("Sent", "success"); render(); }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+async function del() {
+  if (!(await SSAdmin.confirmDialog("Delete this contract?"))) return;
+  try { await SSAdmin.fetchJSON("/api/contracts/" + id, { method: "DELETE" }); location.href = "/crm/contracts.html"; }
+  catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+
+function renderCustomerSig(k) {
+  return `<div class="panel">
+    <h2>Customer signature</h2>
+    <p style="font-size:.88rem;color:var(--c-ink-soft)">Signed by <strong>${SSAdmin.esc(k.signer_name)}</strong> on ${SSAdmin.fmtDateTime(k.signed_by_customer_at)}</p>
+    ${k.signature_image ? `<img src="${k.signature_image}" alt="Customer signature" style="max-height:120px;border:1px solid var(--c-line-soft);padding:8px;background:#fff"/>` : ""}
+    <p class="muted" style="font-size:.75rem;margin-top:8px">Document hash at sign: <code>${SSAdmin.esc(k.document_hash_at_sign || '')}</code></p>
+  </div>`;
+}
+
+function renderCounterSign(k) {
+  if (k.counter_signed_at) {
+    return `<div class="panel">
+      <h2>Counter-signed</h2>
+      <p style="font-size:.88rem;color:#3d6b3d">Fully executed by <strong>${SSAdmin.esc(k.counter_signer_name)}</strong> on ${SSAdmin.fmtDateTime(k.counter_signed_at)}</p>
+      ${k.counter_signature_image ? `<img src="${k.counter_signature_image}" alt="Counter signature" style="max-height:120px;border:1px solid var(--c-line-soft);padding:8px;background:#fff"/>` : ""}
+    </div>`;
+  }
+  return `<div class="panel">
+    <h2>Your turn to counter-sign</h2>
+    <p style="font-size:.9rem">The customer has signed. Counter-sign below to fully execute the contract.</p>
+    <label><span>Your full name</span><input id="cs-name" placeholder="e.g. Stately Shades — Tony Fandri" style="width:100%;padding:10px 12px;border:1px solid var(--c-line);font:inherit"/></label>
+    <div class="sig-pad-wrap" style="margin-top:10px"><canvas id="cs-pad"></canvas></div>
+    <div class="sig-controls"><span>Sign with mouse/finger</span><button onclick="clearSig('cs-pad')">Clear</button></div>
+    <div class="form-actions"><button class="btn-primary" onclick="counterSign()">Counter-sign</button></div>
+  </div>`;
+}
+
+// Tiny signature pad (no external library)
+function initPad(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#14110D";
+  let drawing = false; let last = null;
+  const pos = (e) => { const r = canvas.getBoundingClientRect(); const t = e.touches?.[0]; return { x: (t?.clientX ?? e.clientX) - r.left, y: (t?.clientY ?? e.clientY) - r.top }; };
+  const down = (e) => { e.preventDefault(); drawing = true; last = pos(e); };
+  const move = (e) => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; canvas.dataset.dirty = "1"; };
+  const up = () => { drawing = false; };
+  canvas.addEventListener("mousedown", down); canvas.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+  canvas.addEventListener("touchstart", down); canvas.addEventListener("touchmove", move); window.addEventListener("touchend", up);
+  return { canvas, ctx, get image() { return canvas.toDataURL("image/png"); }, get dirty() { return canvas.dataset.dirty === "1"; } };
+}
+function clearSig(id) {
+  const c = document.getElementById(id); const ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height); c.dataset.dirty = "";
+}
+
+let csPad = null;
+const obs = new MutationObserver(() => {
+  const c = document.getElementById("cs-pad");
+  if (c && !csPad) csPad = initPad("cs-pad");
+});
+obs.observe(document.body, { childList: true, subtree: true });
+
+async function counterSign() {
+  const name = document.getElementById("cs-name").value.trim();
+  if (!name) { SSAdmin.toast("Type your name first", "error"); return; }
+  if (!csPad?.dirty) { SSAdmin.toast("Sign with the mouse or finger", "error"); return; }
+  try {
+    await SSAdmin.fetchJSON("/api/contracts/" + id + "/countersign", {
+      method: "POST", body: JSON.stringify({ signer_name: name, signature_image: csPad.image }),
+    });
+    SSAdmin.toast("Fully executed!", "success"); csPad = null; render();
+  } catch (e) { SSAdmin.toast(e.message, "error"); }
+}
+</script></body></html>
