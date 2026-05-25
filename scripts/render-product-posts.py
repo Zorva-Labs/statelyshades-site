@@ -637,6 +637,17 @@ POSTS = [
       <h2>How to get a quote</h2>
       <p>Call or text <a href="tel:+16292988241">629-298-8241</a> with the rough window count for your project, or <a href="/#contact">use the contact form</a>. We come out, measure every window, and leave you with a written quote the same visit. If affordable is the priority, we lead with faux wood — and tell you honestly when something else would be a better value.</p>
         """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "What is the cheapest custom blind option?", "acceptedAnswer": { "@type": "Answer", "text": "Custom-fit faux wood blinds are the most affordable option, starting at $89 per window installed at Stately Shades. They are humidity-proof, cordless and child-safe by default, available in 2-inch and 2.5-inch slats, and look like real wood at roughly half the cost." } },
+    { "@type": "Question", "name": "How much does a whole house of faux wood blinds cost in Tennessee?", "acceptedAnswer": { "@type": "Answer", "text": "A whole-house package of 8 to 12 faux wood blinds in Middle Tennessee typically runs $850 to $1,500 installed, depending on window count, slat size, and finish. Per-window pricing comes down at scale." } },
+    { "@type": "Question", "name": "Are faux wood blinds good for kitchens and bathrooms?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Faux wood blinds are humidity-proof and washable, which makes them the ideal choice for kitchens, bathrooms, laundry rooms, and basements where real hardwood blinds would warp or absorb moisture." } },
+    { "@type": "Question", "name": "Is faux wood a good rental property blind?", "acceptedAnswer": { "@type": "Answer", "text": "Faux wood is the most-installed rental-property blind because it is durable, easy to clean, cordless and child-safe for tenant safety, and inexpensive enough to replace if damaged on turnover. Whole-rental packages typically run $90 to $140 per window installed." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".article-hero__inner .eyebrow", ".prose p:first-of-type", ".callout p"] }
+  </script>""",
         "related": [
             ("/blog/wood-blinds-drapery-guide/", "Product guide · 7 min read", "Wood blinds &amp; <em>custom drapery</em>", "The premium catalogue counterpart.", "/assets/images/blog/wood-blinds-drapery.webp", "Wood blinds and drapery in a Tennessee bedroom"),
             ("/blog/install-only-blinds-service-guide/", "Service guide · 6 min read", "You bought, <em>we install.</em>", "Already ordered? We'll hang them for you.", "/assets/images/blog/install-only-service.webp", "Installing a blind on a window casing"),
@@ -750,9 +761,494 @@ POSTS = [
 
       <p>Or call or text <a href="tel:+16292988241">629-298-8241</a>, email <a href="mailto:hello@statelyshades.com">hello@statelyshades.com</a>, or <a href="/#contact">use the contact form</a> and we'll be in touch within one business day.</p>
         """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "Will you install blinds I bought from Home Depot or Lowes?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Stately Shades offers install-only service across the Middle Tennessee 90-mile radius for blinds, shutters, and shades purchased at Home Depot, Lowes, Costco, Blinds.com, Select Blinds, Amazon, IKEA, or any other retailer. We unbox, measure, mount level, demo the mechanism, and haul away the packaging. Flat-rate per window with a workmanship guarantee." } },
+    { "@type": "Question", "name": "How much does it cost to have blinds installed professionally in Tennessee?", "acceptedAnswer": { "@type": "Answer", "text": "Professional install-only pricing in Middle Tennessee in 2026 is $45 to $85 per window for standard blinds and shades, $65 to $140 per window for plantation shutters, and $95 to $180 per shade for motorized treatments including programming. The service-call minimum is $185 for three windows or fewer." } },
+    { "@type": "Question", "name": "Can you install Blinds.com window treatments?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. We install Blinds.com products regularly — they are one of the most common retailers our install-only customers buy from. We verify dimensions against your openings before drilling and back the install with our workmanship guarantee." } },
+    { "@type": "Question", "name": "Do you install Costco blinds?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Costco blinds (both in-warehouse and Costco.com) are a frequent install-only product for us. Same flat-rate per window pricing, same workmanship guarantee." } },
+    { "@type": "Question", "name": "What if my measurements are wrong?", "acceptedAnswer": { "@type": "Answer", "text": "We verify dimensions against your openings before we drill. If a blind is too wide we can sometimes trim it in the field (faux wood and aluminum), or you can return and re-order with the dimensions we measure on the first visit. Our service-call minimum applies if we measure now and return after the re-order." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".article-hero__inner .eyebrow", ".prose p:first-of-type", ".callout p"] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "Service", "@id": "https://statelyshades.com/blog/install-only-blinds-service-guide/#install-only-service", "name": "Install-Only / Bring-Your-Own-Blinds Service", "serviceType": "Window Treatment Installation Service", "provider": { "@type": "LocalBusiness", "name": "Stately Shades", "telephone": "+1-629-298-8241", "address": { "@type": "PostalAddress", "addressLocality": "Gallatin", "addressRegion": "TN", "addressCountry": "US" } }, "areaServed": { "@type": "GeoCircle", "geoMidpoint": { "@type": "GeoCoordinates", "latitude": 36.3881, "longitude": -86.4467 }, "geoRadius": "144841" }, "audience": { "@type": "Audience", "name": "Homeowners with self-purchased blinds, shutters, or shades from Lowes, Home Depot, Costco, Blinds.com, Select Blinds, Amazon, IKEA, or any other retailer" }, "offers": { "@type": "AggregateOffer", "priceCurrency": "USD", "lowPrice": "45", "highPrice": "180", "priceSpecification": { "@type": "UnitPriceSpecification", "priceCurrency": "USD", "unitText": "window installed" } } }
+  </script>""",
         "related": [
             ("/blog/affordable-faux-wood-blinds-guide/", "Service guide · 6 min read", "Affordable <em>faux wood blinds</em>", "Skip the retailer — custom at $89.", "/assets/images/blog/affordable-faux-wood.webp", "Affordable faux wood blinds in a Tennessee kitchen"),
             ("/blog/how-to-measure-windows-for-blinds/", "How-to · 5 min read", "How to <em>measure windows</em> for blinds", "Before you order, measure right.", "/assets/images/consultation-detail.webp", "Measuring tape on a window casing"),
+        ],
+    },
+    # ------------- 4 SEO/AEO/AIO/GEO-targeted posts ----------------------
+    {
+        "slug": "affordable-blinds-nashville-tennessee",
+        "title_html": "Affordable blinds <em>near me</em> · Nashville &amp; Middle TN.",
+        "h1_plain": "Affordable Blinds Near Me in Nashville & Middle Tennessee",
+        "meta_title": "Cheap Custom Blinds Near Me · Nashville TN (from $89) · Stately Shades",
+        "meta_desc": "Looking for affordable custom blinds near me in Nashville, Hendersonville, Gallatin, Franklin, or anywhere across Middle Tennessee? Faux wood from $89/window installed. Free in-home quote within 90 miles.",
+        "eyebrow": "Local · Affordable · Middle TN",
+        "section": "Local Service",
+        "minutes": "6",
+        "image": "/assets/images/blog/affordable-faux-wood.webp",
+        "image_alt": "Affordable white 2.5-inch faux wood blinds in a sunlit Nashville-area kitchen",
+        "caption": "Custom-fit faux wood blinds — affordable, professionally installed, across Middle Tennessee.",
+        "keywords": "affordable blinds Nashville, cheap blinds near me, custom blinds Tennessee, faux wood blinds Gallatin, blinds installation Franklin TN, Brentwood blinds, Murfreesboro blinds, Hendersonville window treatments, budget blinds, blinds near me",
+        "og_desc": "Affordable custom blinds across Nashville, Gallatin, Hendersonville, Franklin, Brentwood — from $89/window installed.",
+        "tw_desc": "Cheap custom blinds near you in Middle TN? Faux wood from $89 installed. Free in-home quote.",
+        "breadcrumb_name": "Affordable Blinds Near Me · Nashville TN",
+        "body": """
+      <p>Searching <em>"affordable blinds near me,"</em> <em>"cheap custom blinds Nashville,"</em> or <em>"budget blinds Tennessee"</em> and getting nowhere except big-box price calculators that don't include install? You're in the right place. Stately Shades is a family-owned dealer in Gallatin, Tennessee, and our most popular product is also our most affordable: <strong>custom-fit faux wood blinds starting at $89 per window installed</strong>. This guide explains exactly what affordable looks like at our showroom, who it's for, and which cities we serve.</p>
+
+      <h2>What "affordable" actually means at Stately Shades</h2>
+      <p>Three numbers cover most of the affordable catalogue in Middle Tennessee in 2026:</p>
+      <ul>
+        <li><strong>$89 per window installed</strong> — 2&Prime; or 2.5&Prime; faux wood blind, cordless, white finish, custom-fit to your opening, professionally hung level.</li>
+        <li><strong>$850–$1,500</strong> — whole-house package of 8–12 faux wood windows, fully installed, including a free in-home measure and a written quote on the first visit.</li>
+        <li><strong>$0</strong> — what the consultation and the measure and the quote cost you. Free, every time, within 90 miles of Gallatin.</li>
+      </ul>
+
+      <h2>Cities we serve with affordable custom blinds</h2>
+      <p>Our 90-mile radius from Gallatin covers most of Middle Tennessee and a slice of southern Kentucky. We install affordable custom blinds in:</p>
+      <ul>
+        <li><strong>Nashville</strong> — Green Hills, East Nashville, Belle Meade, 12 South, the Gulch, Donelson, Antioch, Bellevue, Hermitage.</li>
+        <li><strong>Hendersonville</strong> — Sanders Ferry, Beech Bend, downtown Hendersonville.</li>
+        <li><strong>Gallatin</strong> — our showroom is here. Foxland, Long Hollow, Fairvue.</li>
+        <li><strong>Franklin</strong> — Westhaven, McKay's Mill, Cool Springs, downtown.</li>
+        <li><strong>Brentwood</strong> — Concord, Maryland Farms.</li>
+        <li><strong>Murfreesboro</strong> — Blackman, MTSU area, downtown.</li>
+        <li><strong>Mount Juliet, Lebanon, Goodlettsville, Springfield, Smyrna, Spring Hill, Cookeville, Clarksville.</strong></li>
+        <li><strong>Bowling Green, KY</strong> and the border counties.</li>
+      </ul>
+      <p>If you can drive to our Gallatin showroom in under 90 minutes, we drive to you for free.</p>
+
+      <p class="pull">Affordable doesn't mean stock-sized. Every blind we sell is cut to your window, even at $89.</p>
+
+      <h2>The cheapest <em>custom</em> blind — faux wood</h2>
+      <p>The lowest-cost custom blind in our showroom is a 2&Prime; or 2.5&Prime; faux wood horizontal blind. It is:</p>
+      <ul>
+        <li><strong>Custom-cut to your exact opening</strong> (not a stock 36×60 that doesn't fit).</li>
+        <li><strong>Cordless and child-safe</strong> — meets WCMA safety standards by default.</li>
+        <li><strong>Humidity-proof</strong> — won't warp like real wood in kitchens, baths, or basements.</li>
+        <li><strong>Available in white, cream, oat, and printed-grain stains</strong> (walnut, oak, espresso).</li>
+        <li><strong>Backed by manufacturer warranty</strong> from Norman, Graber, or Bali.</li>
+        <li><strong>Professionally measured and installed</strong>, with our workmanship guarantee.</li>
+      </ul>
+      <p>For the deep-dive on faux wood specifically — sizes, finishes, where it belongs — see our <a href="/blog/affordable-faux-wood-blinds-guide/">complete faux wood blinds guide</a>.</p>
+
+      <h2>Who buys affordable blinds from us</h2>
+      <ul>
+        <li><strong>First-home buyers in the Nashville metro</strong> furnishing 8–14 windows on a budget.</li>
+        <li><strong>Landlords and property managers</strong> outfitting rentals across Davidson, Sumner, Williamson, and Rutherford counties.</li>
+        <li><strong>Builders</strong> doing builder-grade-replacement upgrades on spec homes.</li>
+        <li><strong>Homeowners with a long honest-do list</strong> — the kitchen needs custom shutters, the kids' rooms need faux wood, and one budget covers both.</li>
+        <li><strong>Anyone with a single problem window</strong> — a bath, a basement, a garage office — who doesn't want to pay $400/window for one shade.</li>
+      </ul>
+
+      <h2>How affordable compares to big-box</h2>
+      <p>A 36×60 faux wood blind from a big-box store (Home Depot, Lowes) is typically <strong>$45–$95 unboxed, plus install</strong> if you hire it out. Their install averages $40–$70 per window if the installer agrees to come at all — many won't for under five blinds. Total: <strong>$85–$165 per window</strong>, with no in-home measure and no follow-up if something's wrong.</p>
+      <p>Our $89/window includes the custom dimensions, the install, the measure visit, the workmanship guarantee, and the same-week scheduling. <em>And</em> if a slat gets damaged in year two, we replace it for cost.</p>
+
+      <div class="callout">
+        <h3>The affordable spec we install most</h3>
+        <p><strong>Norman 2.5&Prime; faux wood, cordless, white, inside-mount.</strong> Average installed price in 2026 across the Nashville metro: <strong>$92–$118 per window</strong>, falling to as low as $89 on whole-house packages.</p>
+      </div>
+
+      <h2>Other affordable options we sell</h2>
+      <ul>
+        <li><strong>Single-cell cellular shades, cordless</strong> — from $80/window. Better for bedrooms (light insulation, sound dampening).</li>
+        <li><strong>Light-filtering roller shades</strong> — from $90/window. Cleaner, modern.</li>
+        <li><strong>2&Prime; faux wood</strong> — slightly cheaper than 2.5&Prime;, $5–$15 less per window.</li>
+        <li><strong>1&Prime; aluminum mini-blinds</strong> — from $55/window. Bare-bones bath or laundry option.</li>
+      </ul>
+
+      <h2>Already bought your blinds? We install those too.</h2>
+      <p>If affordable for you means buying online at Blinds.com or driving to Lowes, that's also fine — we offer <a href="/blog/install-only-blinds-service-guide/"><strong>install-only service</strong></a> across the same 90-mile radius. Flat-rate per window, professional install, workmanship guarantee. Both routes get you a window dressed correctly; the right one depends on what you'd rather optimize for — price, custom fit, or your Saturday.</p>
+
+      <h2>How to get an affordable quote</h2>
+      <p>Three ways:</p>
+      <ol>
+        <li><strong>Text us photos of the windows</strong> at <a href="tel:+16292988241">629-298-8241</a> with rough dimensions. We can give you a ballpark within an hour.</li>
+        <li><strong>Book a free in-home consultation</strong> via <a href="/#contact">our contact form</a>. We measure every window and leave you a written quote the same visit.</li>
+        <li><strong>Call</strong> <a href="tel:+16292988241">629-298-8241</a> and tell us how many windows. We can sometimes price-quote on the phone for straightforward jobs.</li>
+      </ol>
+
+      <p>No travel fee within 90 miles. No consultation fee. No pressure to buy.</p>
+        """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "What is the cheapest custom blind I can get installed in Nashville?", "acceptedAnswer": { "@type": "Answer", "text": "The cheapest custom blind professionally installed in the Nashville metro and across Middle Tennessee is a faux wood blind from Stately Shades, starting at $89 per window installed. This includes the custom measure, the cordless child-safe blind, the install, and a workmanship guarantee." } },
+    { "@type": "Question", "name": "Where can I find cheap custom blinds near me in Tennessee?", "acceptedAnswer": { "@type": "Answer", "text": "Stately Shades sells affordable custom blinds from $89 per window across a 90-mile radius from Gallatin, Tennessee — including Nashville, Hendersonville, Franklin, Brentwood, Murfreesboro, Mt. Juliet, Lebanon, Spring Hill, Goodlettsville, Springfield, Cookeville, Clarksville, and across into Bowling Green, Kentucky." } },
+    { "@type": "Question", "name": "Are custom blinds cheaper than Home Depot blinds with installation?", "acceptedAnswer": { "@type": "Answer", "text": "Often yes. A big-box faux wood blind plus separate install in Tennessee typically totals $85 to $165 per window with no in-home measure. Stately Shades custom faux wood is $89 per window installed including the measure, install, and workmanship guarantee — usually within $5 to $10 of the big-box total, with custom dimensions and follow-up support." } },
+    { "@type": "Question", "name": "Do you serve my city for affordable blinds?", "acceptedAnswer": { "@type": "Answer", "text": "Yes if you are within 90 miles of Gallatin, TN. Coverage includes Nashville, Hendersonville, Gallatin, Franklin, Brentwood, Murfreesboro, Mt. Juliet, Lebanon, Goodlettsville, Springfield, Smyrna, Spring Hill, Cookeville, Clarksville, and parts of southern Kentucky including Bowling Green." } },
+    { "@type": "Question", "name": "Is the in-home consultation really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. No charge for the in-home consultation, no travel fee within 90 miles of Gallatin, and no obligation to buy. We bring physical samples, measure precisely, and leave a written quote at the visit." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".prose p:first-of-type", ".callout p"] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "Service", "@id": "https://statelyshades.com/blog/affordable-blinds-nashville-tennessee/#service", "name": "Affordable Custom Blinds Installation — Nashville & Middle Tennessee", "serviceType": "Custom Blinds Sales and Installation", "provider": { "@type": "LocalBusiness", "name": "Stately Shades", "telephone": "+1-629-298-8241", "url": "https://statelyshades.com/", "address": { "@type": "PostalAddress", "addressLocality": "Gallatin", "addressRegion": "TN", "postalCode": "37066", "addressCountry": "US" } }, "areaServed": [ { "@type": "City", "name": "Nashville", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Hendersonville", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Gallatin", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Franklin", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Brentwood", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Murfreesboro", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Mount Juliet", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Lebanon", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Spring Hill", "containedInPlace": { "@type": "State", "name": "Tennessee" } }, { "@type": "City", "name": "Bowling Green", "containedInPlace": { "@type": "State", "name": "Kentucky" } } ], "offers": { "@type": "Offer", "priceCurrency": "USD", "price": "89", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "89", "priceCurrency": "USD", "unitText": "window installed" }, "availability": "https://schema.org/InStock" } }
+  </script>""",
+        "related": [
+            ("/blog/affordable-faux-wood-blinds-guide/", "Service guide · 6 min read", "Affordable <em>faux wood blinds</em>", "Deeper dive on the cheapest custom option.", "/assets/images/blog/affordable-faux-wood.webp", "Affordable faux wood blinds in a Tennessee kitchen"),
+            ("/blog/best-blinds-for-rental-properties/", "Service guide · 6 min read", "Best blinds for <em>rental properties</em>", "The landlord's playbook.", "/assets/images/blog/rental-property-blinds.webp", "Rental property living room with white blinds"),
+        ],
+    },
+    {
+        "slug": "best-blinds-for-rental-properties",
+        "title_html": "Best blinds for <em>rental properties.</em>",
+        "h1_plain": "Best Blinds for Rental Properties (Landlord's Guide)",
+        "meta_title": "Best Blinds for Rental Properties (2026 Landlord's Guide) · Stately Shades",
+        "meta_desc": "The best blinds for rental properties in Tennessee — durable, child-safe, tenant-proof, easy to replace on turnover. Whole-rental packages from $850. Bulk landlord pricing across Middle TN.",
+        "eyebrow": "Service Guide · Landlord & Property Management",
+        "section": "Service Guide",
+        "minutes": "6",
+        "image": "/assets/images/blog/rental-property-blinds.webp",
+        "image_alt": "A clean rental property living room with crisp white faux wood blinds on three large windows, ready for tenant move-in",
+        "caption": "Faux wood, cordless, white — the rental landlord's default.",
+        "keywords": "blinds for rental property, landlord blinds, rental property window treatments, tenant blinds, multi-unit blinds, builder blinds, Airbnb blinds, durable blinds, child-safe rental blinds, bulk landlord pricing",
+        "og_desc": "The landlord's playbook for blinds — durable, child-safe, tenant-proof, easy to replace on turnover.",
+        "tw_desc": "Best blinds for rental properties: durable faux wood from $89/window. Bulk landlord pricing across Middle TN.",
+        "breadcrumb_name": "Best Blinds for Rental Properties",
+        "body": """
+      <p>Rental property blinds have a job description that retail blinds don't. They have to survive tenants who slam them shut. They have to be child-safe by default (a tenant-safety lawsuit risk worth taking seriously). They have to clean up to "rent-ready" in five minutes between turnovers. And they have to be cheap enough that replacing a damaged slat doesn't blow the maintenance budget. This is the landlord's playbook for blinds we've developed across hundreds of rental units in Middle Tennessee.</p>
+
+      <h2>The rental landlord's four requirements</h2>
+      <ol>
+        <li><strong>Durable.</strong> Survives slamming, pet claws, sun, humidity. No real wood — it warps. No fancy cellular — fragile.</li>
+        <li><strong>Child-safe / cord-free.</strong> Mandatory in any property that might house families. Cordless lift only.</li>
+        <li><strong>Easy to clean and turn over.</strong> Washable, replaceable slats, no fabric to dry-clean.</li>
+        <li><strong>Affordable enough to absorb damage.</strong> Replace a slat for $20, not the whole blind.</li>
+      </ol>
+      <p>One product hits all four reliably: <strong>2.5&Prime; faux wood, cordless, white.</strong></p>
+
+      <h2>Why faux wood wins for rentals</h2>
+      <ul>
+        <li><strong>Humidity-proof.</strong> Bathrooms, kitchens, laundries — no warping. Real wood would fail in 2–3 years.</li>
+        <li><strong>Washable.</strong> Damp microfiber removes most of what a tenant leaves behind. Heavier grime cleans with mild soap.</li>
+        <li><strong>Replaceable slats.</strong> Snap a single slat? $20 part, 5-minute swap. We keep the most common slat sizes in stock for landlord clients.</li>
+        <li><strong>Cordless is the default</strong>, so the WCMA child-safety standard is met without adding a cleat or a wall anchor.</li>
+        <li><strong>Cheap enough to spec at scale.</strong> $89/window installed, falling to $75–$85/window on multi-unit landlord packages.</li>
+      </ul>
+
+      <p class="pull">Tenants change every year or two. The blinds should change every fifteen.</p>
+
+      <h2>The Stately Shades landlord package</h2>
+      <p>For landlords and property managers across Middle Tennessee, we offer a structured pricing tier:</p>
+      <ul>
+        <li><strong>Per-unit pricing</strong>: $75–$95 per window installed on multi-unit orders (10+ windows).</li>
+        <li><strong>Turnover slat replacement</strong>: $20 per slat, scheduled around your turn calendar.</li>
+        <li><strong>One-call scheduling</strong>: text the address and unit number, we book the install within the week.</li>
+        <li><strong>Single point of contact</strong> for your whole portfolio — no juggling multiple sub-contractors.</li>
+        <li><strong>Net-30 invoicing</strong> on landlord accounts (after the first project).</li>
+      </ul>
+      <p>If you run more than 20 doors in our service area, ask about bulk landlord pricing on the first call.</p>
+
+      <h2>What we install at a typical rental</h2>
+      <p>A 2-bedroom rental with 9 windows is a representative project. Typical spec:</p>
+      <ul>
+        <li><strong>Living room</strong>: 2.5&Prime; faux wood, white, cordless. 3 windows × $85 = $255.</li>
+        <li><strong>Kitchen</strong>: 2&Prime; faux wood (slimmer profile), white. 1 window × $80 = $80.</li>
+        <li><strong>Bathroom</strong>: 2&Prime; faux wood. 1 window × $80 = $80.</li>
+        <li><strong>Bedroom 1 (primary)</strong>: 2.5&Prime; faux wood, white. 2 windows × $85 = $170.</li>
+        <li><strong>Bedroom 2</strong>: 2.5&Prime; faux wood, white. 2 windows × $85 = $170.</li>
+      </ul>
+      <p><strong>Total: $755 for the unit, fully installed.</strong> Add roughly 10% if any windows need outside-mount or specialty trim.</p>
+
+      <h2>Where to upgrade past faux wood</h2>
+      <p>Two upgrades worth considering on a rental, depending on tenant tier:</p>
+      <ul>
+        <li><strong>Bedroom blackout cellular</strong> — $140–$200/window. Higher-end rentals or short-term/Airbnb properties benefit from the better blackout and insulation. Tenants notice.</li>
+        <li><strong>Roller shades</strong> with a cleaner modern look — $90–$140/window. Worth it for higher-rent units (>$2,500/month) where the visual impression at showings matters.</li>
+      </ul>
+      <p>For everything else — 80% of the doors — faux wood is right.</p>
+
+      <h2>Short-term rentals (Airbnb, VRBO)</h2>
+      <p>Short-term rentals are blind-stress at 10× the rate. Five different guests in a month, each with a different idea of how a blind operates. Two notes specific to STRs:</p>
+      <ul>
+        <li><strong>Use top-down/bottom-up cellulars in primary bedrooms.</strong> Guests get privacy + view, and review scores notice.</li>
+        <li><strong>Avoid drapery.</strong> Fabric is a cleaning nightmare and stains catastrophically. Roller shades behind faux drapery (visually layered) is the photogenic compromise.</li>
+      </ul>
+
+      <div class="callout">
+        <h3>Our 2026 landlord default spec</h3>
+        <p><strong>Norman or Bali 2.5&Prime; faux wood, cordless, white, inside-mount on every window in the unit.</strong> Whole-unit cost typical $650–$950 installed, depending on window count. Same product across the portfolio = same replacement slat inventory.</p>
+      </div>
+
+      <h2>Tenant safety: the legal note</h2>
+      <p>The Window Covering Manufacturers Association requires cordless or inaccessible-cord operating systems on all stock window coverings sold for residential use as of 2018. Most states (including Tennessee) align with this standard. Installing corded blinds in a rental property in 2026 is a real liability risk if a child or pet is harmed — and we won't sell them. Every blind we install in a rental is cordless by default.</p>
+
+      <h2>How to get rental pricing</h2>
+      <p>Text or call <a href="tel:+16292988241">629-298-8241</a> with the address, unit count, and rough window count per unit. We'll quote landlord pricing on the first conversation and book the measure visit within the week. <a href="/#contact">Or use the contact form</a>.</p>
+
+      <p>We work with landlords and property managers across Davidson, Sumner, Wilson, Williamson, Rutherford, Robertson, Cheatham, and surrounding counties.</p>
+        """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "What is the best blind for a rental property?", "acceptedAnswer": { "@type": "Answer", "text": "The best rental property blind is a 2.5-inch faux wood horizontal blind with cordless child-safe lift in white. It is humidity-proof, durable, washable, replaceable slat by slat on damage, and inexpensive enough to absorb tenant wear. At Stately Shades it runs $75 to $95 per window installed on landlord packages of 10 or more windows." } },
+    { "@type": "Question", "name": "Are landlords required to install cord-free blinds?", "acceptedAnswer": { "@type": "Answer", "text": "While there is no federal law in Tennessee specifically requiring cord-free blinds in rentals, the Window Covering Manufacturers Association standard (effective 2018) requires cordless or inaccessible-cord systems on all stock residential blinds. Installing corded blinds in a rental property creates real tenant-safety liability and is no longer industry standard. Every blind Stately Shades installs is cordless by default." } },
+    { "@type": "Question", "name": "How much do blinds for a rental unit cost?", "acceptedAnswer": { "@type": "Answer", "text": "A typical 9-window 2-bedroom rental unit runs $650 to $950 installed for cordless 2-inch and 2.5-inch faux wood blinds in white. Multi-unit landlord packages bring the per-window price down to $75 to $95." } },
+    { "@type": "Question", "name": "Can you install blinds across multiple rental units at once?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. We work with landlords and property managers across Middle Tennessee on multi-unit projects, with a single point of contact, scheduled installs around your turn calendar, and net-30 invoicing on established accounts. Bulk landlord pricing applies on portfolios of 10+ windows." } },
+    { "@type": "Question", "name": "What is the best blind for an Airbnb or short-term rental?", "acceptedAnswer": { "@type": "Answer", "text": "For Airbnb and short-term rentals we recommend faux wood blinds throughout, with top-down/bottom-up cellular shades upgraded into the primary bedroom for privacy and review-score impact. Avoid drapery in STRs — fabric stains catastrophically with high guest turnover." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".prose p:first-of-type", ".callout p"] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "Service", "@id": "https://statelyshades.com/blog/best-blinds-for-rental-properties/#landlord-service", "name": "Landlord & Multi-Unit Blind Installation Service", "serviceType": "Multi-Property Window Treatment Installation", "provider": { "@type": "LocalBusiness", "name": "Stately Shades", "telephone": "+1-629-298-8241", "address": { "@type": "PostalAddress", "addressLocality": "Gallatin", "addressRegion": "TN", "addressCountry": "US" } }, "areaServed": { "@type": "GeoCircle", "geoMidpoint": { "@type": "GeoCoordinates", "latitude": 36.3881, "longitude": -86.4467 }, "geoRadius": "144841" }, "audience": { "@type": "Audience", "name": "Landlords, property managers, multi-family operators, short-term rental hosts in Middle Tennessee" }, "offers": { "@type": "AggregateOffer", "priceCurrency": "USD", "lowPrice": "75", "highPrice": "95", "priceSpecification": { "@type": "UnitPriceSpecification", "priceCurrency": "USD", "unitText": "window installed (10+ window landlord package)" } } }
+  </script>""",
+        "related": [
+            ("/blog/affordable-faux-wood-blinds-guide/", "Service guide · 6 min read", "Affordable <em>faux wood blinds</em>", "The product behind the rental spec.", "/assets/images/blog/affordable-faux-wood.webp", "Affordable faux wood blinds in a Tennessee kitchen"),
+            ("/blog/affordable-blinds-nashville-tennessee/", "Local guide · 6 min read", "Affordable blinds <em>near me</em>", "Local SEO companion piece.", "/assets/images/blog/affordable-faux-wood.webp", "Affordable faux wood blinds in a Nashville-area kitchen"),
+        ],
+    },
+    {
+        "slug": "home-depot-lowes-blinds-installer-tennessee",
+        "title_html": "Home Depot &amp; Lowes blinds <em>installer near me.</em>",
+        "h1_plain": "Home Depot, Lowes & Costco Blinds Installer in Middle Tennessee",
+        "meta_title": "Home Depot & Lowes Blinds Installer Near Me · Middle TN · Stately Shades",
+        "meta_desc": "Searching for a Home Depot blinds installer or Lowes blinds installer near me in Tennessee? We install blinds from Home Depot, Lowes, Costco, Blinds.com, Select Blinds, Amazon, IKEA. Flat-rate, workmanship guarantee.",
+        "eyebrow": "Local Service · Install Only · BYO Blinds",
+        "section": "Local Service",
+        "minutes": "6",
+        "image": "/assets/images/blog/install-only-service.webp",
+        "image_alt": "A professional installer mounting a blind purchased from Home Depot on a Tennessee window, boxes visible on a drop cloth",
+        "caption": "Boxes from the home-improvement store, blind on the wall — install-only service across Middle Tennessee.",
+        "keywords": "Home Depot blinds installer near me, Lowes blinds installer, Costco blinds install, Blinds.com installer, professional blind installer Tennessee, blind installation service Nashville, install only blinds Middle TN, BYO blinds installer, Select Blinds installer",
+        "og_desc": "Professional installer for blinds bought at Home Depot, Lowes, Costco, Blinds.com — across Middle Tennessee.",
+        "tw_desc": "Searched 'Home Depot blinds installer near me'? We install any-brand blinds across Middle TN. Flat-rate.",
+        "breadcrumb_name": "Home Depot & Lowes Blinds Installer · Middle TN",
+        "body": """
+      <p>If you've been searching <em>"Home Depot blinds installer near me,"</em> <em>"Lowes blinds installer Tennessee,"</em> <em>"Costco blinds install,"</em> or <em>"who installs Blinds.com window treatments,"</em> the answer is the same regardless of which retailer you used: <strong>Stately Shades does install-only service across Middle Tennessee for any brand, any retailer, any product</strong>. This guide covers the specifics of what we do, what we charge, and what to expect.</p>
+
+      <h2>Retailers we install from most often</h2>
+      <p>In rough order of how many we install per month:</p>
+      <ol>
+        <li><strong>Home Depot</strong> — Hampton Bay, Bali, Custom Blinds, Levolor in-store products. The most common retailer we install for.</li>
+        <li><strong>Lowes</strong> — Levolor, Custom Size Now, Allen + Roth, Bali. Their custom-sized line is excellent quality.</li>
+        <li><strong>Blinds.com</strong> — and sister sites (JustBlinds, BlindsOnline). Solid quality, dimensions usually accurate.</li>
+        <li><strong>Costco</strong> — both warehouse and Costco.com. Best-in-category value at the price point.</li>
+        <li><strong>Amazon</strong> — Chicology, Yoolax, Loomgaal, generic faux wood, motorized SmartWings. Quality varies; we'll install what's structurally sound.</li>
+        <li><strong>Select Blinds</strong> — strong cellular and roller lines.</li>
+        <li><strong>IKEA</strong> — FYRTUR (motorized blackout roller), KADRILJ, TIBBLE. We've installed dozens of FYRTURs.</li>
+        <li><strong>Wayfair</strong> — Bali, Achim, custom no-name brands.</li>
+        <li><strong>Bali Direct, Levolor Direct</strong> — manufacturer-direct purchases.</li>
+        <li><strong>Builder leftovers</strong> from a previous project (5+ years old still install fine if sealed).</li>
+      </ol>
+
+      <h2>What it costs in Middle Tennessee in 2026</h2>
+      <p>Flat-rate per window, no surprises:</p>
+      <ul>
+        <li><strong>Faux wood and aluminum horizontal blinds</strong>: $45–$65/window</li>
+        <li><strong>Real-wood blinds</strong>: $55–$75/window</li>
+        <li><strong>Cellular, roller, and Roman shades</strong>: $55–$75/window</li>
+        <li><strong>Solar / sun shades</strong>: $55–$75/window</li>
+        <li><strong>Vertical blinds and panel-track for sliding doors</strong>: $95–$160/opening</li>
+        <li><strong>Plantation shutters</strong> (per panel hung &amp; tensioned): $65–$140/window</li>
+        <li><strong>Motorized shades with hub pairing &amp; programming</strong>: $95–$180/shade</li>
+        <li><strong>French door, arch, skylight, specialty shapes</strong>: quoted on site</li>
+        <li><strong>Service-call minimum</strong> (3 or fewer windows): $185</li>
+      </ul>
+      <p>A typical 8-window install-only project across Middle Tennessee lands between <strong>$360 and $720</strong>, with parts coming from your own boxes.</p>
+
+      <p class="pull">You did the research. You picked the product. Saturday belongs to you, not to a stepladder.</p>
+
+      <h2>Cities we serve for install-only</h2>
+      <p>Our 90-mile service radius from Gallatin covers most of Middle Tennessee and into southern Kentucky:</p>
+      <ul>
+        <li><strong>Nashville</strong> and every neighborhood — Green Hills, East Nashville, Belle Meade, the Gulch, Antioch, Bellevue, Donelson, Hermitage, Madison.</li>
+        <li><strong>Hendersonville, Gallatin, Goodlettsville, Springfield</strong> — Sumner and Robertson counties.</li>
+        <li><strong>Franklin, Brentwood, Spring Hill, Cool Springs</strong> — Williamson County.</li>
+        <li><strong>Murfreesboro, Smyrna, La Vergne</strong> — Rutherford County.</li>
+        <li><strong>Mt. Juliet, Lebanon</strong> — Wilson County.</li>
+        <li><strong>Clarksville, Springfield, Cookeville</strong> — outer ring.</li>
+        <li><strong>Bowling Green, KY</strong> and the bordering Kentucky counties.</li>
+      </ul>
+
+      <h2>What our install includes</h2>
+      <ol>
+        <li><strong>Unbox</strong> every blind and check against the packing slip for damage.</li>
+        <li><strong>Verify dimensions</strong> against your openings before we drill.</li>
+        <li><strong>Mount level</strong> — the single most common DIY mistake, easily worth the install fee on its own.</li>
+        <li><strong>Hang the bottom rail symmetrically</strong> and tension the lift cord properly.</li>
+        <li><strong>Program motors</strong> — pair with your hub, set up/down limits, test scenes, walk you through the app.</li>
+        <li><strong>Demo the mechanism</strong> in person — lift, tilt, batteries, troubleshooting.</li>
+        <li><strong>Haul away packaging</strong> — cardboard, plastic, and the foam your hands don't want to deal with.</li>
+        <li><strong>Workmanship guarantee</strong>: if a bracket pulls out, the headrail levels itself out within 90 days, or a motor we programmed loses its limits, we come back on us.</li>
+      </ol>
+
+      <div class="callout">
+        <h3>The Home Depot Levolor scenario we see weekly</h3>
+        <p>The single most common install-only request we get: a 6–10 window Home Depot Levolor faux wood order, arrived in boxes 2–4 weeks ago, customer didn't realize how much work the install would be. Typical project total: <strong>$310–$580 installed</strong>, scheduled within 5 business days, completed in a single 3–4 hour visit.</p>
+      </div>
+
+      <h2>When it makes sense to use install-only vs. buy through us</h2>
+      <ul>
+        <li><strong>You already ordered.</strong> Obvious — install-only.</li>
+        <li><strong>You want a specific online product</strong> we don't stock (a Smart Wings FYRTUR alternative, a niche cellular cell count, an IKEA-only color). Install-only.</li>
+        <li><strong>You're price-shopping at the very bottom.</strong> A $40 Home Depot stock blind + our $50 install = $90 installed, which is comparable to our $89 custom. Honest math says we usually come out within $5 either direction. We'll tell you on the visit which way to go.</li>
+        <li><strong>You want custom dimensions, a free measure, and a quote from a pro before you spend.</strong> Buy through us — the consultation is free.</li>
+      </ul>
+
+      <h2>The single most common DIY mistake</h2>
+      <p>It's the same on every retailer: <strong>ordering the wrong size</strong>. Lowes and Home Depot both default to a "factory deduction" for inside-mount and a "no deduction" for outside-mount, and getting that wrong is a $100 mistake. If you'd like us to measure before you order, we'll do that on the consultation visit for the cost of a service call — applied toward the eventual install fee.</p>
+
+      <h2>How to schedule</h2>
+      <p>Photograph the unopened blind boxes (or the inside flap with dimensions) and the windows they'll go on. Text the photos to <strong>629-298-8241</strong> with your address. We quote from the photos within a few hours and book the install within the week. <a href="/#contact">Or use the contact form</a>.</p>
+        """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "Who installs Home Depot blinds in Tennessee?", "acceptedAnswer": { "@type": "Answer", "text": "Stately Shades installs Home Depot blinds (Hampton Bay, Bali, Custom Blinds, Levolor) across the entire Middle Tennessee 90-mile radius from Gallatin — including Nashville, Hendersonville, Franklin, Brentwood, Murfreesboro, Mt. Juliet, Lebanon, Spring Hill, Cookeville, Clarksville, and into Bowling Green, Kentucky. Flat-rate per window with a workmanship guarantee." } },
+    { "@type": "Question", "name": "Does Home Depot install blinds they sell?", "acceptedAnswer": { "@type": "Answer", "text": "Home Depot does offer an install service via third-party contractors in some regions, but pricing varies and scheduling can be slow. Many Tennessee customers prefer to hire an independent installer like Stately Shades — flat-rate pricing, faster scheduling (usually within a week), and direct accountability with the installer." } },
+    { "@type": "Question", "name": "How much does Lowes blinds installation cost?", "acceptedAnswer": { "@type": "Answer", "text": "Lowes installation services (where available) run roughly $40 to $70 per window in Tennessee, plus the cost of the blind. Stately Shades install-only service runs $45 to $85 per window for standard blinds and includes a workmanship guarantee — typically comparable or slightly lower total cost with faster scheduling." } },
+    { "@type": "Question", "name": "Who installs Blinds.com blinds in Nashville?", "acceptedAnswer": { "@type": "Answer", "text": "Stately Shades installs Blinds.com window treatments throughout the Nashville metro and Middle Tennessee. Same flat-rate pricing ($45 to $85 per window standard, $65 to $140 per plantation shutter panel), same workmanship guarantee." } },
+    { "@type": "Question", "name": "Do you install Costco blinds?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Costco blinds — both in-warehouse and Costco.com purchases — are a regular install-only product for us. Same per-window pricing and workmanship guarantee as any other retailer." } },
+    { "@type": "Question", "name": "Can you install IKEA FYRTUR motorized blinds?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. IKEA FYRTUR (and KADRILJ, TIBBLE) motorized blinds are among the most-installed motorized products in our install-only catalogue. We mount, pair with the gateway, set up Apple Home / Google Home / Alexa integration, and demo the mechanism. Typical cost $95 to $180 per shade with hub pairing included." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".prose p:first-of-type", ".callout p"] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "Service", "@id": "https://statelyshades.com/blog/home-depot-lowes-blinds-installer-tennessee/#service", "name": "Home Depot, Lowes, Costco & Blinds.com Installer — Middle Tennessee", "serviceType": "Bring-Your-Own-Blinds Professional Installation", "provider": { "@type": "LocalBusiness", "name": "Stately Shades", "telephone": "+1-629-298-8241", "address": { "@type": "PostalAddress", "addressLocality": "Gallatin", "addressRegion": "TN", "addressCountry": "US" } }, "areaServed": { "@type": "GeoCircle", "geoMidpoint": { "@type": "GeoCoordinates", "latitude": 36.3881, "longitude": -86.4467 }, "geoRadius": "144841" }, "offers": { "@type": "AggregateOffer", "priceCurrency": "USD", "lowPrice": "45", "highPrice": "180", "priceSpecification": { "@type": "UnitPriceSpecification", "priceCurrency": "USD", "unitText": "window installed" } } }
+  </script>""",
+        "related": [
+            ("/blog/install-only-blinds-service-guide/", "Service guide · 6 min read", "Install only · <em>BYO blinds</em>", "The deeper install-only walkthrough.", "/assets/images/blog/install-only-service.webp", "Installing a blind on a Tennessee window casing"),
+            ("/blog/cost-to-install-blinds-professionally/", "Pricing · 6 min read", "Cost to install blinds <em>professionally</em>", "2026 pricing breakdown.", "/assets/images/blog/professional-installer-detail.webp", "Professional installer hands and tools"),
+        ],
+    },
+    {
+        "slug": "cost-to-install-blinds-professionally",
+        "title_html": "Cost to install blinds <em>professionally.</em>",
+        "h1_plain": "What Does It Cost to Install Blinds Professionally? (2026 Pricing)",
+        "meta_title": "Cost to Install Blinds Professionally · 2026 Pricing Guide · Stately Shades",
+        "meta_desc": "Real 2026 pricing for professional blind installation in Tennessee — per-window cost by type, plantation shutter install pricing, motorized programming fees, and what's included. Flat-rate, no surprises.",
+        "eyebrow": "Pricing · Professional Installation",
+        "section": "Pricing",
+        "minutes": "6",
+        "image": "/assets/images/blog/professional-installer-detail.webp",
+        "image_alt": "Close-up of a professional installer's hands threading a hidden lift cord through a custom blind headrail with brass tools",
+        "caption": "Professional install — measured, level, demoed, guaranteed.",
+        "keywords": "cost to install blinds, professional blind installation cost, blind installation price per window, how much does it cost to install blinds, plantation shutter installation cost, motorized blind programming fee, Tennessee blind installer pricing",
+        "og_desc": "Real 2026 pricing for professional blind installation in Tennessee — per-window, per-type, no surprises.",
+        "tw_desc": "Professional blind install pricing in 2026: $45-$180/window depending on type. Full breakdown.",
+        "breadcrumb_name": "Cost to Install Blinds Professionally",
+        "body": """
+      <p>The single most-asked pricing question we get on the phone: <em>what does it cost to have blinds professionally installed?</em> The answer depends on the type of blind, the window count, the complexity of the install, and a few specialty factors that don't show up in any online calculator. This is the real 2026 pricing across Middle Tennessee, with no upsell built in.</p>
+
+      <h2>The short answer</h2>
+      <p>Professional blind installation in Middle Tennessee in 2026 typically runs <strong>$45 to $180 per window installed</strong>, depending on what's going on the wall. The exact range:</p>
+      <ul>
+        <li><strong>Standard horizontal blinds</strong> (faux wood, real wood, aluminum mini): <strong>$45–$75/window</strong></li>
+        <li><strong>Cellular &amp; honeycomb shades</strong>: <strong>$55–$75/window</strong></li>
+        <li><strong>Roller, solar, and Roman shades</strong>: <strong>$55–$75/window</strong></li>
+        <li><strong>Vertical blinds &amp; panel-track</strong> (for sliding doors): <strong>$95–$160/opening</strong></li>
+        <li><strong>Plantation shutters</strong> (per panel hung &amp; tensioned): <strong>$65–$140/window</strong></li>
+        <li><strong>Motorized shades</strong> with hub pairing &amp; programming: <strong>$95–$180/shade</strong></li>
+        <li><strong>French-door &amp; specialty shapes</strong>: $85–$220/opening</li>
+        <li><strong>Service-call minimum</strong> (3 or fewer windows): <strong>$185 flat</strong></li>
+      </ul>
+
+      <h2>What "professionally installed" actually includes</h2>
+      <p>Cheap "installation services" charge per-blind and skip steps. A real professional install includes all of the following:</p>
+      <ol>
+        <li><strong>Unbox &amp; QC</strong> — open every package, check against the packing slip for damage or wrong-size deliveries.</li>
+        <li><strong>Verify dimensions</strong> against your openings <em>before</em> drilling. Catching a too-narrow blind before mounting saves a $100 return.</li>
+        <li><strong>Drop cloths down</strong>, walls protected, vacuum on hand for drywall dust.</li>
+        <li><strong>Level mounting</strong> — bracket placement at the correct height, fascia or headrail perfectly horizontal on the level.</li>
+        <li><strong>Bottom rail symmetry</strong> — every blind in a room should land at the same height when fully closed.</li>
+        <li><strong>Operate &amp; demo</strong> — every blind raised, lowered, tilted with you watching. Hand you the wand or remote and walk through replacement (batteries, etc.).</li>
+        <li><strong>Haul packaging</strong> — cardboard, plastic, foam wedges.</li>
+        <li><strong>Workmanship guarantee</strong> — return if anything fails on the install side within 90 days. Free.</li>
+      </ol>
+
+      <h2>Where pricing scales</h2>
+
+      <h3>Number of windows</h3>
+      <p>Per-window pricing comes down at scale. 1–3 windows triggers our service-call minimum ($185). 4–8 windows runs the standard per-window rate. 9+ windows or a whole-house package gets a bulk discount — typically 10–20% off the per-window rate.</p>
+
+      <h3>Window type</h3>
+      <ul>
+        <li><strong>Standard double-hung or casement windows</strong> with normal trim: bottom of the range.</li>
+        <li><strong>Deep sills, casing returns, decorative trim</strong>: middle of the range — more time to mount cleanly.</li>
+        <li><strong>French doors, sliders, transoms, skylights, arches</strong>: top of the range or quoted separately.</li>
+      </ul>
+
+      <h3>Product type</h3>
+      <p>Plantation shutters take longer than horizontal blinds because each panel needs to be tensioned and aligned. Motorized shades cost more because programming the hub + setting limits + walking you through the app adds 20–40 minutes per shade.</p>
+
+      <h3>Specialty work</h3>
+      <ul>
+        <li><strong>Outside-mount on plaster or stone:</strong> +$15–$30/window (anchors needed).</li>
+        <li><strong>Atrium/vaulted/stairwell mounting</strong> requiring a 12'+ ladder or scaffolding: $50–$150 extra per window.</li>
+        <li><strong>Out-of-square frames</strong> requiring shims and re-templated brackets: case-by-case.</li>
+        <li><strong>Existing blind removal</strong> (we take down what's there): $10–$20/window.</li>
+      </ul>
+
+      <p class="pull">A flat $89 quote with the trip fee added in writing beats a $45 quote that becomes $145 by the time the installer leaves.</p>
+
+      <h2>Real example projects</h2>
+
+      <h3>Example 1 · 8 faux wood blinds in a Hendersonville bungalow</h3>
+      <ul>
+        <li>8 windows × $55/window faux wood install = <strong>$440</strong></li>
+        <li>1 existing-blind removal × $15 = $15</li>
+        <li><strong>Total: $455 installed.</strong> About a 3-hour visit.</li>
+      </ul>
+
+      <h3>Example 2 · 12 plantation shutter panels in a Franklin colonial</h3>
+      <ul>
+        <li>12 panels × $95/window plantation = <strong>$1,140</strong></li>
+        <li>2 specialty bay-window panels × $30 extra = $60</li>
+        <li><strong>Total: $1,200 installed.</strong> A full-day visit.</li>
+      </ul>
+
+      <h3>Example 3 · 6 motorized cellular shades in a Brentwood primary suite</h3>
+      <ul>
+        <li>6 shades × $130/window motorized w/ programming = <strong>$780</strong></li>
+        <li>Hub pairing + Alexa/Google scenes: $0 (included)</li>
+        <li><strong>Total: $780 installed.</strong> About 4 hours.</li>
+      </ul>
+
+      <h2>What you'll spend if you DIY</h2>
+      <p>Be honest about the trade-off. A typical homeowner with no install experience spends roughly 45–90 minutes per blind on a DIY install, plus the cost of a step ladder and a stud finder if they don't have one, plus the risk of getting the brackets at the wrong height and re-drilling. Average DIY 8-blind job: <strong>6–12 hours of weekend, ~$30 in supplies, and a 1-in-4 chance of needing to call us afterward anyway.</strong> Math worth considering.</p>
+
+      <div class="callout">
+        <h3>Our service-call minimum, explained</h3>
+        <p>For 1–3 windows, we charge a <strong>$185 service-call minimum</strong> instead of per-window pricing. This covers the truck, the drive, the measure, the install of up to 3 standard blinds, and the demo. It's the only way the math works on small jobs across a 90-mile radius. For 4+ windows the per-window rate is always cheaper.</p>
+      </div>
+
+      <h2>How to get a written quote</h2>
+      <p>Three ways:</p>
+      <ol>
+        <li><strong>Text photos to 629-298-8241</strong> — windows + product boxes if you have them. Most jobs we quote within an hour.</li>
+        <li><strong>Book a free consultation</strong> via <a href="/#contact">the contact form</a>. We come measure, sample, and quote on the same visit.</li>
+        <li><strong>Call</strong> <a href="tel:+16292988241">629-298-8241</a> and tell us the window count + product type. Phone quotes possible on straightforward jobs.</li>
+      </ol>
+
+      <p>For the broader buyer's guide on what we install (any retailer's products), see <a href="/blog/install-only-blinds-service-guide/">the install-only service guide</a>. For local SEO/service-area coverage, see <a href="/blog/home-depot-lowes-blinds-installer-tennessee/">our Home Depot, Lowes & Costco installer guide</a>.</p>
+        """,
+        "extra_schema": """  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+    { "@type": "Question", "name": "How much does it cost to install blinds professionally?", "acceptedAnswer": { "@type": "Answer", "text": "Professional blind installation in Middle Tennessee in 2026 runs $45 to $75 per window for standard horizontal blinds, $55 to $75 per window for cellular and roller shades, $65 to $140 per panel for plantation shutters, and $95 to $180 per shade for motorized treatments with programming. A typical 8-window project lands between $360 and $720 installed." } },
+    { "@type": "Question", "name": "Is it worth paying to have blinds installed?", "acceptedAnswer": { "@type": "Answer", "text": "For most homeowners, yes. A typical 8-window DIY install takes 6 to 12 hours over a weekend, requires a step ladder and stud finder, and has roughly a 1-in-4 chance of needing professional follow-up. Professional install runs $360 to $720 for the same job, completed in a single 3 to 4 hour visit with a workmanship guarantee." } },
+    { "@type": "Question", "name": "What is included in professional blind installation?", "acceptedAnswer": { "@type": "Answer", "text": "A real professional install includes unboxing and QC, verifying dimensions against openings before drilling, drop cloths for drywall dust, level mounting, bottom-rail symmetry across the room, demo of every blind with the homeowner watching, packaging haul-away, and a workmanship guarantee on the install for 90 days." } },
+    { "@type": "Question", "name": "Does plantation shutter install cost more than blind install?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Plantation shutter install runs $65 to $140 per panel in Middle Tennessee because each panel must be hinged, tensioned, and aligned individually. Standard horizontal blind install runs $45 to $75 per window. A 12-panel shutter project typically takes a full day; a 12-blind project takes 3 to 4 hours." } },
+    { "@type": "Question", "name": "How much extra does motorized blind installation cost?", "acceptedAnswer": { "@type": "Answer", "text": "Motorized shade installation in Middle Tennessee runs $95 to $180 per shade in 2026. The premium over standard install covers hub pairing (PowerView, Somfy TaHoma, Lutron), setting up and down limits, scene programming, and walking the homeowner through the mobile app and voice control with Alexa, Google Home, or Apple HomeKit." } }
+  ]}
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "SpeakableSpecification", "cssSelector": [".article-hero h1", ".prose p:first-of-type", ".callout p"] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "Service", "@id": "https://statelyshades.com/blog/cost-to-install-blinds-professionally/#service", "name": "Professional Blind Installation Service — Middle Tennessee", "serviceType": "Window Treatment Installation", "provider": { "@type": "LocalBusiness", "name": "Stately Shades", "telephone": "+1-629-298-8241", "address": { "@type": "PostalAddress", "addressLocality": "Gallatin", "addressRegion": "TN", "addressCountry": "US" } }, "areaServed": { "@type": "GeoCircle", "geoMidpoint": { "@type": "GeoCoordinates", "latitude": 36.3881, "longitude": -86.4467 }, "geoRadius": "144841" }, "offers": { "@type": "AggregateOffer", "priceCurrency": "USD", "lowPrice": "45", "highPrice": "180", "priceSpecification": { "@type": "UnitPriceSpecification", "priceCurrency": "USD", "unitText": "window installed" } } }
+  </script>""",
+        "related": [
+            ("/blog/home-depot-lowes-blinds-installer-tennessee/", "Local guide · 6 min read", "Home Depot &amp; Lowes <em>installer near me</em>", "Retailer-specific install service.", "/assets/images/blog/install-only-service.webp", "Installing a blind purchased from Home Depot"),
+            ("/blog/install-only-blinds-service-guide/", "Service guide · 6 min read", "Install only · <em>BYO blinds</em>", "The full install-only walkthrough.", "/assets/images/blog/install-only-service.webp", "Installing a blind on a Tennessee window casing"),
         ],
     },
     {
@@ -928,6 +1424,7 @@ TEMPLATE = """<!DOCTYPE html>
     {{ "@type": "ListItem", "position": 3, "name": "{breadcrumb_name}", "item": "https://statelyshades.com/blog/{slug}/" }}
   ]}}
   </script>
+{extra_schema}
 </head>
 <body>
 
@@ -1100,6 +1597,7 @@ def render():
             date=DATE,
             date_pretty=pretty,
             version=VERSION,
+            extra_schema=p.get("extra_schema", ""),
         )
         out_path = BLOG / p["slug"] / "index.html"
         out_path.parent.mkdir(parents=True, exist_ok=True)
