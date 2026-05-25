@@ -446,45 +446,59 @@ p { margin: 0; }
 .nav__toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
 
 /* ============================================================
-   Hero — cover-of-the-magazine
+   Hero — MOBILE-FIRST
+   Default (mobile): photo banner at top, cream content section below
+   Desktop (min-width: 981px): photo full-bleed with text + form overlay
    ============================================================ */
 .hero {
   position: relative;
-  min-height: clamp(640px, 96vh, 920px);
-  display: flex; align-items: flex-end;
-  color: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
   overflow: hidden;
   isolation: isolate;
 }
 .hero__media {
-  position: absolute; inset: 0; z-index: -1;
+  position: relative;
+  height: 58vh;
+  min-height: 340px;
+  max-height: 500px;
+  width: 100%;
   background:
     radial-gradient(ellipse at 30% 20%, rgba(157,122,62,.18) 0%, transparent 60%),
     linear-gradient(135deg, #14110D 0%, #2A241C 55%, #0A0805 100%);
+  flex-shrink: 0;
+  overflow: hidden;
 }
 .hero__media img {
   width: 100%; height: 100%; object-fit: cover;
-  object-position: 50% 40%;
-  opacity: 0.92;
-  transform: scale(1.05);
+  object-position: 50% 42%;
+  opacity: 1;
+  transform: scale(1.04);
   animation: ken-burns 24s var(--ease) infinite alternate;
 }
 .hero__media img[src$=".svg"] { opacity: 1; animation: none; transform: none; }
 @keyframes ken-burns {
-  from { transform: scale(1.05) translate(0, 0); }
-  to   { transform: scale(1.15) translate(-2%, -1%); }
+  from { transform: scale(1.04) translate(0, 0); }
+  to   { transform: scale(1.12) translate(-1.5%, -0.5%); }
 }
 .hero__scrim {
   position: absolute; inset: 0;
+  /* Subtle dark→cream fade at the bottom so the photo bleeds smoothly
+     into the cream content section below it */
   background:
-    /* soft top→bottom darkening so text reads cleanly without smothering the photo */
-    linear-gradient(180deg, rgba(10,8,5,.28) 0%, rgba(10,8,5,.18) 30%, rgba(10,8,5,.55) 70%, rgba(10,8,5,.82) 100%),
-    /* gentle vignette so the corners deepen */
-    radial-gradient(ellipse at 50% 40%, rgba(10,8,5,0) 0%, rgba(10,8,5,0) 50%, rgba(10,8,5,.35) 100%);
+    linear-gradient(180deg,
+      rgba(10,8,5,.08) 0%,
+      rgba(10,8,5,0) 25%,
+      rgba(10,8,5,0) 65%,
+      rgba(247,242,234,.35) 92%,
+      rgba(247,242,234,.95) 100%);
+  pointer-events: none;
 }
 
-/* Top-corner issue badge */
+/* Top-corner issue badge — desktop only */
 .hero__badge {
+  display: none;
   position: absolute;
   top: clamp(32px, 5vw, 56px);
   left: 50%;
@@ -496,7 +510,7 @@ p { margin: 0; }
   text-transform: uppercase;
   color: rgba(247,242,234,.78);
   text-align: center;
-  display: flex; align-items: center; gap: 16px;
+  align-items: center; gap: 16px;
 }
 .hero__badge::before, .hero__badge::after {
   content: "";
@@ -633,58 +647,72 @@ p { margin: 0; }
   letter-spacing: 0.005em;
 }
 .hero__ctas {
-  display: flex; flex-wrap: wrap; gap: 16px;
-  margin-bottom: 60px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  margin: 4px auto 0;
 }
+.hero__ctas .btn {
+  width: 100%;
+  justify-content: center;
+}
+.hero__ctas .btn--ghost {
+  --btn-fg: var(--color-ink);
+  --btn-border: var(--color-line);
+  background: transparent;
+}
+.hero__ctas .btn--ghost svg { opacity: 0.6; }
 
-/* Hero inline form card — frosted glass over the hero photo */
+/* Hero inline form card — MOBILE: solid cream card with dark text */
 .hero__form-card {
-  background: rgba(20, 17, 13, 0.22);
-  color: var(--color-bg);
-  padding: clamp(24px, 2.4vw, 36px) clamp(22px, 2.2vw, 32px);
-  border-radius: 2px;
-  box-shadow: 0 50px 120px -50px rgba(10, 8, 5, 0.85);
-  backdrop-filter: saturate(150%) blur(28px);
-  -webkit-backdrop-filter: saturate(150%) blur(28px);
-  border: 1px solid rgba(247, 242, 234, 0.18);
-  border-top: 1.5px solid var(--color-brass-hot);
-  margin-top: 24px;
-  /* 20px wider than the grid cell — extends left into the column gap */
-  width: calc(100% + 20px);
-  margin-left: -20px;
+  background: var(--color-bg-2);
+  color: var(--color-ink);
+  padding: 28px 22px 26px;
+  border-radius: 4px;
+  box-shadow: 0 20px 50px -20px rgba(10, 8, 5, 0.18);
+  border: 1px solid var(--color-line);
+  border-top: 2px solid var(--color-brass);
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
 }
 .hero__form-card .eyebrow {
-  color: var(--color-brass-hot);
+  color: var(--color-brass);
   margin-bottom: 8px;
 }
 .hero__form-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  font-size: clamp(1.7rem, 6vw, 2.2rem);
   line-height: 1.05;
   letter-spacing: -0.012em;
-  color: var(--color-bg);
-  margin: 0 0 18px;
+  color: var(--color-ink);
+  margin: 0 0 22px;
+  text-align: center;
 }
 .hero__form-title em {
   font-style: italic;
-  color: var(--color-brass-hot);
+  color: var(--color-brass);
 }
 
-/* Compact form variant — sits on a cream card instead of the dark section */
+/* Compact form variant — MOBILE: cream card with dark labels and inputs */
 .form--compact {
   background: transparent;
   border: 0;
   padding: 0;
-  gap: 18px;
+  gap: 16px;
+  text-align: left;
 }
 .form--compact::before { display: none; }
 .form--compact label {
-  color: rgba(247, 242, 234, 0.92);
-  font-size: 0.74rem;
+  color: var(--color-ink-soft);
+  font-size: 0.7rem;
   letter-spacing: 0.18em;
   font-weight: 500;
   gap: 7px;
+  text-align: left;
 }
 .form--compact .form__row { gap: 14px; }
 .form--compact .form__row--3 {
@@ -729,14 +757,15 @@ p { margin: 0; }
   margin-top: 6px;
 }
 .form--compact .form__fineprint {
-  color: rgba(247, 242, 234, 0.72) !important;
+  color: var(--color-ink-soft) !important;
   font-size: 0.82rem !important;
   letter-spacing: 0.04em;
   margin: 4px 0 0;
+  text-align: center;
 }
 .form--compact .form__fineprint a {
-  color: var(--color-bg);
-  border-bottom: 1px solid var(--color-brass-hot);
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-brass);
   font-weight: 500;
 }
 
