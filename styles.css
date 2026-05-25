@@ -1872,10 +1872,29 @@ a.contact__line:hover strong { color: var(--color-champagne); }
 }
 
 @media (max-width: 600px) {
+  /* Belt-and-suspenders: every text element wraps; no horizontal overflow */
+  body, body * {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+  body p, body li, body td, body div {
+    max-width: 100%;
+  }
+
   /* Tighter section padding — cream bg with 80-140px padding looked empty */
   .section { padding: 56px 0 !important; }
   .workrooms { padding: 56px 0 !important; }
-  .container { padding-left: 18px; padding-right: 18px; }
+  .container { padding-left: 16px; padding-right: 16px; max-width: 100%; }
+
+  /* Display headings — cap so 'Everything for every window' doesn't overflow */
+  .display { font-size: clamp(1.7rem, 7.5vw, 2.4rem) !important; line-height: 1.1; }
+  .hero h1 { font-size: clamp(2rem, 9vw, 3rem) !important; line-height: 1.05; }
+
+  /* Section header constrained to viewport */
+  .section__head { max-width: 100%; padding: 0 4px; }
+  .section__lede { font-size: 0.98rem; padding: 0 4px; }
 
   .nav__brand { gap: 12px; }
   .nav__monogram { font-size: 1.7rem; }
@@ -1914,8 +1933,12 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .faq__item summary { padding: 18px 32px 18px 2px; font-size: 1.05rem; }
   .faq__item p { padding: 0 8px 22px 2px; font-size: 0.98rem; }
 
-  /* Product cards — pull body padding in slightly */
-  .product-card__body { padding: 26px 22px; }
+  /* Product cards — pull body padding in, tighten typography for narrow widths */
+  .product-card__body { padding: 22px 18px; }
+  .product-card__body h3 { font-size: clamp(1.4rem, 5vw, 1.8rem); line-height: 1.15; }
+  .product-card__body p { font-size: 0.95rem; line-height: 1.6; }
+  .product-card__body .eyebrow { font-size: 0.62rem; letter-spacing: 0.18em; }
+  .tags li { font-size: 0.58rem; padding: 5px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
