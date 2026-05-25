@@ -464,7 +464,8 @@ p { margin: 0; }
 }
 .hero__media img {
   width: 100%; height: 100%; object-fit: cover;
-  opacity: 0.78;
+  object-position: 50% 40%;
+  opacity: 0.92;
   transform: scale(1.05);
   animation: ken-burns 24s var(--ease) infinite alternate;
 }
@@ -476,8 +477,10 @@ p { margin: 0; }
 .hero__scrim {
   position: absolute; inset: 0;
   background:
-    linear-gradient(180deg, rgba(10,8,5,.45) 0%, rgba(10,8,5,.25) 35%, rgba(10,8,5,.85) 100%),
-    linear-gradient(90deg, rgba(10,8,5,.55) 0%, rgba(10,8,5,.05) 55%);
+    /* soft top→bottom darkening so text reads cleanly without smothering the photo */
+    linear-gradient(180deg, rgba(10,8,5,.28) 0%, rgba(10,8,5,.18) 30%, rgba(10,8,5,.55) 70%, rgba(10,8,5,.82) 100%),
+    /* gentle vignette so the corners deepen */
+    radial-gradient(ellipse at 50% 40%, rgba(10,8,5,0) 0%, rgba(10,8,5,0) 50%, rgba(10,8,5,.35) 100%);
 }
 
 /* Top-corner issue badge */
@@ -1971,6 +1974,34 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .product-card__body p { font-size: 0.95rem; line-height: 1.6; }
   .product-card__body .eyebrow { font-size: 0.62rem; letter-spacing: 0.18em; }
   .tags li { font-size: 0.58rem; padding: 5px 10px; }
+
+  /* Center forms more deliberately + shrink the long submit button */
+  .hero__form-card, .form {
+    max-width: 380px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  .btn--block {
+    padding: 16px 12px !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.18em !important;
+    gap: 8px !important;
+  }
+  /* Center form titles + fineprint */
+  .hero__form-title, .form__fineprint, .form__row {
+    text-align: center;
+  }
+  .form__row { text-align: left; } /* keep field labels left-aligned */
+
+  /* Hero image gets a sharper feature on mobile — focus on the upper-third where the windows/light are */
+  .hero__media img {
+    object-position: 50% 35%;
+    opacity: 0.96;
+  }
+  .hero__scrim {
+    background:
+      linear-gradient(180deg, rgba(10,8,5,.22) 0%, rgba(10,8,5,.12) 25%, rgba(10,8,5,.62) 75%, rgba(10,8,5,.88) 100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
