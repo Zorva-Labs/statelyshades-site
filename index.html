@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=blog9" />
+  <link rel="stylesheet" href="/styles.css?v=blog10" />
   <link rel="alternate" type="application/rss+xml" title="Stately Shades" href="/sitemap.xml" />
 
   <!-- JSON-LD: Organization + LocalBusiness + WebSite -->
@@ -711,8 +711,14 @@
 
         <div class="products__grid">
 
-          <!-- 1. THE CATALOGUE — section opener -->
-          <article class="product-card product-card--wide" data-reveal>
+          <!-- 1. THE CATALOGUE — section opener (split layout with showroom flat-lay) -->
+          <article class="product-card product-card--wide product-card--split" data-reveal>
+            <div class="product-card__media product-card__media--side" data-caption="Showroom · Every Material">
+              <picture>
+                <source srcset="/assets/images/blog/catalogue-showroom.webp" type="image/webp" />
+                <img src="/assets/images/placeholder.svg" alt="Overhead view of fabric swatches, wood slats, a plantation shutter sample, and a brass measuring tape on a walnut consultation table at Stately Shades" loading="lazy" />
+              </picture>
+            </div>
             <div class="product-card__body">
               <span class="eyebrow">The Full Catalogue · Every Window Treatment</span>
               <h3>If it covers a window, <em>we install it.</em></h3>
@@ -751,7 +757,13 @@
           </article>
 
           <!-- 2. REPAIR (cheapest service, ~$35+ per blind / $185 service-call min) -->
-          <article class="product-card product-card--wide product-card--service" data-reveal>
+          <article class="product-card product-card--wide product-card--service product-card--split" data-reveal>
+            <div class="product-card__media product-card__media--side" data-caption="Any-Brand Repair · Tools On Site">
+              <picture>
+                <source srcset="/assets/images/blog/repair-service.webp" type="image/webp" />
+                <img src="/assets/images/placeholder.svg" alt="A Stately Shades technician restringing a hardwood plantation shutter louver mechanism on a walnut workbench" loading="lazy" />
+              </picture>
+            </div>
             <div class="product-card__body">
               <span class="eyebrow">Blind Repair · Shutter Repair · Shade Repair · Any Brand</span>
               <h3>When repair makes <em>more sense.</em></h3>
@@ -778,7 +790,13 @@
           </article>
 
           <!-- 3. INSTALL ONLY (~$45+ per window flat-rate) -->
-          <article class="product-card product-card--wide product-card--service" data-reveal>
+          <article class="product-card product-card--wide product-card--service product-card--split" data-reveal>
+            <div class="product-card__media product-card__media--side" data-caption="Install Only · BYO Blinds">
+              <picture>
+                <source srcset="/assets/images/blog/install-only-service.webp" type="image/webp" />
+                <img src="/assets/images/placeholder.svg" alt="A professional installer mounting a blind purchased from Home Depot on a Tennessee window, packaging visible on a drop cloth" loading="lazy" />
+              </picture>
+            </div>
             <div class="product-card__body">
               <span class="eyebrow">Install Only · Bring Your Own Blinds</span>
               <h3>You bought them. <em>We'll install them.</em></h3>
@@ -1468,6 +1486,6 @@
     <a href="#contact" class="mobile-cta__btn mobile-cta__btn--primary">Free Consultation</a>
   </div>
 
-  <script src="/script.js?v=blog9" defer></script>
+  <script src="/script.js?v=blog10" defer></script>
 </body>
 </html>
