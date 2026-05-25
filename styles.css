@@ -484,14 +484,16 @@ p { margin: 0; }
 }
 .hero__scrim {
   position: absolute; inset: 0;
-  /* Soft center vignette behind the brand lockup + dark→cream fade at the
-     bottom so the photo bleeds smoothly into the cream content below */
+  /* Stronger center vignette behind the brand lockup so the SS + wordmark
+     always read on any photo. Plus a slight top darkening for editorial
+     depth, and a cream-fade at the bottom for the seam into the content
+     section below. */
   background:
-    radial-gradient(ellipse at 50% 42%, rgba(10,8,5,.40) 0%, rgba(10,8,5,.20) 30%, rgba(10,8,5,0) 60%),
+    radial-gradient(ellipse at 50% 45%, rgba(10,8,5,.58) 0%, rgba(10,8,5,.35) 28%, rgba(10,8,5,.10) 55%, rgba(10,8,5,0) 72%),
     linear-gradient(180deg,
-      rgba(10,8,5,.20) 0%,
-      rgba(10,8,5,.08) 25%,
-      rgba(10,8,5,0) 60%,
+      rgba(10,8,5,.28) 0%,
+      rgba(10,8,5,.12) 25%,
+      rgba(10,8,5,.05) 55%,
       rgba(247,242,234,.40) 92%,
       rgba(247,242,234,.95) 100%);
   pointer-events: none;
@@ -509,18 +511,20 @@ p { margin: 0; }
   text-align: center;
   pointer-events: none;
   padding: 0 24px;
-  text-shadow: 0 2px 20px rgba(10, 8, 5, 0.55);
 }
 .hero__brand-monogram {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(3.6rem, 14vw, 6rem);
+  font-size: clamp(3.8rem, 15vw, 6.4rem);
   line-height: 1;
   letter-spacing: -0.1em;
   color: var(--color-bg);
   display: inline-block;
   margin-bottom: 18px;
   transform: translateY(-0.05em);
+  text-shadow:
+    0 2px 24px rgba(10, 8, 5, 0.8),
+    0 1px 8px rgba(10, 8, 5, 0.6);
 }
 .hero__brand-monogram > span {
   display: inline-block;
@@ -530,27 +534,33 @@ p { margin: 0; }
 .hero__brand-wordmark {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(1.3rem, 5vw, 2.1rem);
-  letter-spacing: 0.06em;
+  font-size: clamp(1.35rem, 5.2vw, 2.2rem);
+  letter-spacing: 0.08em;
   color: var(--color-bg);
   line-height: 1;
   margin-bottom: 14px;
+  text-shadow:
+    0 2px 18px rgba(10, 8, 5, 0.85),
+    0 1px 6px rgba(10, 8, 5, 0.7);
 }
 .hero__brand-rule {
   display: block;
-  width: 48px;
+  width: 56px;
   height: 1px;
   background: var(--color-brass-hot);
   margin-bottom: 12px;
-  box-shadow: 0 0 18px rgba(201, 161, 88, 0.5);
+  box-shadow: 0 0 20px rgba(201, 161, 88, 0.7), 0 1px 6px rgba(10, 8, 5, 0.5);
 }
 .hero__brand-tagline {
   font-family: var(--font-mono);
-  font-size: clamp(0.58rem, 1.7vw, 0.72rem);
-  letter-spacing: 0.3em;
+  font-size: clamp(0.6rem, 1.8vw, 0.74rem);
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--color-brass-hot);
   white-space: nowrap;
+  text-shadow:
+    0 1px 12px rgba(10, 8, 5, 0.85),
+    0 1px 4px rgba(10, 8, 5, 0.7);
 }
 
 /* Top-corner issue badge — desktop only */
