@@ -1,5 +1,20 @@
 // Stately Shades — editorial enhancements
 (() => {
+  // Venetian-blinds intro: play once per browser session, then keep the
+  // overlay hidden so subsequent anchor jumps don't re-trigger it.
+  // The CSS animation runs on its own; JS just cleans up + sessionStorage
+  // remembers we've already shown it.
+  const intro = document.querySelector('.slat-intro');
+  if (intro) {
+    if (sessionStorage.getItem('ss-intro-played') === '1') {
+      intro.setAttribute('data-done', '');
+    } else {
+      sessionStorage.setItem('ss-intro-played', '1');
+      setTimeout(() => { intro.setAttribute('data-done', ''); }, 1800);
+    }
+  }
+
+
   const nav = document.getElementById('nav');
   const toggle = document.querySelector('.nav__toggle');
   const links = document.querySelector('.nav__links');

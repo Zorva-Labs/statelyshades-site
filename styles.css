@@ -1365,6 +1365,92 @@ p { margin: 0; }
 }
 
 /* ============================================================
+   Intro: venetian-blind opening animation
+   8 cream slats covering the viewport on load, then tilting top-to-
+   bottom in a staggered cascade. Same theatrical effect as opening
+   real blinds in a sunlit room.
+   ============================================================ */
+.slat-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  perspective: 1200px;
+  background: transparent;
+  /* Hide after the longest slat delay (490ms) + duration (1100ms) + buffer */
+  animation: slat-intro-done 1700ms forwards;
+}
+@keyframes slat-intro-done {
+  0%, 99% { visibility: visible; }
+  100% { visibility: hidden; }
+}
+.slat-intro__slat {
+  position: absolute;
+  left: 0; right: 0;
+  height: 12.7%;
+  background:
+    linear-gradient(180deg,
+      rgba(213, 204, 187, 1) 0%,
+      var(--color-bg) 18%,
+      var(--color-bg-2) 50%,
+      var(--color-bg) 82%,
+      rgba(213, 204, 187, 1) 100%);
+  transform-origin: center;
+  backface-visibility: hidden;
+  box-shadow:
+    0 1px 0 rgba(157, 122, 62, 0.18),
+    inset 0 0 24px rgba(20, 17, 13, 0.04);
+  animation: slat-open 1100ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.slat-intro__slat:nth-child(1) { top: 0%;    animation-delay: 0ms; }
+.slat-intro__slat:nth-child(2) { top: 12.5%; animation-delay: 70ms; }
+.slat-intro__slat:nth-child(3) { top: 25%;   animation-delay: 140ms; }
+.slat-intro__slat:nth-child(4) { top: 37.5%; animation-delay: 210ms; }
+.slat-intro__slat:nth-child(5) { top: 50%;   animation-delay: 280ms; }
+.slat-intro__slat:nth-child(6) { top: 62.5%; animation-delay: 350ms; }
+.slat-intro__slat:nth-child(7) { top: 75%;   animation-delay: 420ms; }
+.slat-intro__slat:nth-child(8) { top: 87.5%; animation-delay: 490ms; }
+@keyframes slat-open {
+  0%   { transform: rotateX(0deg);  opacity: 1; }
+  70%  { transform: rotateX(78deg); opacity: 0.65; }
+  100% { transform: rotateX(90deg); opacity: 0; }
+}
+/* Centered SS monogram that fades in/out during the open — gives the
+   intro a brand moment instead of just an empty curtain pull */
+.slat-intro__mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(4rem, 16vw, 7rem);
+  line-height: 1;
+  letter-spacing: -0.1em;
+  color: var(--color-brass);
+  opacity: 0;
+  animation: slat-mark 1400ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+.slat-intro__mark > span {
+  display: inline-block;
+  margin-left: -0.34em;
+  transform: translateY(0.22em);
+}
+@keyframes slat-mark {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  30%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.02); }
+}
+/* Respect users who prefer reduced motion — instant skip, no animation */
+@media (prefers-reduced-motion: reduce) {
+  .slat-intro { display: none !important; }
+}
+/* Once JS marks the intro played, hide it permanently */
+.slat-intro[data-done] { display: none !important; }
+
+/* ============================================================
    Skip-link (accessibility)
    ============================================================ */
 .skip-link {
