@@ -1795,7 +1795,19 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   .intro__grid,
   .area__grid,
   .about__grid,
-  .contact__grid { grid-template-columns: 1fr; }
+  .contact__grid { grid-template-columns: minmax(0, 1fr); }
+  .hero__content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    align-items: stretch;
+  }
+  .hero__text { min-width: 0; }
+  .hero__form-card { min-width: 0; }
+  .products__grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+  }
+  .product-card, .product-card__body { min-width: 0; }
   .intro__sidebar, .about__sidebar { position: static; }
 
   .products__grid {
@@ -1895,6 +1907,26 @@ a.contact__line:hover strong { color: var(--color-champagne); }
   /* Section header constrained to viewport */
   .section__head { max-width: 100%; padding: 0 4px; }
   .section__lede { font-size: 0.98rem; padding: 0 4px; }
+
+  /* Eyebrow tracking softened on mobile so '... · SHADES · DRAPERY' fits */
+  .eyebrow {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.18em !important;
+    word-spacing: -0.04em;
+  }
+  /* Section eyebrow too (uses .section__num) */
+  .section__num {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.2em !important;
+  }
+  .section__num::before,
+  .section__num::after { width: 18px !important; }
+
+  /* Force the products grid mobile rule even if 980 hasn't been overridden */
+  .products__grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .product-card, .product-card--lg, .product-card--wide {
+    min-width: 0; max-width: 100%;
+  }
 
   .nav__brand { gap: 12px; }
   .nav__monogram { font-size: 1.7rem; }
