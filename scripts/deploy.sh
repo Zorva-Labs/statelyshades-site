@@ -47,6 +47,7 @@ DEPLOY_OUTPUT=$(CLOUDFLARE_API_KEY="$CLOUDFLARE_API_KEY" \
                 npx --yes wrangler@latest pages deploy . \
                   --project-name="$PROJECT" \
                   --commit-dirty=true \
+                  --commit-message="Stately Shades deploy" \
                   --branch="$BRANCH" 2>&1)
 echo "$DEPLOY_OUTPUT" | tail -8
 

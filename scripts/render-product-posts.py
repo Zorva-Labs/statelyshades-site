@@ -11,7 +11,7 @@ import textwrap
 ROOT = Path(__file__).resolve().parent.parent
 BLOG = ROOT / "blog"
 DATE = "2026-05-25"
-VERSION = "blog2"
+VERSION = "blog3"
 
 # ------------ Content table -----------------------------------------------
 
@@ -553,6 +553,206 @@ POSTS = [
         "related": [
             ("/blog/plantation-wood-shutters-guide/", "Product guide · 8 min read", "Plantation &amp; <em>wood shutters</em>", "The harder counterpart to fabric drapery.", "/assets/images/blog/plantation-shutters.webp", "Plantation shutters in a Tennessee dining room"),
             ("/blog/how-to-measure-windows-for-blinds/", "How-to · 5 min read", "How to <em>measure windows</em> for blinds", "Before you order, three points each way.", "/assets/images/consultation-detail.webp", "Measuring tape on a window casing"),
+        ],
+    },
+    {
+        "slug": "affordable-faux-wood-blinds-guide",
+        "title_html": "Affordable <em>faux wood blinds.</em>",
+        "h1_plain": "Affordable Faux Wood Blinds: A Complete Guide",
+        "meta_title": "Affordable Faux Wood Blinds (from $89 installed) · Stately Shades",
+        "meta_desc": "Custom-fit faux wood blinds from $89 per window installed — 2-inch and 2.5-inch slats, cordless, humidity-proof, whole-house packages for builders and value-conscious Tennessee homeowners.",
+        "eyebrow": "Service Guide · Affordable Everyday",
+        "section": "Service Guide",
+        "minutes": "6",
+        "image": "/assets/images/blog/affordable-faux-wood.webp",
+        "image_alt": "Three crisp white 2.5-inch faux wood blinds above a marble subway-tile backsplash in a sun-filled Tennessee kitchen",
+        "caption": "Custom faux wood blinds in a Tennessee kitchen — from $89 per window installed.",
+        "keywords": "affordable blinds, cheap custom blinds, faux wood blinds, 2 inch faux wood, 2.5 inch faux wood, cordless blinds, child-safe blinds, whole house blinds package, builder blinds, rental property blinds",
+        "og_desc": "Custom-fit faux wood blinds from $89 per window installed — humidity-proof, child-safe, whole-house packages.",
+        "tw_desc": "Affordable custom faux wood blinds from $89 installed. Whole-house packages, child-safe, humidity-proof.",
+        "breadcrumb_name": "Affordable Faux Wood Blinds Guide",
+        "body": """
+      <p>Not every window in the house needs a $700 plantation shutter. Sometimes the right answer is a clean, durable, custom-fit faux wood blind for under a hundred dollars a window — and we sell as many of those as we do anything else. This is the complete guide to affordable blinds at Stately Shades: what faux wood is, what it costs, where it belongs, and where it doesn't.</p>
+
+      <h2>The honest pitch</h2>
+      <p>Custom-fit faux wood blinds at our showroom start at <strong>$89 per window installed</strong>. That number includes measure, slat custom-cut to your opening, cordless child-safe lift, white finish, brackets, valance, and our install crew putting it on the wall level. A whole-house package of 8–12 windows most often lands between <strong>$850 and $1,500 installed</strong>. The same measure-and-install care goes into every blind, regardless of price.</p>
+
+      <h2>What faux wood actually is</h2>
+      <p>Faux wood is a molded composite — usually a PVC, polystyrene, or wood-polymer hybrid — pressed into the same slat profile as real hardwood blinds. Looks like wood from across the room, weighs about 30% more (because it's denser), and shares zero of the weaknesses of real wood. Specifically:</p>
+      <ul>
+        <li><strong>Doesn't warp.</strong> Real hardwood blinds in a Tennessee kitchen will eventually cup or twist at the slat ends; faux wood will not.</li>
+        <li><strong>Doesn't absorb moisture.</strong> Showers, dishwasher steam, laundry humidity — none of it matters.</li>
+        <li><strong>Cleans with a damp cloth.</strong> Real wood needs to stay dry; faux wood is washable.</li>
+        <li><strong>Holds finish longer.</strong> Factory-applied paint doesn't chip or yellow the way wood finishes do.</li>
+      </ul>
+
+      <h2>Slat sizes</h2>
+      <ul>
+        <li><strong>2&Prime; slats</strong> — the workhorse. Most-installed size, slimmer profile, looks proportional on small and medium windows.</li>
+        <li><strong>2.5&Prime; slats</strong> — modestly more substantial, shows more view when open, the most-installed in our showroom this year. About $10–$20 more per window.</li>
+        <li><strong>2.5&Prime; with cloth tapes</strong> — fabric strips covering the ladder cords. Slightly more formal, hides the stringing detail. Add $20–$40 per window.</li>
+      </ul>
+
+      <h2>Cordless is the default</h2>
+      <p>Every faux wood blind we sell is <strong>cordless and child-safe</strong>, per the Window Covering Manufacturers Association standard. You lift by the bottom rail, lower with a soft tug. Corded versions are technically available from manufacturers but we won't quote them — there's no reason to put a cord in a house in 2026.</p>
+
+      <p class="pull">A $89 faux wood blind installed by a pro outlasts a $300 shade installed wrong.</p>
+
+      <h2>Finish options</h2>
+      <ul>
+        <li><strong>White</strong> — the standard. About six variations of white from cool to warm. No upcharge.</li>
+        <li><strong>Cream and oat tones</strong> — match older trim, add warmth. No upcharge.</li>
+        <li><strong>Stains (walnut, oak, espresso, chestnut)</strong> — printed on the slat to mimic real wood grain. Beautiful from a normal viewing distance, $15–$35 upcharge per window.</li>
+        <li><strong>Custom colors</strong> — match a paint chip; add $40–$80 per window and 2 weeks lead time.</li>
+      </ul>
+
+      <h2>Where faux wood belongs</h2>
+      <ul>
+        <li><strong>Kitchens.</strong> Splash, grease, steam — faux wood handles all three.</li>
+        <li><strong>Bathrooms.</strong> Steam doesn't care if your blinds are pretty. Faux wood survives.</li>
+        <li><strong>Kids' bedrooms.</strong> Cordless safe, durable, easy to replace a slat if it gets snapped.</li>
+        <li><strong>Basements, laundry rooms, mudrooms.</strong> Humidity-tolerant, no warping.</li>
+        <li><strong>Rental properties.</strong> Cheaper to spec, longer service life, easy turnover.</li>
+        <li><strong>Whole-house value packages.</strong> Builders, landlords, and first-home buyers — the affordability difference at scale is real.</li>
+      </ul>
+
+      <h2>Where faux wood doesn't belong</h2>
+      <ul>
+        <li><strong>Formal living and dining rooms</strong> where real-wood plantation shutters belong. The eye reads the difference at close range.</li>
+        <li><strong>Very wide windows over 72&Prime;</strong> — faux wood is heavy enough that wide spans get awkward on a single blind. We split into two and either match them or move up to a different product.</li>
+        <li><strong>Primary bedrooms needing true blackout.</strong> Faux wood is light-filtering at best; you'll always get sunrise leak through closed slats. <a href="/blog/best-blinds-for-bedrooms/">See bedroom blind options.</a></li>
+      </ul>
+
+      <div class="callout">
+        <h3>Our default affordable spec</h3>
+        <p><strong>Norman or Graber 2.5&Prime; faux wood blinds, cordless, white finish, inside-mount on most windows.</strong> Whole-house package pricing typically lands $90–$140 per window installed, with the per-window price coming down on larger orders. A typical 10-window project: <strong>$1,050–$1,300 installed.</strong></p>
+      </div>
+
+      <h2>What about real wood?</h2>
+      <p>We also sell real-wood blinds — basswood, oak, alder — when stain match matters. Real wood is roughly 60–80% more expensive per window, looks identical from across the room, and lasts about the same time <em>provided</em> it's not in a wet space. <a href="/blog/wood-blinds-drapery-guide/">More on real wood here.</a></p>
+
+      <h2>What about cellular or roller for a similar price?</h2>
+      <p>Good question — and sometimes the answer is "yes, that's better." Affordable cellular shades start around $80/window and are a better choice for bedrooms (better blackout, better insulation). Affordable rollers start around $90 and are better for modern interiors. We'll talk you through which is right room by room — that's what the free consultation is for.</p>
+
+      <h2>How to get a quote</h2>
+      <p>Call or text <a href="tel:+16292988241">629-298-8241</a> with the rough window count for your project, or <a href="/#contact">use the contact form</a>. We come out, measure every window, and leave you with a written quote the same visit. If affordable is the priority, we lead with faux wood — and tell you honestly when something else would be a better value.</p>
+        """,
+        "related": [
+            ("/blog/wood-blinds-drapery-guide/", "Product guide · 7 min read", "Wood blinds &amp; <em>custom drapery</em>", "The premium catalogue counterpart.", "/assets/images/blog/wood-blinds-drapery.webp", "Wood blinds and drapery in a Tennessee bedroom"),
+            ("/blog/install-only-blinds-service-guide/", "Service guide · 6 min read", "You bought, <em>we install.</em>", "Already ordered? We'll hang them for you.", "/assets/images/blog/install-only-service.webp", "Installing a blind on a window casing"),
+        ],
+    },
+    {
+        "slug": "install-only-blinds-service-guide",
+        "title_html": "Install only. <em>You bought, we install.</em>",
+        "h1_plain": "Install-Only Blind & Shutter Service: Bring-Your-Own",
+        "meta_title": "Install Only: We Install Blinds You Bought at Lowes, Home Depot, Costco · Stately Shades",
+        "meta_desc": "Professional install-only service across Middle Tennessee for blinds, shutters, and shades purchased from Lowes, Home Depot, Costco, Blinds.com, Select Blinds, Amazon, IKEA, or any other retailer. Flat-rate per window with workmanship guarantee.",
+        "eyebrow": "Service Guide · Install Only · BYO Blinds",
+        "section": "Service Guide",
+        "minutes": "6",
+        "image": "/assets/images/blog/install-only-service.webp",
+        "image_alt": "Hands holding a level dark-finish blind against a Tennessee window casing while installing — Home Depot boxes on the drop cloth below",
+        "caption": "Boxes from the home-improvement store, blind on the wall — what install-only service looks like.",
+        "keywords": "install only blinds, blind installation service, byo blinds, blinds.com install, Home Depot blinds install, Lowes blinds install, Costco blinds installer, professional blind installer near me, Tennessee blind installation",
+        "og_desc": "We install blinds, shutters, and shades you bought from Lowes, Home Depot, Costco, Blinds.com — anywhere. Flat-rate, any brand.",
+        "tw_desc": "Stack of unopened blind boxes? We do install-only service across Middle Tennessee. Any brand, flat-rate.",
+        "breadcrumb_name": "Install-Only Service Guide",
+        "body": """
+      <p>You did the homework. You measured the windows, picked the product, ordered online, and now you have a stack of boxes from Lowes or Home Depot or Blinds.com sitting in your garage and a Saturday that you'd rather not spend on a stepladder. We get the call several times a week — and yes, <strong>we install blinds you bought somewhere else</strong>. This is the complete guide to install-only service at Stately Shades.</p>
+
+      <h2>What "install only" actually means</h2>
+      <p>You bought the product. We do everything else:</p>
+      <ul>
+        <li><strong>Unbox</strong> every blind and check it against the manufacturer's packing slip for damage.</li>
+        <li><strong>Verify dimensions</strong> against your openings — if there's a mismatch, we tell you before we drill.</li>
+        <li><strong>Measure twice</strong> from the brackets to the bottom rail to confirm symmetry.</li>
+        <li><strong>Mount level</strong>. The single most common mistake on a DIY install is a hairline of tilt that nobody notices until the lift cord doesn't track.</li>
+        <li><strong>Program motorized hardware</strong> — pair it to your hub, set limits, walk you through the app.</li>
+        <li><strong>Demo the mechanism</strong> — show you how to lift, tilt, replace batteries, troubleshoot.</li>
+        <li><strong>Haul away packaging</strong>. The cardboard fortress is not yours to break down.</li>
+      </ul>
+
+      <h2>Retailers we install from</h2>
+      <p>Any of them. We do not care where you bought the blinds — only that they're a real product in good condition. The list of stores we install from most often:</p>
+      <ul>
+        <li><strong>Lowes</strong> (Levolor, Custom Size Now, Allen + Roth)</li>
+        <li><strong>Home Depot</strong> (Hampton Bay, Bali, Custom Blinds)</li>
+        <li><strong>Costco</strong> (in-warehouse and Costco.com)</li>
+        <li><strong>Blinds.com</strong> (and its sister sites)</li>
+        <li><strong>Select Blinds</strong></li>
+        <li><strong>Amazon</strong> (Chicology, Yoolax, generic faux wood, etc.)</li>
+        <li><strong>IKEA</strong> (FYRTUR, KADRILJ, etc.)</li>
+        <li><strong>Wayfair</strong></li>
+        <li><strong>Bali Direct, Levolor Direct</strong></li>
+        <li><strong>Builder leftovers</strong> from a previous project</li>
+        <li><strong>Anything else</strong> — we've installed brands we've never heard of.</li>
+      </ul>
+
+      <h2>What we charge</h2>
+      <p>Flat-rate per window. Pricing in 2026 across the Middle Tennessee 90-mile radius:</p>
+      <ul>
+        <li><strong>Standard horizontal blinds</strong> (wood, faux wood, mini, aluminum): <strong>$45–$65/window</strong></li>
+        <li><strong>Cellular, roller, Roman, solar shades</strong>: <strong>$55–$75/window</strong></li>
+        <li><strong>Vertical blinds, panel-track systems for sliders</strong>: <strong>$95–$160/opening</strong></li>
+        <li><strong>Plantation shutters</strong> (per panel hung &amp; tensioned): <strong>$65–$140/window</strong></li>
+        <li><strong>Motorized shades</strong> with programming &amp; hub pairing: <strong>$95–$180/shade</strong></li>
+        <li><strong>French-door, arched, skylight, specialty shapes</strong>: quoted on site</li>
+        <li><strong>Service-call minimum</strong>: $185 (3 windows or fewer)</li>
+      </ul>
+      <p>A typical 8-window install-only project lands between <strong>$360 and $720</strong>, parts included from your own boxes.</p>
+
+      <div class="callout">
+        <h3>The workmanship guarantee</h3>
+        <p>Every install we do — even on blinds we didn't sell you — is backed by our <strong>workmanship guarantee</strong>. If a bracket pulls out of the wall, if the headrail levels itself out within 90 days, if a motor we programmed loses its limits — we come back and fix it on us. Product defects are still on the retailer's warranty, but the install is on us.</p>
+      </div>
+
+      <h2>What we ask of you before we arrive</h2>
+      <ol>
+        <li><strong>Open the boxes</strong> and verify quantities. Six windows ordered, six headrails delivered — we don't want to discover a missing piece on install day.</li>
+        <li><strong>Lay out the boxes by room</strong>. Saves us the matching dance.</li>
+        <li><strong>Have the receipt handy</strong> in case anything needs returning.</li>
+        <li><strong>Clear the windows.</strong> Move furniture, plants, drapery rods if they're being replaced. We can do this ourselves at a small upcharge.</li>
+        <li><strong>Tell us about motors</strong>. If anything is motorized, confirm the hub is bought and the Wi-Fi password is handy.</li>
+      </ol>
+
+      <p class="pull">The blind is yours. The level wall, the symmetry, the workmanship guarantee — those are ours.</p>
+
+      <h2>Common scenarios</h2>
+
+      <h3>"I bought blinds at Home Depot a year ago and never installed them."</h3>
+      <p>Very common. We've installed sealed Home Depot boxes that were 2–3 years old. Manufacturer warranty is typically still valid as long as the product hasn't been opened. Bring us the boxes; we'll measure your windows and confirm fit before we drill.</p>
+
+      <h3>"I ordered the wrong size."</h3>
+      <p>Happens. If the blind is too wide we can sometimes trim it in the field (faux wood and aluminum), or you can return and re-order with the dimensions we'll measure on the first visit. Service-call minimum applies if you'd rather we just measure now and come back after the re-order.</p>
+
+      <h3>"It's a complicated install — arches, sliders, plantation shutters."</h3>
+      <p>Especially worth hiring an installer for. Specialty installs are where DIY most often goes wrong, and where a botched mount can damage the blind enough to void the warranty.</p>
+
+      <h3>"I bought motorized shades and the app won't pair."</h3>
+      <p>This is most of what we do for motorized service calls. PowerView, Somfy TaHoma, Lutron Caseta — we pair them, set the limits, walk you through the scenes. About $95–$180 per shade plus the service call.</p>
+
+      <h3>"I want to install some myself and have you do the hard ones."</h3>
+      <p>Totally normal. Tell us which windows on the consultation visit and we'll quote just those.</p>
+
+      <h2>Where install-only doesn't make sense</h2>
+      <ul>
+        <li><strong>If the product is broken on arrival.</strong> Return it to the retailer before we visit; we can't certify a broken blind.</li>
+        <li><strong>If you're missing major components.</strong> No mounting brackets, no install. Get the parts first.</li>
+        <li><strong>If you'd save more by buying through us anyway.</strong> Sometimes our custom-fit faux wood at $89/window installed beats the Lowes price plus our install fee. We'll tell you honestly on the visit.</li>
+      </ul>
+
+      <h2>Service area</h2>
+      <p>We install across the same 90-mile radius we always cover — Gallatin, Nashville, Hendersonville, Franklin, Brentwood, Murfreesboro, Mt. Juliet, Lebanon, Goodlettsville, Cookeville, Clarksville, Springfield, Bowling Green KY, and every town in between.</p>
+
+      <h2>How to schedule</h2>
+      <p>Photograph each blind's box label (or just the inside flap with the dimensions) plus the windows they'll go on. Text the photos to <strong>629-298-8241</strong> with your address. We quote from the photos within a few hours and book the install day — most jobs scheduled within a week.</p>
+
+      <p>Or call or text <a href="tel:+16292988241">629-298-8241</a>, email <a href="mailto:hello@statelyshades.com">hello@statelyshades.com</a>, or <a href="/#contact">use the contact form</a> and we'll be in touch within one business day.</p>
+        """,
+        "related": [
+            ("/blog/affordable-faux-wood-blinds-guide/", "Service guide · 6 min read", "Affordable <em>faux wood blinds</em>", "Skip the retailer — custom at $89.", "/assets/images/blog/affordable-faux-wood.webp", "Affordable faux wood blinds in a Tennessee kitchen"),
+            ("/blog/how-to-measure-windows-for-blinds/", "How-to · 5 min read", "How to <em>measure windows</em> for blinds", "Before you order, measure right.", "/assets/images/consultation-detail.webp", "Measuring tape on a window casing"),
         ],
     },
     {
