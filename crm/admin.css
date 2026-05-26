@@ -294,13 +294,12 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid currentColor;
 }
 .pill[data-status="new"]       { color: var(--color-status-new); }
-.pill[data-status="contacted"] { color: var(--color-status-contacted); }
-.pill[data-status="quoted"]    { color: var(--color-status-quoted); }
-.pill[data-status="scheduled"] { color: var(--color-status-scheduled); }
+.pill[data-status="replied"]   { color: var(--color-status-contacted); }
+.pill[data-status="consult"]   { color: var(--color-status-scheduled); }
+.pill[data-status="proposal"]  { color: var(--color-status-quoted); }
+.pill[data-status="booked"]    { color: var(--color-status-won); }
 .pill[data-status="installed"] { color: var(--color-status-installed); }
-.pill[data-status="won"]       { color: var(--color-status-won); }
 .pill[data-status="lost"]      { color: var(--color-status-lost); }
-.pill[data-status="spam"]      { color: var(--color-status-spam); }
 
 /* ----------- Lead detail ----------- */
 .lead-detail {

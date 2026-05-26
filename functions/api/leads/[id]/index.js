@@ -2,13 +2,12 @@ import { requireAuth, json } from "../../../_lib/auth.js";
 
 const ALLOWED_STATUSES = new Set([
   "new",
-  "contacted",
-  "quoted",
-  "scheduled",
+  "replied",
+  "consult",
+  "proposal",
+  "booked",
   "installed",
-  "won",
   "lost",
-  "spam",
 ]);
 const PATCHABLE = new Set([
   "status", "assigned_to", "quoted_amount_cents",

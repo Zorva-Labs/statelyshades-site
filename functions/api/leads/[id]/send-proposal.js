@@ -93,11 +93,11 @@ export async function onRequestPost(context) {
   // kanban + leads list show the quoted amount as soon as the proposal is created.
   await syncLeadQuotedFromProposal(DB, proposalRow.id);
 
-  // 4. Update lead: link to the new contact + bump status to 'quoted'
+  // 4. Update lead: link to the new contact + bump status to 'proposal'
   // NOTE: quoted_amount_cents is set above by syncLeadQuotedFromProposal —
   // do not clobber it here.
   await DB.prepare(
-    `UPDATE leads SET contact_id = ?1, status = 'quoted', updated_at = datetime('now') WHERE id = ?2`
+    `UPDATE leads SET contact_id = ?1, status = 'proposal', updated_at = datetime('now') WHERE id = ?2`
   ).bind(contactId, leadId).run();
 
   // 5. Audit

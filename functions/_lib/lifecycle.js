@@ -221,7 +221,7 @@ export async function syncLeadQuotedFromProposal(db, proposalId) {
 /**
  * Mark a project as fully booked (customer signed the contract).
  * - Updates project.status to 'contracted'
- * - If the project was spawned from a lead, bumps lead.status to 'won'
+ * - If the project was spawned from a lead, bumps lead.status to 'booked'
  * - Logs activity on both
  */
 export async function markProjectBooked(db, projectId, contractId) {
@@ -235,11 +235,11 @@ export async function markProjectBooked(db, projectId, contractId) {
     actorKind: "customer", details: { contract_id: contractId },
   });
 
-  // If this project came from a lead, mark the lead 'won' too
+  // If this project came from a lead, flip the lead to 'booked' too
   if (project.lead_id) {
-    await db.prepare(`UPDATE leads SET status='won', updated_at=datetime('now') WHERE id=?1`).bind(project.lead_id).run();
+    await db.prepare(`UPDATE leads SET status='booked', updated_at=datetime('now') WHERE id=?1`).bind(project.lead_id).run();
     await recordActivity(db, {
-      entityType: "lead", entityId: project.lead_id, action: "won",
+      entityType: "lead", entityId: project.lead_id, action: "booked",
       actorKind: "customer", details: { project_id: projectId, contract_id: contractId },
     });
   }

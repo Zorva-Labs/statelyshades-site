@@ -1,15 +1,14 @@
 // Shared admin JS — auth check, fetch helpers, formatting
 const STATUS_LABELS = {
   new: "New",
-  contacted: "Contacted",
-  quoted: "Quoted",
-  scheduled: "Scheduled",
+  replied: "Replied",
+  consult: "Consult",
+  proposal: "Proposal",
+  booked: "Booked",
   installed: "Installed",
-  won: "Won",
   lost: "Lost",
-  spam: "Spam",
 };
-const STATUS_ORDER = ["new", "contacted", "quoted", "scheduled", "installed", "won", "lost", "spam"];
+const STATUS_ORDER = ["new", "replied", "consult", "proposal", "booked", "installed", "lost"];
 
 async function fetchJSON(url, opts = {}) {
   const res = await fetch(url, {

@@ -14,13 +14,12 @@
 <script>
 const LEAD_STATUSES = [
   { key: "new",        label: "New" },
-  { key: "contacted",  label: "Contacted" },
-  { key: "quoted",     label: "Quoted" },
-  { key: "scheduled",  label: "Scheduled" },
+  { key: "replied",    label: "Replied" },
+  { key: "consult",    label: "Consult" },
+  { key: "proposal",   label: "Proposal" },
+  { key: "booked",     label: "Booked" },
   { key: "installed",  label: "Installed" },
-  { key: "won",        label: "Won" },
   { key: "lost",       label: "Lost" },
-  { key: "spam",       label: "Spam" },
 ];
 
 const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
@@ -61,10 +60,10 @@ function render() {
   const addrLine = addrParts.length ? addrParts.join(" · ") : (l.location || "");
   const mapUrl = addrParts.length ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addrParts.join(", ")) : null;
 
-  // Pipeline stepper — pre-"won/lost/spam" terminal statuses get the linear
-  // stepper treatment; terminal statuses still render but as a single flag.
-  const flow = ["new", "contacted", "quoted", "scheduled", "installed", "won"];
-  const isTerminal = l.status === "lost" || l.status === "spam";
+  // Pipeline stepper — every status except "lost" is on the linear flow.
+  // Lost is reachable via the inline select on the right of the bar.
+  const flow = ["new", "replied", "consult", "proposal", "booked", "installed"];
+  const isTerminal = l.status === "lost";
   const currentIdx = flow.indexOf(l.status);
   const stepper = `
     <div class="pipeline-bar">
@@ -425,7 +424,7 @@ async function convertToContact() {
       body: JSON.stringify({ contact_id: contactId, name: jobName, description: l.message || null }),
     });
     // 3) Link lead → contact (PATCH won't accept contact_id via current API; just track via status)
-    await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "contacted" }) });
+    await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "replied" }) });
     SSCrm.toast("Contact + job created", "success");
     location.href = "/crm/project.html?id=" + projectId;
   } catch (e) { SSCrm.toast(e.message, "error"); }
@@ -485,8 +484,8 @@ async function bookFromLead() {
         status: "confirmed",
         source: "admin",
       })});
-      // Bump lead status to scheduled
-      await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "scheduled" }) });
+      // Bump lead status to consult — they've got a consultation on the calendar
+      await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "consult" }) });
       bg.remove();
       SSCrm.toast("Consultation booked", "success");
       // Refresh

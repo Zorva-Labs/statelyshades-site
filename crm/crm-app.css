@@ -334,16 +334,21 @@ h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; margin: 0; color: var(--ink
 }
 .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .pill[data-s="new"]                { color: var(--s-new); }
+.pill[data-s="replied"]            { color: var(--s-quoted); background: #FEF9C3; border-color: #FDE68A; }
+.pill[data-s="consult"],
 .pill[data-s="scheduled"],
 .pill[data-s="consultation_booked"]{ color: var(--s-booked); background: #EEF2FF; border-color: #E0E7FF; }
 .pill[data-s="measured"]           { color: var(--s-measured); background: #ECFEFF; border-color: #CFFAFE; }
+.pill[data-s="proposal"],
 .pill[data-s="quoted"],
 .pill[data-s="sent"], .pill[data-s="viewed"] { color: var(--s-quoted); background: #FFFBEB; border-color: #FEF3C7; }
 .pill[data-s="proposed"],
 .pill[data-s="approved"], .pill[data-s="tier_selected"], .pill[data-s="accepted"] { color: var(--s-proposed); background: #F5F3FF; border-color: #EDE9FE; }
+.pill[data-s="booked"],
 .pill[data-s="contracted"],
 .pill[data-s="signed_by_customer"] { color: var(--s-contracted); background: #EFF6FF; border-color: #DBEAFE; }
 .pill[data-s="installing"]         { color: var(--s-installing); background: #F0FDFA; border-color: #CCFBF1; }
+.pill[data-s="installed"],
 .pill[data-s="completed"],
 .pill[data-s="fully_executed"]     { color: var(--s-complete); background: #ECFDF5; border-color: #D1FAE5; }
 .pill[data-s="lost"], .pill[data-s="cancelled"], .pill[data-s="declined"], .pill[data-s="voided"] { color: var(--s-lost); background: #F1F5F9; }

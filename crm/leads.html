@@ -11,8 +11,8 @@
 <body>
 <script src="/crm/crm-app.js"></script>
 <script>
-const STATUS_LABELS = { new: "New", contacted: "Contacted", quoted: "Quoted", scheduled: "Scheduled", installed: "Installed", won: "Won", lost: "Lost", spam: "Spam" };
-const STATUS_ORDER = ["new", "contacted", "quoted", "scheduled", "installed", "won", "lost", "spam"];
+const STATUS_LABELS = { new: "New", replied: "Replied", consult: "Consult", proposal: "Proposal", booked: "Booked", installed: "Installed", lost: "Lost" };
+const STATUS_ORDER = ["new", "replied", "consult", "proposal", "booked", "installed", "lost"];
 
 (async () => {
   const url = new URL(location.href);
