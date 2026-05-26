@@ -10,6 +10,7 @@
 </head>
 <body>
 <script src="/crm/crm-app.js"></script>
+<script src="/crm/windows-editor.js"></script>
 <script>
 const LEAD_STATUSES = [
   { key: "new",        label: "New" },
@@ -160,53 +161,49 @@ function render() {
       </div>
     </div>
   `;
+  // After the DOM is in place, mount the shared windows editor (if there's a workspace)
+  const host = document.getElementById("rooms-host");
+  if (host && workspace?.project) {
+    WindowsEditor.init(host, workspace.windows || [], { catalog });
+  }
 }
 
 // ============================================================
-// Windows + product/color editor — lives on the lead until the contract is signed
+// Windows + product/color editor on the lead — uses the shared WindowsEditor
+// module so the lead page and the project page work identically. Clockwise
+// from back-left, with a top-down floor-plan SVG per room.
 // ============================================================
 function renderWindowsCard() {
   const hasWorkspace = workspace && workspace.project;
   const windows = workspace?.windows || [];
   const proposal = workspace?.proposals?.[0] || null;
+  const roomCount = new Set(windows.map((w) => w.room || "(unassigned)")).size;
+
   const proposalLink = proposal
     ? `<a class="btn secondary sm" href="/crm/proposal.html?id=${proposal.id}">Open proposal <span class="muted">(${SSCrm.esc(proposal.number)} · ${SSCrm.esc(proposal.status)})</span> →</a>`
     : `<button class="btn primary sm" onclick="sendProposal()">+ Send proposal from these windows</button>`;
 
   return `
     <div class="card" style="margin-top:14px">
-      <div class="card-head">
+      <div class="card-head" style="align-items:flex-start">
         <div>
           <h2>Windows on this lead</h2>
-          <div class="muted" style="font-size:12px;margin-top:2px">Record each window, pick a product and color — these feed the proposal.</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">${windows.length} windows across ${roomCount} room${roomCount === 1 ? "" : "s"} · clockwise from the back-left corner. Pick a product per window and it populates the proposal.</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="muted" style="font-size:13px">${windows.length} ${windows.length === 1 ? "window" : "windows"}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${hasWorkspace ? `
+            <button class="btn secondary sm" onclick="WindowsEditor.addWindow()">+ Window</button>
+            <button class="btn primary sm" onclick="WindowsEditor.addRoom()">+ Room</button>
+            <button class="btn primary sm" onclick="saveLeadWindows()">Save</button>
+          ` : ""}
         </div>
       </div>
 
       ${!hasWorkspace ? `
         <p class="muted" style="font-size:13px;padding:12px 0">Save the lead's email first to enable the windows workspace.</p>
       ` : `
-        <div style="overflow-x:auto">
-          <table id="lead-windows" class="lines" style="min-width:780px">
-            <thead><tr>
-              <th>Room</th>
-              <th style="width:100px">Label</th>
-              <th class="num" style="width:60px">W″</th>
-              <th class="num" style="width:60px">H″</th>
-              <th style="width:80px">Mount</th>
-              <th>Product</th>
-              <th style="width:120px">Color / Finish</th>
-              <th>Notes</th>
-              <th style="width:32px"></th>
-            </tr></thead>
-            <tbody>${windows.length ? windows.map(windowRow).join("") : windowRow({})}</tbody>
-          </table>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn secondary sm" onclick="addWindowRow()">+ Window</button>
-          <button class="btn primary sm" onclick="saveWindows()">Save windows</button>
+        <div id="rooms-host" style="display:flex;flex-direction:column;gap:14px;margin-top:10px"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
           <span style="flex:1"></span>
           ${proposalLink}
         </div>
@@ -215,43 +212,10 @@ function renderWindowsCard() {
   `;
 }
 
-function windowRow(w) {
-  const productOpts = `<option value="">— Pick product —</option>` + catalog.filter((p) => p.active).map((p) => `<option value="${p.id}" ${w?.product_id == p.id ? "selected" : ""}>${SSCrm.esc(p.name)}</option>`).join("");
-  return `<tr>
-    <td><input data-f="room" value="${SSCrm.esc(w?.room || "")}" placeholder="Living, Primary BR…"/></td>
-    <td><input data-f="label" value="${SSCrm.esc(w?.label || "")}" placeholder="North, Bay-left…"/></td>
-    <td><input class="num" data-f="width_in" type="number" step="0.125" min="0" value="${w?.width_in ?? ""}" placeholder="—"/></td>
-    <td><input class="num" data-f="height_in" type="number" step="0.125" min="0" value="${w?.height_in ?? ""}" placeholder="—"/></td>
-    <td>
-      <select data-f="mount">
-        <option value="">—</option>
-        <option ${w?.mount === "inside" ? "selected" : ""}>inside</option>
-        <option ${w?.mount === "outside" ? "selected" : ""}>outside</option>
-      </select>
-    </td>
-    <td><select data-f="product_id">${productOpts}</select></td>
-    <td><input data-f="color" value="${SSCrm.esc(w?.color || "")}" placeholder="White, walnut…"/></td>
-    <td><input data-f="notes" value="${SSCrm.esc(w?.notes || "")}" placeholder=""/></td>
-    <td><button class="rm" onclick="this.closest('tr').remove()" title="Remove">×</button></td>
-  </tr>`;
-}
-
-function addWindowRow() {
-  document.querySelector("#lead-windows tbody").insertAdjacentHTML("beforeend", windowRow({}));
-}
-
-async function saveWindows() {
+// Save handler — called from the lead's "Save" button. Uses WindowsEditor.collect()
+async function saveLeadWindows() {
   if (!workspace?.project) { SSCrm.toast("Save lead email first", "error"); return; }
-  const rows = [...document.querySelectorAll("#lead-windows tbody tr")].map((tr) => ({
-    room:        tr.querySelector("[data-f=room]").value.trim(),
-    label:       tr.querySelector("[data-f=label]").value.trim() || null,
-    width_in:    tr.querySelector("[data-f=width_in]").value !== "" ? Number(tr.querySelector("[data-f=width_in]").value) : null,
-    height_in:   tr.querySelector("[data-f=height_in]").value !== "" ? Number(tr.querySelector("[data-f=height_in]").value) : null,
-    mount:       tr.querySelector("[data-f=mount]").value || null,
-    product_id:  tr.querySelector("[data-f=product_id]").value ? parseInt(tr.querySelector("[data-f=product_id]").value, 10) : null,
-    color:       tr.querySelector("[data-f=color]").value.trim() || null,
-    notes:       tr.querySelector("[data-f=notes]").value.trim() || null,
-  })).filter((w) => w.room);
+  const rows = WindowsEditor.collect();
   try {
     await SSCrm.fetchJSON(`/api/projects/${workspace.project.id}/windows`, { method: "PUT", body: JSON.stringify({ windows: rows }) });
     SSCrm.toast(`Saved ${rows.length} window${rows.length === 1 ? "" : "s"}`, "success");

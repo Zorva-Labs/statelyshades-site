@@ -95,6 +95,67 @@ export async function createContractFromProposalTier(db, proposal, actor = { kin
 }
 
 /**
+ * Seed every tier on a proposal with one line per window from the project,
+ * pulling product + price from the catalog. Called when a proposal is
+ * created so the admin doesn't have to manually re-enter what was already
+ * captured during the consultation.
+ *
+ * Lines are clockwise-ordered (matches the project Windows tab's ordering).
+ */
+export async function seedTiersFromWindows(db, proposalId, projectId) {
+  // Clockwise wall sort key (back → right → front → left, then unassigned)
+  const wallOrderSQL = `
+    CASE w.wall
+      WHEN 'back'  THEN 0
+      WHEN 'right' THEN 1
+      WHEN 'front' THEN 2
+      WHEN 'left'  THEN 3
+      ELSE 99 END
+  `;
+  const windows = (await db.prepare(`
+    SELECT w.*, p.name AS product_name, p.base_price_cents
+    FROM windows w
+    LEFT JOIN products p ON p.id = w.product_id
+    WHERE w.project_id = ?1
+    ORDER BY ${wallOrderSQL}, w.position, w.id
+  `).bind(projectId).all()).results || [];
+
+  if (!windows.length) return;
+
+  const tiers = (await db.prepare(`SELECT id FROM proposal_tiers WHERE proposal_id = ?1`).bind(proposalId).all()).results || [];
+
+  for (const tier of tiers) {
+    let pos = 0;
+    let subtotal = 0;
+    for (const w of windows) {
+      if (!w.product_id || !w.product_name) continue;
+      const unit = w.base_price_cents || 0;
+      const total = unit; // qty = 1 per window
+      const desc = w.product_name;
+      await db.prepare(
+        `INSERT INTO proposal_tier_lines (tier_id, description, room, color, width_in, height_in, quantity, unit_price_cents, line_total_cents, position, product_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7, ?7, ?8, ?9)`
+      ).bind(
+        tier.id, desc,
+        w.room || null,
+        w.color || null,
+        w.width_in,
+        w.height_in,
+        unit,
+        pos++,
+        w.product_id,
+      ).run();
+      subtotal += total;
+    }
+    if (subtotal > 0) {
+      await db.prepare(
+        `UPDATE proposal_tiers SET subtotal_cents = ?1, total_cents = ?1 WHERE id = ?2`
+      ).bind(subtotal, tier.id).run();
+    }
+  }
+}
+
+/**
  * Mark a project as fully booked (customer signed the contract).
  * - Updates project.status to 'contracted'
  * - If the project was spawned from a lead, bumps lead.status to 'won'

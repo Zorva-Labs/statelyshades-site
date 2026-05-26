@@ -4,6 +4,7 @@
 import { requireAuth, json } from "../../../_lib/auth.js";
 import { upsertContact, recordActivity } from "../../../_lib/db.js";
 import { genToken, nextSequence, formatDocNumber } from "../../../_lib/tokens.js";
+import { seedTiersFromWindows } from "../../../_lib/lifecycle.js";
 
 const TIERS = ["good", "better", "best"];
 
@@ -68,6 +69,8 @@ export async function onRequestPost(context) {
   for (const t of TIERS) {
     await DB.prepare(`INSERT INTO proposal_tiers (proposal_id, tier, title) VALUES (?1, ?2, ?3)`).bind(proposalRow.id, t, tierTitles[t]).run();
   }
+  // Pre-populate each tier from the windows the admin already entered on the lead
+  await seedTiersFromWindows(DB, proposalRow.id, projectId);
 
   // 4. Update lead: link to the new contact + bump status to 'quoted'
   await DB.prepare(
