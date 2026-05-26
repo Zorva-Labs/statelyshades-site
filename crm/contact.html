@@ -2,37 +2,64 @@
 <html lang="en">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Contact · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
-<link rel="stylesheet" href="/crm/crm-app.css"/></head>
+<link rel="stylesheet" href="/crm/crm-app.css"/>
+<style>
+  /* Contact-detail grid — collapses to one column under 900px so the side rail
+     doesn't push the main column off-screen on narrow displays. */
+  .contact-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+  @media (max-width: 1000px) { .contact-grid { grid-template-columns: 1fr; } }
+  .contact-grid > div { min-width: 0; }
+  /* Prevent long emails / addresses / phone numbers from blowing out the layout */
+  .contact-grid .tbl td, .contact-grid .form input { overflow-wrap: anywhere; word-break: break-word; }
+  .contact-grid .form input { max-width: 100%; }
+</style>
+</head>
 <body>
 <script src="/crm/crm-app.js"></script>
 <script>
 const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
 if (!id) location.href = "/crm/contacts.html";
+
+let state = null; // { contact, projects, appointments }
+
 (async () => {
   const user = await SSCrm.mount({ title: "Contact", actions: `<a class="btn ghost" href="/crm/contacts.html">← Contacts</a>` });
   if (!user) return;
-  const { contact: c, projects, appointments } = await SSCrm.fetchJSON("/api/contacts/" + id);
+  state = await SSCrm.fetchJSON("/api/contacts/" + id);
+  render();
+})();
+
+function render() {
+  const c = state.contact;
+  const projects = state.projects || [];
+  const appointments = state.appointments || [];
   document.getElementById("page-title").textContent = c.name;
+
   document.getElementById("page").innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
+    <div class="contact-grid">
       <div>
         <div class="card">
-          <div class="card-head"><h2>Jobs</h2><button class="btn primary sm" onclick="newJob(${c.id})">+ New job</button></div>
-          ${projects.length ? `<div class="tbl"><table><thead><tr><th>Name</th><th>Status</th><th>Updated</th></tr></thead><tbody>${
+          <div class="card-head">
+            <h2>Jobs</h2>
+            <button class="btn primary sm" onclick="newJob(${c.id})">+ New job</button>
+          </div>
+          ${projects.length ? `<div class="tbl"><table><thead><tr><th>Name</th><th style="width:130px">Status</th><th style="width:120px">Updated</th></tr></thead><tbody>${
             projects.map((p) => `<tr class="clickable" onclick="location.href='/crm/project.html?id=${p.id}'">
-              <td><strong>${SSCrm.esc(p.name)}</strong>${p.description ? `<div class="muted" style="font-size:12px">${SSCrm.esc(p.description)}</div>` : ""}</td>
+              <td><strong>${SSCrm.esc(p.name)}</strong>${p.description ? `<div class="muted" style="font-size:12px;margin-top:2px">${SSCrm.esc(p.description)}</div>` : ""}</td>
               <td>${SSCrm.pill(p.status)}</td>
               <td class="muted">${SSCrm.fmtDate(p.updated_at)}</td>
-            </tr>`).join("")}
-          </tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px">No jobs yet — create one to start an estimate.</p>`}
+            </tr>`).join("")
+          }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No jobs yet — create one to start a proposal.</p>`}
         </div>
+
         <div class="card" style="margin-top:14px">
           <div class="card-head"><h2>Appointments</h2></div>
-          ${appointments.length ? `<div class="tbl"><table><thead><tr><th>When</th><th>Type</th><th>Status</th></tr></thead><tbody>${
+          ${appointments.length ? `<div class="tbl"><table><thead><tr><th>When</th><th style="width:120px">Type</th><th style="width:120px">Status</th></tr></thead><tbody>${
             appointments.map((a) => `<tr><td>${SSCrm.fmtDateTime(a.start_at)}</td><td class="muted">${SSCrm.esc(a.type)}</td><td>${SSCrm.pill(a.status)}</td></tr>`).join("")
-          }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px">No appointments yet.</p>`}
+          }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No appointments yet.</p>`}
         </div>
       </div>
+
       <div>
         <div class="card">
           <div class="card-head"><h2>Details</h2></div>
@@ -53,14 +80,26 @@ if (!id) location.href = "/crm/contacts.html";
       </div>
     </div>
   `;
-})();
+}
+
 async function save(id) {
-  const body = {};
-  for (const f of ["name","email","phone","address_street","address_city","address_state","address_zip","notes"]) {
-    body[f] = document.getElementById("f-" + f.replace("address_", "")).value.trim();
-  }
-  try { await SSCrm.fetchJSON("/api/contacts/" + id, { method: "PATCH", body: JSON.stringify(body) }); SSCrm.toast("Saved", "success"); }
-  catch (e) { SSCrm.toast(e.message, "error"); }
+  const v = (fld) => document.getElementById("f-" + fld).value.trim();
+  const body = {
+    name:           v("name"),
+    email:          v("email"),
+    phone:          v("phone"),
+    address_street: v("street"),
+    address_city:   v("city"),
+    address_state:  v("state"),
+    address_zip:    v("zip"),
+    notes:          v("notes"),
+  };
+  try {
+    await SSCrm.fetchJSON("/api/contacts/" + id, { method: "PATCH", body: JSON.stringify(body) });
+    SSCrm.toast("Saved", "success");
+    state = await SSCrm.fetchJSON("/api/contacts/" + id);
+    render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newJob(contactId) {
   const name = prompt("Job name? (e.g. 'Whole house', 'Kitchen + Baths')"); if (!name) return;

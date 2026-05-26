@@ -20,8 +20,8 @@ export async function onRequestPut(context) {
     const w = list[i];
     if (!w.room) continue;
     await context.env.DB.prepare(
-      `INSERT INTO windows (project_id, room, label, width_in, height_in, mount, depth_in, notes, position)
-       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)`
+      `INSERT INTO windows (project_id, room, label, width_in, height_in, mount, depth_in, notes, position, product_id, color)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)`
     ).bind(
       projectId,
       w.room,
@@ -32,6 +32,8 @@ export async function onRequestPut(context) {
       w.depth_in != null ? Number(w.depth_in) : null,
       w.notes || null,
       i,
+      w.product_id || null,
+      w.color || null,
     ).run();
   }
   return json({ ok: true });

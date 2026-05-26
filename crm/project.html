@@ -206,9 +206,10 @@ function renderDocTab(docs, kind, prefix, addFn) {
 
 function renderWindowsTab(ws) {
   return `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="ws-toolbar">
       <h3 style="font-size:14px;color:var(--ink-soft)">${ws.length} window${ws.length === 1 ? "" : "s"} measured</h3>
       <div style="display:flex;gap:8px">
+        <button class="btn ghost sm" onclick="printWorksheet()">🖨 Print for installer</button>
         <button class="btn ghost sm" onclick="addWindow()">+ Window</button>
         <button class="btn primary sm" onclick="saveWindows()">Save</button>
       </div>
@@ -217,6 +218,79 @@ function renderWindowsTab(ws) {
       <th style="width:22%">Room</th><th>Label</th><th>W″</th><th>H″</th><th>Mount</th><th>Depth″</th><th>Notes</th><th></th>
     </tr></thead><tbody id="ws-body">${ws.length ? ws.map((w, i) => winRow(w, i)).join("") : winRow({}, 0)}</tbody></table>
   `;
+}
+
+// Render a clean installer worksheet in a new window with its own print stylesheet
+function printWorksheet() {
+  const { project, windows } = state;
+  if (!windows.length) { SSCrm.toast("No windows to print yet", "error"); return; }
+  // Try to pull product names from the catalog (if a window has product_id)
+  const w = window.open("", "_blank");
+  const addr = project.site_address || "";
+  const phone = project.contact_phone || "";
+  const today = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  const rows = windows.map((r, i) => `
+    <tr>
+      <td class="n">${i + 1}</td>
+      <td><strong>${SSCrm.esc(r.room || "")}</strong>${r.label ? `<div class="sub">${SSCrm.esc(r.label)}</div>` : ""}</td>
+      <td class="num">${r.width_in ?? "—"}″</td>
+      <td class="num">${r.height_in ?? "—"}″</td>
+      <td>${SSCrm.esc(r.mount || "—")}</td>
+      <td class="num">${r.depth_in ?? "—"}″</td>
+      <td>${SSCrm.esc(r.product_name || (r.product_id ? "#" + r.product_id : ""))}</td>
+      <td>${SSCrm.esc(r.color || "")}</td>
+      <td>${SSCrm.esc(r.notes || "")}</td>
+      <td class="check"></td>
+    </tr>
+  `).join("");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <title>Installer Worksheet — ${SSCrm.esc(project.name)}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #000; padding: 24px; font-size: 12px; line-height: 1.4; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .meta { color: #444; font-size: 12px; margin-bottom: 18px; }
+      .meta strong { color: #000; }
+      .meta-row { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { background: #f1f1f1; text-align: left; padding: 8px 6px; border: 1px solid #999; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 10px 6px; border: 1px solid #bbb; vertical-align: top; }
+      td.n { text-align: center; font-weight: 700; background: #f7f7f7; width: 36px; }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; }
+      td.check { width: 30px; }
+      .sub { color: #555; font-size: 11px; margin-top: 2px; }
+      .signoff { margin-top: 26px; display: flex; gap: 30px; justify-content: space-between; }
+      .signoff div { flex: 1; }
+      .signoff label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #555; margin-bottom: 18px; }
+      .signoff hr { border: 0; border-top: 1px solid #000; margin: 0; }
+      @media print {
+        body { padding: 12mm; }
+        button { display: none; }
+        .print-actions { display: none; }
+      }
+    </style></head><body>
+    <div class="print-actions" style="text-align:right;margin-bottom:14px">
+      <button onclick="window.print()" style="padding:8px 16px;cursor:pointer">Print</button>
+    </div>
+    <h1>${SSCrm.esc(project.name)} — Installer Worksheet</h1>
+    <div class="meta">
+      <div class="meta-row"><span><strong>Customer:</strong> ${SSCrm.esc(project.contact_name)}</span><span><strong>Phone:</strong> ${SSCrm.esc(phone)}</span></div>
+      <div class="meta-row"><span><strong>Site:</strong> ${SSCrm.esc(addr)}</span><span><strong>Date:</strong> ${today}</span></div>
+      <div class="meta-row"><span><strong>${windows.length} window${windows.length === 1 ? "" : "s"}</strong></span></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Room / Label</th><th>W</th><th>H</th><th>Mount</th><th>Depth</th><th>Product</th><th>Color / Finish</th><th>Notes</th><th>✓</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="signoff">
+      <div><label>Installer signature</label><hr/></div>
+      <div><label>Customer sign-off on completion</label><hr/></div>
+      <div><label>Date</label><hr/></div>
+    </div>
+  </body></html>`);
+  w.document.close();
 }
 
 function winRow(w, i) {
