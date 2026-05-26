@@ -249,17 +249,12 @@ function prettyTime(iso) {
 }
 
 let pad = null;
-// Dead-simple signature pad: native Pointer Events on the canvas. No library,
-// no resize handler, no dpr scaling, no window event listeners — anything
-// dynamic was a vector for the "strokes disappear on mouseup" bug. The bitmap
-// is sized ONCE at mount time to match the canvas's CSS-rendered dimensions,
-// and from that point nothing touches canvas.width/height. Strokes are
-// painted directly onto the bitmap and stay there until the Clear button
-// is clicked (or the user submits).
+// Hand-rolled signature pad with BOTH pointer events AND mouse-event fallback
+// in case pointer events don't fire on the user's browser. Also exposes a
+// debug counter on the page so we can see exactly when/why strokes might
+// disappear (look at the small "[N strokes]" indicator next to the Clear btn).
 function wirePad() {
   const canvas = document.getElementById("sig-pad");
-  // Fix the bitmap dimensions to the CSS size, ONCE. Setting these clears
-  // the bitmap + resets context state, so do it before any ctx config.
   canvas.width  = canvas.offsetWidth  || 700;
   canvas.height = canvas.offsetHeight || 180;
   const ctx = canvas.getContext("2d");
@@ -268,47 +263,84 @@ function wirePad() {
   ctx.lineCap     = "round";
   ctx.lineJoin    = "round";
 
-  let drawing = false;
-  let hasInk  = false;
+  let drawing  = false;
+  let strokeN  = 0;
+  let pointN   = 0;
+
+  // Debug indicator — shows live point/stroke counts so we can tell if the
+  // canvas is being cleared, or events aren't firing, or something else
+  // entirely. Once stable I'll remove this.
+  const dbg = document.createElement("span");
+  dbg.id = "sig-dbg";
+  dbg.style.cssText = "font-family:monospace;font-size:0.7rem;color:#9D7A3E;margin-right:auto;padding-left:8px";
+  dbg.textContent = "[0 strokes · 0 pts]";
+  document.querySelector(".sig-bar").prepend(dbg);
+  function refresh() { dbg.textContent = `[${strokeN} strokes · ${pointN} pts]`; }
 
   function point(e) {
     const r = canvas.getBoundingClientRect();
-    // Map CSS pixel coords to bitmap pixel coords in case CSS scales the canvas
     const sx = canvas.width  / r.width;
     const sy = canvas.height / r.height;
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
-
-  canvas.addEventListener("pointerdown", (e) => {
+  function startStroke(e) {
+    if (drawing) return;
     if (e.button != null && e.button !== 0) return;
-    e.preventDefault();
-    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-    drawing = true; hasInk = true;
+    if (e.preventDefault) e.preventDefault();
+    drawing = true; strokeN++; pointN++;
     const p = point(e);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
-    // Stamp a tiny dot so a single tap is visible
     ctx.lineTo(p.x + 0.1, p.y + 0.1);
     ctx.stroke();
-  });
-  canvas.addEventListener("pointermove", (e) => {
+    refresh();
+  }
+  function moveStroke(e) {
     if (!drawing) return;
-    e.preventDefault();
+    if (e.preventDefault) e.preventDefault();
+    pointN++;
     const p = point(e);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-  });
-  function end(e) {
+    if (pointN % 5 === 0) refresh();
+  }
+  function endStroke() {
     if (!drawing) return;
     drawing = false;
-    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    refresh();
   }
-  canvas.addEventListener("pointerup",     end);
-  canvas.addEventListener("pointercancel", end);
+
+  // Pointer events (modern; mouse + touch + stylus)
+  canvas.addEventListener("pointerdown", (e) => {
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    startStroke(e);
+  });
+  canvas.addEventListener("pointermove",   moveStroke);
+  canvas.addEventListener("pointerup",     endStroke);
+  canvas.addEventListener("pointercancel", endStroke);
+
+  // Mouse fallback — fires if pointer events are unavailable or blocked
+  canvas.addEventListener("mousedown", startStroke);
+  canvas.addEventListener("mousemove", moveStroke);
+  window.addEventListener("mouseup",   endStroke);
+
+  // Touch fallback for ancient browsers
+  canvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startStroke({ clientX: t.clientX, clientY: t.clientY, button: 0, preventDefault: () => e.preventDefault() });
+  }, { passive: false });
+  canvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    moveStroke({ clientX: t.clientX, clientY: t.clientY, preventDefault: () => e.preventDefault() });
+  }, { passive: false });
+  canvas.addEventListener("touchend", endStroke);
+  canvas.addEventListener("touchcancel", endStroke);
 
   pad = {
-    clear:     () => { ctx.clearRect(0, 0, canvas.width, canvas.height); hasInk = false; },
-    isEmpty:   () => !hasInk,
+    clear:     () => { ctx.clearRect(0, 0, canvas.width, canvas.height); strokeN = 0; pointN = 0; refresh(); },
+    isEmpty:   () => strokeN === 0,
     toDataURL: () => canvas.toDataURL("image/png"),
   };
   document.getElementById("sig-clear").onclick = () => pad.clear();
