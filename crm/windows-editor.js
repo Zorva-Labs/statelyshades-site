@@ -93,20 +93,21 @@
           <button class="btn ghost sm" onclick="WindowsEditor.addWindowToRoom(this)">+ Window here</button>
           <button class="btn ghost sm" onclick="WindowsEditor.removeRoom(this)" style="color:var(--danger)" title="Remove room (and its windows)">Remove</button>
         </div>
-        <div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start;margin-top:12px" class="room-body">
-          <div class="room-floorplan">${this.floorplanSvg(windows)}</div>
-          <div class="room-windows" style="overflow-x:auto">
-            <table class="lines" style="min-width:580px"><thead><tr>
-              <th style="width:32px">#</th>
-              <th>Label</th>
-              <th style="width:90px">Wall</th>
-              <th class="num" style="width:58px">W″</th>
-              <th class="num" style="width:58px">H″</th>
-              <th style="width:78px">Mount</th>
-              <th>Product</th>
-              <th style="width:110px">Color</th>
-              <th>Notes</th>
-              <th style="width:28px"></th>
+        <!-- Floor plan sits above the editor, editor gets the full section width -->
+        <div style="display:flex;flex-direction:column;gap:18px;margin-top:12px" class="room-body">
+          <div class="room-floorplan" style="max-width:280px">${this.floorplanSvg(windows)}</div>
+          <div class="room-windows" style="overflow-x:auto;width:100%">
+            <table class="lines" style="width:100%"><thead><tr>
+              <th style="width:36px">#</th>
+              <th style="min-width:120px">Label</th>
+              <th style="width:100px">Wall</th>
+              <th class="num" style="width:70px">W″</th>
+              <th class="num" style="width:70px">H″</th>
+              <th style="width:90px">Mount</th>
+              <th style="min-width:220px">Product</th>
+              <th style="min-width:120px">Color</th>
+              <th style="min-width:150px">Notes</th>
+              <th style="width:32px"></th>
             </tr></thead>
             <tbody class="room-window-rows">
               ${windows.map((w, i) => this.winRow(w, i)).join("") || this.winRow({}, 0)}
