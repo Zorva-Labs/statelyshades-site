@@ -5,170 +5,270 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lead · Stately Shades CRM</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/crm/admin.css" />
+  <link rel="stylesheet" href="/crm/crm-app.css" />
   <link rel="icon" href="/assets/images/logo-v4.png" />
 </head>
 <body>
-  <div class="admin">
-    <aside class="admin__nav">
-      <a href="/crm/" class="admin__brand">
-        <span class="admin__brand-monogram" aria-hidden="true">S<span>S</span></span>
-        <span class="admin__brand-text">
-          <strong>Stately Shades</strong>
-          <span>CRM</span>
-        </span>
-      </a>
-      <div class="admin__nav-section">
-        <span class="admin__nav-label">Pipeline</span>
-        <div class="js-status-nav"></div>
+<script src="/crm/crm-app.js"></script>
+<script>
+const LEAD_STATUSES = [
+  { key: "new",        label: "New" },
+  { key: "contacted",  label: "Contacted" },
+  { key: "quoted",     label: "Quoted" },
+  { key: "scheduled",  label: "Scheduled" },
+  { key: "installed",  label: "Installed" },
+  { key: "won",        label: "Won" },
+  { key: "lost",       label: "Lost" },
+  { key: "spam",       label: "Spam" },
+];
+
+const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
+if (!id) location.href = "/crm/leads.html";
+
+let state = null; // { lead, notes }
+
+(async () => {
+  const user = await SSCrm.mount({
+    title: "Lead",
+    actions: `<a class="btn ghost" href="/crm/leads.html">← All leads</a>`,
+  });
+  if (!user) return;
+  state = await SSCrm.fetchJSON("/api/leads/" + id);
+  render();
+})();
+
+function render() {
+  const l = state.lead;
+  const notes = state.notes || [];
+  document.getElementById("page-title").textContent = l.name;
+
+  const addrParts = [l.address_street, [l.address_city, l.address_state].filter(Boolean).join(", "), l.address_zip].filter(Boolean);
+  const addrLine = addrParts.length ? addrParts.join(" · ") : (l.location || "");
+  const mapUrl = addrParts.length ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addrParts.join(", ")) : null;
+
+  document.getElementById("page").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;gap:10px;align-items:center">
+        ${SSCrm.pill(l.status)}
+        <span class="muted" style="font-size:13px">Lead #${l.id} · ${SSCrm.fmtDate(l.created_at)}</span>
       </div>
-      <div class="admin__nav-user">
-        <span><span data-user-email>—</span></span>
-        <button onclick="SSAdmin.logout()">Sign out</button>
+      <div style="display:flex;gap:8px">
+        ${l.contact_id ? `<a class="btn secondary" href="/crm/contact.html?id=${l.contact_id}">View contact →</a>` : `<button class="btn primary" onclick="convertToContact()">Convert to contact + job</button>`}
+        <button class="btn danger" onclick="del()">Delete</button>
       </div>
-    </aside>
+    </div>
 
-    <main class="admin__main">
-      <header class="admin__header">
-        <h1 id="page-title"><em>Loading…</em></h1>
-        <a href="/crm/" style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-muted);">← All leads</a>
-      </header>
-
-      <div id="detail" class="lead-detail"></div>
-    </main>
-  </div>
-
-  <script src="/crm/admin.js"></script>
-  <script>
-    (async () => {
-      const id = new URLSearchParams(location.search).get("id");
-      if (!id) { location.href = "/crm/"; return; }
-
-      await SSAdmin.renderSidebar({});
-      const { lead, notes } = await SSAdmin.fetchJSON("/api/leads/" + id);
-
-      document.getElementById("page-title").innerHTML = `<em>${SSAdmin.esc(lead.name)}</em>`;
-
-      const detail = document.getElementById("detail");
-      detail.innerHTML = `
-        <div class="lead-card">
-          <h2>${SSAdmin.esc(lead.name)}</h2>
-          <div class="row"><strong>Status</strong>${SSAdmin.pill(lead.status)}</div>
-          <div class="row"><strong>Phone</strong><a href="tel:${SSAdmin.esc(lead.phone)}">${SSAdmin.esc(lead.phone)}</a></div>
-          <div class="row"><strong>Email</strong><a href="mailto:${SSAdmin.esc(lead.email)}">${SSAdmin.esc(lead.email)}</a></div>
-          <div class="row"><strong>Address</strong>${renderAddress(lead)}</div>
-          <div class="row"><strong>Considering</strong>${SSAdmin.esc(lead.interest || "—")}</div>
-          <div class="row"><strong>Source</strong>${SSAdmin.esc(lead.source_page || "—")}</div>
-          <div class="row"><strong>Submitted</strong>${SSAdmin.fmtDateTime(lead.created_at)}</div>
-          ${lead.utm_source ? `<div class="row"><strong>UTM Source</strong>${SSAdmin.esc(lead.utm_source)}</div>` : ""}
-          ${lead.utm_campaign ? `<div class="row"><strong>UTM Campaign</strong>${SSAdmin.esc(lead.utm_campaign)}</div>` : ""}
-          ${lead.referrer ? `<div class="row"><strong>Referrer</strong>${SSAdmin.esc(lead.referrer.slice(0, 60))}</div>` : ""}
-          ${lead.message ? `<div class="message">${SSAdmin.esc(lead.message)}</div>` : ""}
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
+      <!-- LEFT: details + notes -->
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>Contact details</h2></div>
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:14px 18px;font-size:14px;align-items:start">
+            <div class="muted">Name</div><div><strong>${SSCrm.esc(l.name)}</strong></div>
+            <div class="muted">Phone</div><div>${l.phone ? `<a href="tel:${SSCrm.esc(l.phone)}">${SSCrm.esc(l.phone)}</a>` : `<span class="muted">—</span>`}</div>
+            <div class="muted">Email</div><div>${l.email ? `<a href="mailto:${SSCrm.esc(l.email)}">${SSCrm.esc(l.email)}</a>` : `<span class="muted">—</span>`}</div>
+            <div class="muted">Address</div><div>${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener">${SSCrm.esc(addrLine)}</a>` : (addrLine ? SSCrm.esc(addrLine) : `<span class="muted">—</span>`)}</div>
+            <div class="muted">Considering</div><div>${SSCrm.esc(l.interest || "—")}</div>
+            <div class="muted">Submitted</div><div>${SSCrm.fmtDateTime(l.created_at)}</div>
+            <div class="muted">Source</div><div>${SSCrm.esc(l.source_page || "web")}</div>
+            ${l.utm_source ? `<div class="muted">UTM source</div><div>${SSCrm.esc(l.utm_source)}</div>` : ""}
+            ${l.utm_campaign ? `<div class="muted">UTM campaign</div><div>${SSCrm.esc(l.utm_campaign)}</div>` : ""}
+            ${l.utm_medium ? `<div class="muted">UTM medium</div><div>${SSCrm.esc(l.utm_medium)}</div>` : ""}
+            ${l.referrer ? `<div class="muted">Referrer</div><div style="font-size:12px;word-break:break-all">${SSCrm.esc(l.referrer.slice(0, 100))}</div>` : ""}
+          </div>
+          ${l.message ? `
+            <hr class="sep"/>
+            <div class="muted" style="font-size:12px;margin-bottom:6px">Their message</div>
+            <div style="background:var(--bg-soft);border-left:3px solid var(--accent);padding:14px 18px;border-radius:var(--r-sm);font-style:italic;color:var(--ink)">${SSCrm.esc(l.message)}</div>
+          ` : ""}
         </div>
 
-        <div class="lead-actions">
-          <div>
-            <h3>Pipeline status</h3>
-            <select id="status-select">
-              ${SSAdmin.STATUS_ORDER.map((s) => `<option value="${s}" ${s === lead.status ? "selected" : ""}>${SSAdmin.STATUS_LABELS[s]}</option>`).join("")}
-            </select>
-          </div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-head"><h2>Notes</h2><span class="muted" style="font-size:12px">${notes.length}</span></div>
+          <div id="notes-list">${renderNotes(notes)}</div>
+          <hr class="sep"/>
+          <form id="note-form" onsubmit="addNote(event)" style="display:grid;gap:8px">
+            <textarea name="body" placeholder="Add a note — call summary, follow-up needed, anything to remember…" rows="3" required style="width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font:inherit;font-size:13px;resize:vertical"></textarea>
+            <div><button type="submit" class="btn primary sm">+ Add note</button></div>
+          </form>
+        </div>
+      </div>
 
-          <div>
-            <h3>Notes</h3>
-            <div class="notes" id="notes-list">${renderNotes(notes)}</div>
-            <form class="note-form" id="note-form" style="margin-top: 14px;">
-              <textarea name="body" placeholder="Add a note (call summary, follow-up, etc.)" required></textarea>
-              <button type="submit">Add note</button>
-            </form>
-          </div>
-
-          <div>
-            <h3>Danger zone</h3>
-            <button id="delete-btn" style="background: transparent; color: #B85450; border: 1px solid #B85450; padding: 12px 22px; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; border-radius: 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" onmouseover="this.style.background='rgba(184,84,80,.1)'" onmouseout="this.style.background='transparent'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-              Delete this lead
-            </button>
+      <!-- RIGHT: status, quick actions -->
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>Pipeline status</h2></div>
+          <div class="form">
+            <label><span>Status</span>
+              <select id="status-select" onchange="updateStatus(this.value)">
+                ${LEAD_STATUSES.map((s) => `<option value="${s.key}" ${s.key === l.status ? "selected" : ""}>${s.label}</option>`).join("")}
+              </select>
+            </label>
+            ${l.quoted_amount_cents ? `<p class="muted" style="font-size:13px;margin:0">Quoted: <strong class="money">${SSCrm.fmtMoney(l.quoted_amount_cents)}</strong></p>` : ""}
           </div>
         </div>
-      `;
 
-      function renderAddress(l) {
-        const parts = [l.address_street, [l.address_city, l.address_state].filter(Boolean).join(", "), l.address_zip].filter(Boolean);
-        if (!parts.length) return SSAdmin.esc(l.location || "—");
-        const oneLine = parts.join(", ");
-        const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(oneLine);
-        return `<a href="${mapUrl}" target="_blank" rel="noopener">${SSAdmin.esc(parts.join(" · "))}</a>`;
-      }
-
-      function renderNotes(arr) {
-        if (!arr || !arr.length) return `<p style="color: var(--color-muted); font-style: italic; font-family: var(--font-display);">No notes yet.</p>`;
-        return arr.map((n) => `
-          <div class="note">
-            <div class="note__meta">${SSAdmin.esc(n.author || "—")} · ${SSAdmin.fmtDateTime(n.created_at)}</div>
-            <div class="note__body">${SSAdmin.esc(n.body)}</div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-head"><h2>Quick actions</h2></div>
+          <div style="display:grid;gap:8px">
+            ${l.phone ? `<a class="btn secondary" href="tel:${SSCrm.esc(l.phone)}">📞 Call ${SSCrm.esc(l.phone)}</a>` : ""}
+            ${l.phone ? `<a class="btn secondary" href="sms:${SSCrm.esc(l.phone)}">💬 Text</a>` : ""}
+            ${l.email ? `<a class="btn secondary" href="mailto:${SSCrm.esc(l.email)}">✉️ Email</a>` : ""}
+            <button class="btn secondary" onclick="bookFromLead()">📅 Book consultation</button>
+            ${!l.contact_id ? `<button class="btn primary" onclick="convertToContact()">→ Convert to contact + job</button>` : ""}
           </div>
-        `).join("");
-      }
+        </div>
 
-      document.getElementById("status-select").addEventListener("change", async (e) => {
-        const newStatus = e.target.value;
-        try {
-          await SSAdmin.fetchJSON("/api/leads/" + id, {
-            method: "PATCH",
-            body: JSON.stringify({ status: newStatus }),
-          });
-          // Update visible pill
-          const pill = document.querySelector('.lead-card .pill');
-          if (pill) {
-            pill.dataset.status = newStatus;
-            pill.textContent = SSAdmin.STATUS_LABELS[newStatus];
-          }
-        } catch (err) {
-          alert("Couldn't update: " + err.message);
-        }
-      });
+        ${l.contact_id ? `
+          <div class="card" style="margin-top:14px">
+            <div class="card-head"><h2>Linked contact</h2></div>
+            <a class="btn secondary" href="/crm/contact.html?id=${l.contact_id}" style="width:100%;justify-content:center">Open contact →</a>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
 
-      document.getElementById("note-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const body = form.body.value.trim();
-        if (!body) return;
-        const btn = form.querySelector("button");
-        btn.disabled = true;
-        try {
-          const { notes: newNotes } = await SSAdmin.fetchJSON("/api/leads/" + id + "/notes", {
-            method: "POST",
-            body: JSON.stringify({ body }),
-          });
-          form.body.value = "";
-          document.getElementById("notes-list").innerHTML = renderNotes(newNotes);
-        } catch (err) {
-          alert("Couldn't add note: " + err.message);
-        } finally {
-          btn.disabled = false;
-        }
-      });
+function renderNotes(arr) {
+  if (!arr || !arr.length) return `<p class="muted" style="text-align:center;padding:20px 0;font-style:italic">No notes yet.</p>`;
+  return `<ul class="activity">${arr.map((n) => `
+    <li>
+      <span class="activity__icon">📝</span>
+      <div class="activity__body">
+        ${SSCrm.esc(n.body)}
+        <div class="activity__time">${SSCrm.esc(n.author || "—")} · ${SSCrm.fmtDateTime(n.created_at)}</div>
+      </div>
+    </li>`).join("")}</ul>`;
+}
 
-      document.getElementById("delete-btn").addEventListener("click", async () => {
-        if (!confirm("Permanently delete this lead and all its notes?")) return;
-        await SSAdmin.fetchJSON("/api/leads/" + id, { method: "DELETE" });
-        location.href = "/crm/";
-      });
+async function updateStatus(status) {
+  try {
+    await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status }) });
+    SSCrm.toast("Status updated", "success");
+    state.lead.status = status;
+    render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
+}
 
-    })().catch((err) => {
-      if (err.message !== "Unauthorized") {
-        document.getElementById("detail").innerHTML = `<div class="lead-table__empty">Couldn't load: ${SSAdmin.esc(err.message)}</div>`;
-      }
+async function addNote(e) {
+  e.preventDefault();
+  const form = e.target;
+  const body = form.body.value.trim();
+  if (!body) return;
+  const btn = form.querySelector("button");
+  btn.disabled = true;
+  try {
+    const { notes } = await SSCrm.fetchJSON("/api/leads/" + id + "/notes", { method: "POST", body: JSON.stringify({ body }) });
+    state.notes = notes;
+    render();
+    SSCrm.toast("Note added", "success");
+  } catch (err) {
+    SSCrm.toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function del() {
+  if (!(await SSCrm.confirmDialog(`Delete lead "${state.lead.name}"? This cannot be undone.`))) return;
+  await SSCrm.fetchJSON("/api/leads/" + id, { method: "DELETE" });
+  SSCrm.toast("Lead deleted", "success");
+  setTimeout(() => location.href = "/crm/leads.html", 400);
+}
+
+async function convertToContact() {
+  const l = state.lead;
+  if (!(await SSCrm.confirmDialog(`Create a contact + job for ${l.name}?\n\nThis lets you start an estimate, proposal, or contract.`))) return;
+  try {
+    // 1) Upsert contact
+    const { id: contactId } = await SSCrm.fetchJSON("/api/contacts", {
+      method: "POST",
+      body: JSON.stringify({
+        name: l.name, email: l.email, phone: l.phone,
+        address: {
+          street: l.address_street, city: l.address_city,
+          state: l.address_state, zip: l.address_zip,
+        },
+      }),
     });
-  </script>
+    // 2) Create a default job
+    const jobName = l.interest ? `${l.interest} — ${l.name}` : `Whole house — ${l.name}`;
+    const { id: projectId } = await SSCrm.fetchJSON("/api/projects", {
+      method: "POST",
+      body: JSON.stringify({ contact_id: contactId, name: jobName, description: l.message || null }),
+    });
+    // 3) Link lead → contact (PATCH won't accept contact_id via current API; just track via status)
+    await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "contacted" }) });
+    SSCrm.toast("Contact + job created", "success");
+    location.href = "/crm/project.html?id=" + projectId;
+  } catch (e) { SSCrm.toast(e.message, "error"); }
+}
+
+async function bookFromLead() {
+  // Pre-fill the quick-add appointment modal with this lead's contact info
+  const l = state.lead;
+  // Use the existing helper but pre-populate
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  bg.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-head">Book consultation for ${SSCrm.esc(l.name)}</div>
+      <div class="modal-body">
+        <div class="form">
+          <div class="row">
+            <label><span>Date</span><input id="bk-date" type="date" value="${tomorrow}" required/></label>
+            <label><span>Start time</span><input id="bk-time" type="time" value="10:00" required/></label>
+          </div>
+          <div class="row">
+            <label><span>Duration (min)</span><input id="bk-dur" type="number" value="60" min="15" step="15"/></label>
+            <label><span>Type</span>
+              <select id="bk-type"><option value="consultation">Consultation</option><option value="measure">Measure</option></select>
+            </label>
+          </div>
+          <label><span>Notes (optional)</span><textarea id="bk-notes" rows="2"></textarea></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-cancel>Cancel</button>
+        <button class="btn primary" data-save>Book it</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(bg);
+  bg.querySelector("[data-cancel]").onclick = () => bg.remove();
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+  bg.querySelector("[data-save]").onclick = async () => {
+    const date = bg.querySelector("#bk-date").value;
+    const time = bg.querySelector("#bk-time").value;
+    const dur = parseInt(bg.querySelector("#bk-dur").value || "60", 10);
+    const [h, m] = time.split(":").map((n) => parseInt(n, 10));
+    const totalMin = h * 60 + m + dur;
+    const endTime = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+    const addrParts = [l.address_street, [l.address_city, l.address_state].filter(Boolean).join(", "), l.address_zip].filter(Boolean);
+    try {
+      await SSCrm.fetchJSON("/api/appointments", { method: "POST", body: JSON.stringify({
+        name: l.name, email: l.email, phone: l.phone,
+        start_at: `${date}T${time}:00`,
+        end_at: `${date}T${endTime}:00`,
+        duration_min: dur,
+        type: bg.querySelector("#bk-type").value,
+        site_address: addrParts.join(", ") || null,
+        notes: bg.querySelector("#bk-notes").value.trim() || null,
+        status: "confirmed",
+        source: "admin",
+      })});
+      // Bump lead status to scheduled
+      await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "scheduled" }) });
+      bg.remove();
+      SSCrm.toast("Consultation booked", "success");
+      // Refresh
+      state = await SSCrm.fetchJSON("/api/leads/" + id);
+      render();
+    } catch (e) { SSCrm.toast(e.message, "error"); }
+  };
+}
+</script>
 </body>
 </html>
