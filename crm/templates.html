@@ -30,9 +30,16 @@ let editingKind = null;   // "email" or "document"
   render();
 })();
 
+// Email template kinds — the keys we drive from the lead/contact/project pages.
+// Keep in sync with the seed data in migration 0017.
+const EMAIL_KINDS = [
+  "lead_new", "consult_confirm", "proposal_followup", "contract_followup",
+  "install_scheduled", "post_install_thanks", "touch_base",
+];
+
 async function loadAll() {
   const [emails, docs] = await Promise.all([
-    SSCrm.fetchJSON("/api/templates"),
+    SSCrm.fetchJSON("/api/email-templates?all=1"),
     SSCrm.fetchJSON("/api/document-templates"),
   ]);
   emailTemplates = emails.templates || [];
@@ -105,17 +112,23 @@ function renderEditor() {
     editor.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h3 style="margin:0;font-size:15px">${SSCrm.esc(t.name)}</h3>
-        <div style="display:flex;gap:8px"><button class="btn ghost sm" onclick="previewEmail()">Preview</button><button class="btn danger sm" onclick="delEmail(${t.id})">Delete</button></div>
+        <div style="display:flex;gap:8px"><button class="btn danger sm" onclick="delEmail(${t.id})">Delete</button></div>
       </div>
       <div class="form">
         <div class="row">
           <label><span>Name</span><input id="e-name" value="${SSCrm.esc(t.name)}"/></label>
-          <label><span>Category</span>
-            <select id="e-cat">${["general","lead","appointment","estimate","proposal","contract","install"].map((c) => `<option ${c === t.category ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <label><span>Kind (pipeline stage)</span>
+            <select id="e-kind">${EMAIL_KINDS.map((k) => `<option value="${k}" ${k === t.kind ? "selected" : ""}>${k}</option>`).join("")}</select>
           </label>
         </div>
         <label><span>Subject</span><input id="e-subj" value="${SSCrm.esc(t.subject)}"/></label>
-        <label><span>Body (HTML; use {{merge.fields}})</span><textarea id="e-body" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.body_html)}</textarea></label>
+        <label><span>Body (plain text; use {{first_name}}, {{interest}}, {{address}}, {{quoted_amount}}, {{proposal_link}}, {{contract_link}}, {{appointment_date}}, {{appointment_time}})</span>
+          <textarea id="e-body" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.body_text || "")}</textarea>
+        </label>
+        <div class="row">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input id="e-default" type="checkbox" ${t.is_default ? "checked" : ""}/> <span>Default for this kind</span></label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input id="e-active" type="checkbox" ${t.is_active ? "checked" : ""}/> <span>Active (shown in Compose)</span></label>
+        </div>
         <div class="form-actions"><button class="btn primary" onclick="saveEmail(${t.id})">Save</button></div>
       </div>
     `;
@@ -168,10 +181,16 @@ function renderEditor() {
 async function newTemplate() {
   if (activeTab === "email") {
     const name = prompt("Template name?"); if (!name) return;
-    const cat = prompt("Category (general, lead, appointment, estimate, proposal, contract, install)?", "general"); if (!cat) return;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    const kind = prompt(`Kind? (${EMAIL_KINDS.join(", ")})`, "touch_base"); if (!kind) return;
     try {
-      await SSCrm.fetchJSON("/api/templates", { method: "POST", body: JSON.stringify({ slug, name, category: cat, subject: "Subject here", body_html: "<p>Hello {{contact.first_name}},</p><p>Body…</p>" }) });
+      await SSCrm.fetchJSON("/api/email-templates", {
+        method: "POST",
+        body: JSON.stringify({
+          name, kind,
+          subject: "Subject here — use {{first_name}} etc.",
+          body_text: "Hi {{first_name}},\n\nBody…\n\nJames\nStately Shades",
+        }),
+      });
       await loadAll(); render();
     } catch (e) { SSCrm.toast(e.message, "error"); }
   } else {
@@ -190,18 +209,20 @@ async function newTemplate() {
 
 async function saveEmail(id) {
   try {
-    await SSCrm.fetchJSON("/api/templates/" + id, { method: "PATCH", body: JSON.stringify({
-      name: document.getElementById("e-name").value.trim(),
-      category: document.getElementById("e-cat").value,
-      subject: document.getElementById("e-subj").value.trim(),
-      body_html: document.getElementById("e-body").value,
+    await SSCrm.fetchJSON("/api/email-templates/" + id, { method: "PATCH", body: JSON.stringify({
+      name:      document.getElementById("e-name").value.trim(),
+      kind:      document.getElementById("e-kind").value,
+      subject:   document.getElementById("e-subj").value.trim(),
+      body_text: document.getElementById("e-body").value,
+      is_default: document.getElementById("e-default").checked ? 1 : 0,
+      is_active:  document.getElementById("e-active").checked ? 1 : 0,
     })});
     SSCrm.toast("Saved", "success"); await loadAll(); render();
   } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function delEmail(id) {
   if (!(await SSCrm.confirmDialog("Archive this email template?"))) return;
-  await SSCrm.fetchJSON("/api/templates/" + id, { method: "DELETE" });
+  await SSCrm.fetchJSON("/api/email-templates/" + id, { method: "DELETE" });
   editingId = null; await loadAll(); render();
 }
 

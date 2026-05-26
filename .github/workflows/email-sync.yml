@@ -1,0 +1,50 @@
+# Polls Purelymail IMAP every 5 minutes and inserts new inbound messages
+# into the Stately Shades CRM. The endpoint /api/internal/email-sync handles
+# auth, IMAP fetch, parse, matching, and D1 insert — this workflow is just
+# the heartbeat that ticks it.
+#
+# Required repo secret: CRM_CRON_SECRET (same value as the Cloudflare Pages
+# secret CRON_SECRET on the statelyshades project).
+#
+# Schedule notes:
+#   - GitHub Actions cron has a minimum granularity of 5 minutes
+#   - Runs can be delayed 10-15 min during peak load (GitHub-side, not us)
+#   - You can also fire on-demand via the "Run workflow" button on the
+#     Actions tab.
+
+name: CRM email sync
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes
+  workflow_dispatch: {}     # manual trigger from the Actions tab
+
+# Don't queue overlapping runs — if a previous sync is still going, skip
+# this tick. IMAP fetches are idempotent so the next run picks up where it
+# left off via email_sync_state.uid_next.
+concurrency:
+  group: crm-email-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Poll IMAP and ingest inbound mail
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit /api/internal/email-sync
+        env:
+          CRM_CRON_SECRET: ${{ secrets.CRM_CRON_SECRET }}
+        run: |
+          if [ -z "$CRM_CRON_SECRET" ]; then
+            echo "::error::CRM_CRON_SECRET repo secret is not set"
+            exit 1
+          fi
+          # -f makes curl exit non-zero on HTTP 4xx/5xx so the workflow turns
+          # red when something genuinely broke (vs. a no-new-mail no-op which
+          # returns 200 with {processed:0}).
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $CRM_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -w '\nHTTP %{http_code}\n' \
+            "https://statelyshades.com/api/internal/email-sync"
