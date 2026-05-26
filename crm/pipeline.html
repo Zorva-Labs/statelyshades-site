@@ -11,38 +11,37 @@
 <body>
 <script src="/crm/crm-app.js"></script>
 <script>
-const COL_COLORS = {
-  new: "#94A3B8",
-  scheduled: "#6366F1",
-  measured: "#06B6D4",
-  quoted: "#F59E0B",
-  proposed: "#8B5CF6",
-  contracted: "#2563EB",
-  installing: "#14B8A6",
-  completed: "#10B981",
-  lost: "#94A3B8",
-};
+// Lead pipeline — kanban board of leads grouped by status.
+// Stages: New → Replied → Consult → Proposal → Booked → Installed (with Lost as an off-track column).
+const PIPELINE_STAGES = [
+  { key: "new",       label: "New",       color: "#94A3B8" },
+  { key: "replied",   label: "Replied",   color: "#F59E0B" },
+  { key: "consult",   label: "Consult",   color: "#6366F1" },
+  { key: "proposal",  label: "Proposal",  color: "#8B5CF6" },
+  { key: "booked",    label: "Booked",    color: "#2563EB" },
+  { key: "installed", label: "Installed", color: "#10B981" },
+  { key: "lost",      label: "Lost",      color: "#94A3B8" },
+];
 
 (async () => {
   const user = await SSCrm.mount({
     title: "Pipeline",
-    subtitle: "Drag a card to move a job through stages",
-    actions: `<a class="btn secondary" href="/crm/projects.html">Table view →</a>`,
+    subtitle: "Drag a lead between stages",
+    actions: `<a class="btn secondary" href="/crm/leads.html">Table view →</a>`,
     wide: true,
   });
   if (!user) return;
 
-  const { projects } = await SSCrm.fetchJSON("/api/projects");
-  // Group projects by status (only keep statuses we have a column for)
-  const byStatus = Object.fromEntries(SSCrm.PROJECT_STATUSES.map((s) => [s.key, []]));
-  for (const p of projects) {
-    if (byStatus[p.status]) byStatus[p.status].push(p);
-    else byStatus.new.push(p);
+  const { leads } = await SSCrm.fetchJSON("/api/leads?limit=500");
+  // Group leads by status — unknown statuses fall into "new"
+  const byStatus = Object.fromEntries(PIPELINE_STAGES.map((s) => [s.key, []]));
+  for (const l of leads) {
+    (byStatus[l.status] || byStatus.new).push(l);
   }
 
   document.getElementById("page").innerHTML = `
-    <div class="kanban">${SSCrm.PROJECT_STATUSES.map((s) => `
-      <div class="kanban__col" data-status="${s.key}" style="--col-color:${COL_COLORS[s.key] || "var(--ink-muted)"}">
+    <div class="kanban">${PIPELINE_STAGES.map((s) => `
+      <div class="kanban__col" data-status="${s.key}" style="--col-color:${s.color}">
         <div class="kanban__col-head">
           <strong>${SSCrm.esc(s.label)}</strong>
           <span class="count">${byStatus[s.key].length}</span>
@@ -55,12 +54,15 @@ const COL_COLORS = {
   wireDragDrop();
 })();
 
-function renderCard(p) {
-  return `<div class="kanban__card" draggable="true" data-id="${p.id}">
-    <div class="kanban__card-title"><a href="/crm/project.html?id=${p.id}" style="color:inherit;text-decoration:none">${SSCrm.esc(p.name)}</a></div>
-    <div class="kanban__card-meta">${SSCrm.esc(p.contact_name)}</div>
+function renderCard(l) {
+  const quoted = l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : "";
+  const sub = [l.interest, [l.address_city, l.address_state].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+  return `<div class="kanban__card" draggable="true" data-id="${l.id}">
+    <div class="kanban__card-title"><a href="/crm/lead.html?id=${l.id}" style="color:inherit;text-decoration:none">${SSCrm.esc(l.name || "(no name)")}</a></div>
+    ${sub ? `<div class="kanban__card-meta">${SSCrm.esc(sub)}</div>` : ""}
     <div class="kanban__card-foot">
-      <span class="kanban__card-date">${SSCrm.fmtDate(p.updated_at)}</span>
+      <span class="kanban__card-date">${SSCrm.fmtDate(l.updated_at || l.created_at)}</span>
+      ${quoted ? `<span class="money">${quoted}</span>` : ""}
     </div>
   </div>`;
 }
@@ -107,11 +109,12 @@ function wireDragDrop() {
       bumpCount(col, +1); bumpCount(fromCol, -1);
 
       try {
-        await SSCrm.fetchJSON(`/api/projects/${draggedId}`, {
+        await SSCrm.fetchJSON(`/api/leads/${draggedId}`, {
           method: "PATCH",
           body: JSON.stringify({ status: newStatus }),
         });
-        SSCrm.toast(`Moved to ${newStatus}`, "success");
+        const label = PIPELINE_STAGES.find((s) => s.key === newStatus)?.label || newStatus;
+        SSCrm.toast(`Moved to ${label}`, "success");
       } catch (err) {
         SSCrm.toast("Failed: " + err.message, "error");
         // Roll back
