@@ -57,9 +57,19 @@ export async function runImapSync(env, { mailbox = MAILBOX, maxPerRun = 50 } = {
         const fetched = await client.fetchRaw(uid);
         if (!fetched?.raw) { skipped++; continue; }
         const parsed = parseRfc822(fetched.raw);
-        // Skip messages we sent ourselves (could happen if Sent is in INBOX)
-        const fromAddr = parsed.fromAddr?.toLowerCase();
-        if (fromAddr && fromAddr === env.PURELYMAIL_USER.toLowerCase()) { skipped++; highWatermark = Math.max(highWatermark, uid); continue; }
+        // Skip messages we sent ourselves. Two patterns to catch:
+        // 1. From exactly matches the auth'd mailbox (hello@statelyshades.com)
+        // 2. From is on our own domain (e.g. crm@statelyshades.com — the alias
+        //    we use to break self-loops on the SMTP side). Outbound mail to
+        //    customers can never legitimately come back FROM our own domain,
+        //    so anything @statelyshades.com in the From is necessarily our
+        //    own sent-folder mail being re-ingested.
+        const fromAddr = parsed.fromAddr?.toLowerCase() || "";
+        const authUser = (env.PURELYMAIL_USER || "").toLowerCase();
+        const authDomain = authUser.split("@")[1] || "statelyshades.com";
+        if (fromAddr && (fromAddr === authUser || fromAddr.endsWith("@" + authDomain))) {
+          skipped++; highWatermark = Math.max(highWatermark, uid); continue;
+        }
         // Skip if we already have this Message-ID
         if (parsed.messageId) {
           const dup = await DB.prepare(`SELECT id FROM email_messages WHERE message_id_header=?1 LIMIT 1`).bind(parsed.messageId).first();
