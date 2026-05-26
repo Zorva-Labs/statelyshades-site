@@ -66,9 +66,9 @@
 <body>
 <main class="doc" id="root"><p style="text-align:center;color:var(--color-ink-soft);padding:40px">Loading…</p></main>
 <!-- signature_pad@5.0.4 (szimek/signature_pad) — battle-tested cross-browser
-     signature capture. ~10kb gzipped, no dependencies. Pinned to a specific
-     version so the behavior can't drift under us. -->
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@5.0.4/dist/signature_pad.umd.min.js" defer></script>
+     signature capture. Self-hosted from /assets/js/ because our CSP header
+     restricts script-src to 'self' (no third-party CDNs). ~13kb. -->
+<script src="/assets/js/signature_pad-5.0.4.min.js" defer></script>
 <script>
 const token = new URLSearchParams(location.search).get("t");
 if (!token) document.getElementById("root").innerHTML = `<p style="color:#B85450;text-align:center">Missing token.</p>`;
