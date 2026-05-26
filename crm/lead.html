@@ -73,8 +73,8 @@ function render() {
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
-      <!-- LEFT: details + notes -->
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:stretch">
+      <!-- Main content stacks full-width (no side rail) so the window editor has room -->
       <div>
         <div class="card">
           <div class="card-head">
@@ -126,7 +126,7 @@ function render() {
         </div>
       </div>
 
-      <!-- RIGHT: status, quick actions -->
+      <!-- Status + quick actions stack below main content (one column for window-editor width) -->
       <div>
         <div class="card">
           <div class="card-head"><h2>Pipeline status</h2></div>

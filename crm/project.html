@@ -134,33 +134,32 @@ function switchTab(tab) {
       ? Object.entries(roomCounts).map(([r, n]) => `<span style="display:inline-block;background:var(--bg-soft);padding:4px 10px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink)">${SSCrm.esc(r)} <strong>${n}</strong></span>`).join("")
       : `<p class="muted" style="font-size:13px;margin:6px 0 0;font-style:italic">No windows tracked yet — measure them on the consultation visit and add them here.</p>`;
 
+    // Single-column stack: Windows summary + Description + Quick actions + Job details — all full width.
     body.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
-        <div>
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-head">
-              <h3>Windows on this job</h3>
-              <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
-            </div>
-            <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
-            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
-              ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
-            </div>
+      <div style="display:flex;flex-direction:column;gap:14px;align-items:stretch">
+        <div class="card">
+          <div class="card-head">
+            <h3>Windows on this job</h3>
+            <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
           </div>
+          <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
+            ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
+          </div>
+        </div>
 
-          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:8px">Description</h3>
-          <p style="color:var(--ink);font-size:14px;line-height:1.6">${SSCrm.esc(project.description || "No description.")}</p>
-          <hr class="sep"/>
-          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:10px">Quick actions</h3>
+        <div class="card">
+          <div class="card-head"><h3>Quick actions</h3></div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             <button class="btn primary sm" onclick="newProposal()">+ Proposal</button>
             <button class="btn secondary sm" onclick="newContract()">+ Contract</button>
             <button class="btn ghost sm" onclick="switchTab('windows')">Edit windows</button>
           </div>
         </div>
-        <div>
-          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:10px">Job details</h3>
+
+        <div class="card">
+          <div class="card-head"><h3>Job details</h3></div>
           <div class="form">
             <label><span>Name</span><input id="p-name" value="${SSCrm.esc(project.name)}"/></label>
             <label><span>Status</span>
