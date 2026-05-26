@@ -49,7 +49,11 @@ export async function sendEmail(env, {
   const ccList  = Array.isArray(cc)  ? cc  : (cc ? [cc] : []);
   const bccList = Array.isArray(bcc) ? bcc : (bcc ? [bcc] : []);
   const reply = replyTo || env.MAIL_DEFAULT_REPLY || env.PURELYMAIL_USER;
-  const fromAddr = extractAddr(fromHeader);
+  // SMTP envelope MAIL FROM uses the auth'd mailbox so Purelymail never rejects
+  // the submission ("550 sender not allowed"). The visible From: header can be
+  // anything on the same domain (e.g. crm@statelyshades.com) — this is how we
+  // break the self-loop when From and To would otherwise both be hello@.
+  const envelopeFromAddr = env.PURELYMAIL_USER;
   const mid = messageId || makeMessageId();
 
   // RCPT TO list includes To + Cc + Bcc (envelope, not headers — Bcc never in headers)
@@ -70,9 +74,9 @@ export async function sendEmail(env, {
       port: SMTP_PORT,
       user: env.PURELYMAIL_USER,
       password: env.PURELYMAIL_PASSWORD,
-      fromAddr,
+      fromAddr: envelopeFromAddr,                  // envelope MAIL FROM (auth user)
       recipients: envelopeRecipients,
-      message,
+      message,                                      // body contains the visible From: header
     });
     return { status: 250, json: result, messageId: mid };
   } catch (e) {
