@@ -93,10 +93,10 @@
           <button class="btn ghost sm" onclick="WindowsEditor.addWindowToRoom(this)">+ Window here</button>
           <button class="btn ghost sm" onclick="WindowsEditor.removeRoom(this)" style="color:var(--danger)" title="Remove room (and its windows)">Remove</button>
         </div>
-        <!-- Floor plan sits above the editor, editor gets the full section width -->
-        <div style="display:flex;flex-direction:column;gap:18px;margin-top:12px" class="room-body">
-          <div class="room-floorplan" style="max-width:280px">${this.floorplanSvg(windows)}</div>
-          <div class="room-windows" style="overflow-x:auto;width:100%">
+        <!-- Floor plan on the left, table on the right (stacks on narrow). Driven by .room-body CSS. -->
+        <div class="room-body" style="margin-top:12px">
+          <div class="room-floorplan">${this.floorplanSvg(windows)}</div>
+          <div class="room-windows">
             <table class="lines" style="width:100%"><thead><tr>
               <th style="width:36px">#</th>
               <th style="min-width:120px">Label</th>
@@ -192,7 +192,7 @@
       const unassigned = buckets["(none)"].length;
       // Start-here marker at back-left corner
       return `
-        <svg viewBox="0 0 ${VB} ${VB}" style="width:100%;max-width:340px;height:auto;background:#F8FAFC;border:1px solid var(--line);border-radius:var(--r);display:block">
+        <svg viewBox="0 0 ${VB} ${VB}" style="width:100%;height:auto;background:#F8FAFC;border:1px solid var(--line);border-radius:var(--r);display:block">
           <rect x="${RX}" y="${RY}" width="${RW}" height="${RH}" fill="#FFFFFF" stroke="#0F172A" stroke-width="2.5"/>
           <text x="${VB/2}" y="${RY - 10}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em">BACK</text>
           <text x="${RX - 6}" y="${VB/2}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em" transform="rotate(-90 ${RX - 6} ${VB/2})">LEFT</text>

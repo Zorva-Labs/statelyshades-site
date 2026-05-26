@@ -134,42 +134,47 @@ function switchTab(tab) {
       ? Object.entries(roomCounts).map(([r, n]) => `<span style="display:inline-block;background:var(--bg-soft);padding:4px 10px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink)">${SSCrm.esc(r)} <strong>${n}</strong></span>`).join("")
       : `<p class="muted" style="font-size:13px;margin:6px 0 0;font-style:italic">No windows tracked yet — measure them on the consultation visit and add them here.</p>`;
 
-    // Single-column stack: Windows summary + Description + Quick actions + Job details — all full width.
+    // Responsive 2-col: Windows summary + Job details on the left (stacked),
+    // Quick actions on the right rail. Collapses to single column on narrow screens.
     body.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:14px;align-items:stretch">
-        <div class="card">
-          <div class="card-head">
-            <h3>Windows on this job</h3>
-            <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
+      <div class="lead-grid">
+        <div class="lead-grid__main" style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <div class="card-head">
+              <h3>Windows on this job</h3>
+              <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
+            </div>
+            <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
+              ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
+            </div>
           </div>
-          <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
-          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
-            ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
+
+          <div class="card">
+            <div class="card-head"><h3>Job details</h3></div>
+            <div class="form">
+              <label><span>Name</span><input id="p-name" value="${SSCrm.esc(project.name)}"/></label>
+              <label><span>Status</span>
+                <select id="p-status">
+                  ${SSCrm.PROJECT_STATUSES.map((s) => `<option value="${s.key}" ${s.key === project.status ? "selected" : ""}>${s.label}</option>`).join("")}
+                </select>
+              </label>
+              <label><span>Site address</span><input id="p-addr" value="${SSCrm.esc(project.site_address || "")}"/></label>
+              <label><span>Description</span><textarea id="p-desc" rows="3">${SSCrm.esc(project.description || "")}</textarea></label>
+              <div class="form-actions"><button class="btn primary" onclick="saveProject()">Save</button></div>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-head"><h3>Quick actions</h3></div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="btn primary sm" onclick="newProposal()">+ Proposal</button>
-            <button class="btn secondary sm" onclick="newContract()">+ Contract</button>
-            <button class="btn ghost sm" onclick="switchTab('windows')">Edit windows</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-head"><h3>Job details</h3></div>
-          <div class="form">
-            <label><span>Name</span><input id="p-name" value="${SSCrm.esc(project.name)}"/></label>
-            <label><span>Status</span>
-              <select id="p-status">
-                ${SSCrm.PROJECT_STATUSES.map((s) => `<option value="${s.key}" ${s.key === project.status ? "selected" : ""}>${s.label}</option>`).join("")}
-              </select>
-            </label>
-            <label><span>Site address</span><input id="p-addr" value="${SSCrm.esc(project.site_address || "")}"/></label>
-            <label><span>Description</span><textarea id="p-desc" rows="3">${SSCrm.esc(project.description || "")}</textarea></label>
-            <div class="form-actions"><button class="btn primary" onclick="saveProject()">Save</button></div>
+        <div class="lead-grid__side">
+          <div class="card">
+            <div class="card-head"><h3>Quick actions</h3></div>
+            <div style="display:grid;gap:8px">
+              <button class="btn primary" onclick="newProposal()">+ Proposal</button>
+              <button class="btn secondary" onclick="newContract()">+ Contract</button>
+              <button class="btn ghost" onclick="switchTab('windows')">Edit windows</button>
+            </div>
           </div>
         </div>
       </div>

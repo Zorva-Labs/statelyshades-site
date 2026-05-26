@@ -587,6 +587,102 @@ h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; margin: 0; color: var(--ink
 .right { text-align: right; }
 hr.sep { border: 0; border-top: 1px solid var(--line-soft); margin: 18px 0; }
 
+/* ---------------------------------------------------------------
+   Lead-page layout — header bar + pipeline stepper + responsive
+   two-column grid. Windows + Notes go full-width below.
+--------------------------------------------------------------- */
+.lead-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.lead-header__id { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lead-header__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Pipeline stepper — full-width strip of clickable status pills */
+.pipeline-bar {
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.pipeline-step {
+  flex: 1 1 0; min-width: 110px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 10px;
+  border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--ink-soft);
+  border-radius: var(--r-sm);
+  position: relative;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.pipeline-step:not(:last-of-type)::after {
+  content: ""; position: absolute; right: -1px; top: 25%; bottom: 25%;
+  border-right: 1px solid var(--line-soft);
+}
+.pipeline-step:hover { background: var(--accent-soft); color: var(--ink); }
+.pipeline-step__dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 999px;
+  background: var(--line); color: var(--ink-soft);
+  font-size: 11px; font-weight: 700;
+}
+.pipeline-step.done { color: var(--ink); }
+.pipeline-step.done .pipeline-step__dot { background: #BBF7D0; color: #166534; }
+.pipeline-step.current { background: var(--accent-soft); color: var(--accent-ink); }
+.pipeline-step.current .pipeline-step__dot { background: var(--accent); color: #fff; }
+.pipeline-step.future .pipeline-step__dot { background: var(--line); color: var(--ink-soft); }
+
+.pipeline-bar__terminal {
+  display: flex; align-items: center; padding: 0 8px 0 12px;
+  border-left: 1px solid var(--line-soft); margin-left: 4px;
+}
+.pipeline-bar__terminal select {
+  padding: 6px 10px; border: 1px solid var(--line);
+  border-radius: var(--r-sm); background: #fff; font: inherit; font-size: 12px;
+  color: var(--ink-soft); cursor: pointer;
+}
+
+/* Two-column responsive grid: details (2/3) + side rail (1/3) on wide,
+   stacks on narrow. Both children stretch to fill the row height. */
+.lead-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 14px; align-items: start;
+  margin-bottom: 14px;
+}
+.lead-grid__main, .lead-grid__side { min-width: 0; }
+.lead-grid__side { display: flex; flex-direction: column; }
+
+@media (max-width: 900px) {
+  .lead-grid { grid-template-columns: 1fr; }
+  .pipeline-step__label { display: none; }
+  .pipeline-step { min-width: 0; padding: 8px 4px; }
+}
+
+/* ---------------------------------------------------------------
+   Windows editor — responsive room body. Floor plan goes left,
+   table fills the rest. Stacks on narrow screens.
+--------------------------------------------------------------- */
+.room-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 20px; align-items: start;
+}
+.room-floorplan { width: 100%; }
+.room-floorplan svg { width: 100%; height: auto; max-width: 100%; }
+.room-windows { min-width: 0; width: 100%; overflow-x: auto; }
+
+@media (max-width: 780px) {
+  .room-body { grid-template-columns: 1fr; }
+  .room-floorplan { max-width: 260px; }
+}
+
 /* Collapse the sidebar to icons-only at narrow widths, then to top bar on phones */
 @media (max-width: 1000px) {
   :root { --sidebar-w: 60px; }

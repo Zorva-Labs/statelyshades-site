@@ -60,87 +60,87 @@ function render() {
   const addrLine = addrParts.length ? addrParts.join(" · ") : (l.location || "");
   const mapUrl = addrParts.length ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addrParts.join(", ")) : null;
 
+  // Pipeline stepper — pre-"won/lost/spam" terminal statuses get the linear
+  // stepper treatment; terminal statuses still render but as a single flag.
+  const flow = ["new", "contacted", "quoted", "scheduled", "installed", "won"];
+  const isTerminal = l.status === "lost" || l.status === "spam";
+  const currentIdx = flow.indexOf(l.status);
+  const stepper = `
+    <div class="pipeline-bar">
+      ${flow.map((key, i) => {
+        const meta = LEAD_STATUSES.find((s) => s.key === key);
+        const state = isTerminal ? "future" : (i < currentIdx ? "done" : i === currentIdx ? "current" : "future");
+        return `<button class="pipeline-step ${state}" type="button" onclick="updateStatus('${key}')" title="Set status to ${meta.label}">
+          <span class="pipeline-step__dot">${i + 1}</span>
+          <span class="pipeline-step__label">${meta.label}</span>
+        </button>`;
+      }).join("")}
+      <div class="pipeline-bar__terminal">
+        <select id="status-select" onchange="updateStatus(this.value)" title="Change status">
+          ${LEAD_STATUSES.map((s) => `<option value="${s.key}" ${s.key === l.status ? "selected" : ""}>${s.label}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+  `;
+
   document.getElementById("page").innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <div style="display:flex;gap:10px;align-items:center">
+    <!-- Header: status + meta on left, action buttons on right -->
+    <div class="lead-header">
+      <div class="lead-header__id">
         ${SSCrm.pill(l.status)}
         <span class="muted" style="font-size:13px">Lead #${l.id} · ${SSCrm.fmtDate(l.created_at)}</span>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="lead-header__actions">
         <button class="btn primary" onclick="sendProposal()">+ Send proposal</button>
         ${l.contact_id ? `<a class="btn secondary" href="/crm/contact.html?id=${l.contact_id}">View contact →</a>` : `<button class="btn secondary" onclick="convertToContact()">Convert to contact + job</button>`}
         <button class="btn danger" onclick="del()">Delete</button>
       </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px;align-items:stretch">
-      <!-- Main content stacks full-width (no side rail) so the window editor has room -->
-      <div>
-        <div class="card">
-          <div class="card-head">
-            <h2>Contact details</h2>
-            <span class="muted" style="font-size:12px">Click any field to edit</span>
-          </div>
-          <div class="form">
-            <label><span>Name</span><input id="f-name" value="${SSCrm.esc(l.name)}" required/></label>
-            <div class="row">
-              <label><span>Phone</span><input id="f-phone" type="tel" value="${SSCrm.esc(l.phone || "")}"/></label>
-              <label><span>Email</span><input id="f-email" type="email" value="${SSCrm.esc(l.email || "")}"/></label>
-            </div>
-            <label><span>Street address</span><input id="f-street" value="${SSCrm.esc(l.address_street || "")}"/></label>
-            <div class="row-3">
-              <label><span>City</span><input id="f-city" value="${SSCrm.esc(l.address_city || "")}"/></label>
-              <label><span>State</span><input id="f-state" value="${SSCrm.esc(l.address_state || "")}" maxlength="2"/></label>
-              <label><span>ZIP</span><input id="f-zip" value="${SSCrm.esc(l.address_zip || "")}"/></label>
-            </div>
-            <label><span>Considering / interest</span><input id="f-interest" value="${SSCrm.esc(l.interest || "")}" placeholder="e.g. Plantation Shutters, Motorized Shades"/></label>
-            <label><span>Their message</span><textarea id="f-message" rows="3">${SSCrm.esc(l.message || "")}</textarea></label>
-            <label><span>Quoted amount ($, optional)</span><input id="f-quoted" type="text" value="${l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : ""}" placeholder="$0.00"/></label>
-            <div class="form-actions">
-              <button class="btn primary" onclick="saveDetails()">Save changes</button>
-              ${mapUrl ? `<a class="btn ghost" href="${mapUrl}" target="_blank" rel="noopener">📍 Open address in Maps</a>` : ""}
-            </div>
-          </div>
+    <!-- Pipeline stepper, full width, right under the header -->
+    ${stepper}
 
-          <hr class="sep"/>
-          <div style="display:grid;grid-template-columns:140px 1fr;gap:8px 14px;font-size:13px;color:var(--ink-soft)">
-            <div class="muted">Submitted</div><div>${SSCrm.fmtDateTime(l.created_at)}</div>
-            <div class="muted">Source page</div><div>${SSCrm.esc(l.source_page || "web")}</div>
-            ${l.utm_source ? `<div class="muted">UTM source</div><div>${SSCrm.esc(l.utm_source)}</div>` : ""}
-            ${l.utm_campaign ? `<div class="muted">UTM campaign</div><div>${SSCrm.esc(l.utm_campaign)}</div>` : ""}
-            ${l.utm_medium ? `<div class="muted">UTM medium</div><div>${SSCrm.esc(l.utm_medium)}</div>` : ""}
-            ${l.referrer ? `<div class="muted">Referrer</div><div style="font-size:12px;word-break:break-all">${SSCrm.esc(l.referrer.slice(0, 100))}</div>` : ""}
+    <!-- Two-column responsive grid: details on the left, quick actions on the right. -->
+    <div class="lead-grid">
+      <div class="card lead-grid__main">
+        <div class="card-head">
+          <h2>Contact details</h2>
+          <span class="muted" style="font-size:12px">Click any field to edit</span>
+        </div>
+        <div class="form">
+          <label><span>Name</span><input id="f-name" value="${SSCrm.esc(l.name)}" required/></label>
+          <div class="row">
+            <label><span>Phone</span><input id="f-phone" type="tel" value="${SSCrm.esc(l.phone || "")}"/></label>
+            <label><span>Email</span><input id="f-email" type="email" value="${SSCrm.esc(l.email || "")}"/></label>
+          </div>
+          <label><span>Street address</span><input id="f-street" value="${SSCrm.esc(l.address_street || "")}"/></label>
+          <div class="row-3">
+            <label><span>City</span><input id="f-city" value="${SSCrm.esc(l.address_city || "")}"/></label>
+            <label><span>State</span><input id="f-state" value="${SSCrm.esc(l.address_state || "")}" maxlength="2"/></label>
+            <label><span>ZIP</span><input id="f-zip" value="${SSCrm.esc(l.address_zip || "")}"/></label>
+          </div>
+          <label><span>Considering / interest</span><input id="f-interest" value="${SSCrm.esc(l.interest || "")}" placeholder="e.g. Plantation Shutters, Motorized Shades"/></label>
+          <label><span>Their message</span><textarea id="f-message" rows="3">${SSCrm.esc(l.message || "")}</textarea></label>
+          <label><span>Quoted amount ($, optional)</span><input id="f-quoted" type="text" value="${l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : ""}" placeholder="$0.00"/></label>
+          <div class="form-actions">
+            <button class="btn primary" onclick="saveDetails()">Save changes</button>
+            ${mapUrl ? `<a class="btn ghost" href="${mapUrl}" target="_blank" rel="noopener">📍 Open address in Maps</a>` : ""}
           </div>
         </div>
 
-        ${renderWindowsCard()}
-
-        <div class="card" style="margin-top:14px">
-          <div class="card-head"><h2>Notes</h2><span class="muted" style="font-size:12px">${notes.length}</span></div>
-          <div id="notes-list">${renderNotes(notes)}</div>
-          <hr class="sep"/>
-          <form id="note-form" onsubmit="addNote(event)" style="display:grid;gap:8px">
-            <textarea name="body" placeholder="Add a note — call summary, follow-up needed, anything to remember…" rows="3" required style="width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font:inherit;font-size:13px;resize:vertical"></textarea>
-            <div><button type="submit" class="btn primary sm">+ Add note</button></div>
-          </form>
+        <hr class="sep"/>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:8px 14px;font-size:13px;color:var(--ink-soft)">
+          <div class="muted">Submitted</div><div>${SSCrm.fmtDateTime(l.created_at)}</div>
+          <div class="muted">Source page</div><div>${SSCrm.esc(l.source_page || "web")}</div>
+          ${l.utm_source ? `<div class="muted">UTM source</div><div>${SSCrm.esc(l.utm_source)}</div>` : ""}
+          ${l.utm_campaign ? `<div class="muted">UTM campaign</div><div>${SSCrm.esc(l.utm_campaign)}</div>` : ""}
+          ${l.utm_medium ? `<div class="muted">UTM medium</div><div>${SSCrm.esc(l.utm_medium)}</div>` : ""}
+          ${l.referrer ? `<div class="muted">Referrer</div><div style="font-size:12px;word-break:break-all">${SSCrm.esc(l.referrer.slice(0, 100))}</div>` : ""}
         </div>
       </div>
 
-      <!-- Status + quick actions stack below main content (one column for window-editor width) -->
-      <div>
+      <div class="lead-grid__side">
         <div class="card">
-          <div class="card-head"><h2>Pipeline status</h2></div>
-          <div class="form">
-            <label><span>Status</span>
-              <select id="status-select" onchange="updateStatus(this.value)">
-                ${LEAD_STATUSES.map((s) => `<option value="${s.key}" ${s.key === l.status ? "selected" : ""}>${s.label}</option>`).join("")}
-              </select>
-            </label>
-            ${l.quoted_amount_cents ? `<p class="muted" style="font-size:13px;margin:0">Quoted: <strong class="money">${SSCrm.fmtMoney(l.quoted_amount_cents)}</strong></p>` : ""}
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
           <div class="card-head"><h2>Quick actions</h2></div>
           <div style="display:grid;gap:8px">
             <button class="btn primary" onclick="sendProposal()">📄 Send a proposal</button>
@@ -150,6 +150,7 @@ function render() {
             <button class="btn secondary" onclick="bookFromLead()">📅 Book consultation</button>
             ${!l.contact_id ? `<button class="btn ghost" onclick="convertToContact()">Convert to contact (no proposal yet)</button>` : ""}
           </div>
+          ${l.quoted_amount_cents ? `<p class="muted" style="font-size:13px;margin:12px 0 0">Quoted: <strong class="money">${SSCrm.fmtMoney(l.quoted_amount_cents)}</strong></p>` : ""}
         </div>
 
         ${l.contact_id ? `
@@ -159,6 +160,20 @@ function render() {
           </div>
         ` : ""}
       </div>
+    </div>
+
+    <!-- Windows: always full-width so the floor plan + table get the entire content area -->
+    ${renderWindowsCard()}
+
+    <!-- Notes: full width below -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><h2>Notes</h2><span class="muted" style="font-size:12px">${notes.length}</span></div>
+      <div id="notes-list">${renderNotes(notes)}</div>
+      <hr class="sep"/>
+      <form id="note-form" onsubmit="addNote(event)" style="display:grid;gap:8px">
+        <textarea name="body" placeholder="Add a note — call summary, follow-up needed, anything to remember…" rows="3" required style="width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font:inherit;font-size:13px;resize:vertical"></textarea>
+        <div><button type="submit" class="btn primary sm">+ Add note</button></div>
+      </form>
     </div>
   `;
   // After the DOM is in place, mount the shared windows editor (if there's a workspace)
