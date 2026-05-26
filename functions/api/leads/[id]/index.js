@@ -10,7 +10,13 @@ const ALLOWED_STATUSES = new Set([
   "lost",
   "spam",
 ]);
-const PATCHABLE = new Set(["status", "assigned_to", "quoted_amount_cents", "interest", "location", "name", "phone", "email", "message"]);
+const PATCHABLE = new Set([
+  "status", "assigned_to", "quoted_amount_cents",
+  "name", "phone", "email",
+  "interest", "message",
+  "location",
+  "address_street", "address_city", "address_state", "address_zip",
+]);
 
 export async function onRequestGet(context) {
   const guard = await requireAuth(context);

@@ -62,25 +62,40 @@ function render() {
       <!-- LEFT: details + notes -->
       <div>
         <div class="card">
-          <div class="card-head"><h2>Contact details</h2></div>
-          <div style="display:grid;grid-template-columns:120px 1fr;gap:14px 18px;font-size:14px;align-items:start">
-            <div class="muted">Name</div><div><strong>${SSCrm.esc(l.name)}</strong></div>
-            <div class="muted">Phone</div><div>${l.phone ? `<a href="tel:${SSCrm.esc(l.phone)}">${SSCrm.esc(l.phone)}</a>` : `<span class="muted">—</span>`}</div>
-            <div class="muted">Email</div><div>${l.email ? `<a href="mailto:${SSCrm.esc(l.email)}">${SSCrm.esc(l.email)}</a>` : `<span class="muted">—</span>`}</div>
-            <div class="muted">Address</div><div>${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener">${SSCrm.esc(addrLine)}</a>` : (addrLine ? SSCrm.esc(addrLine) : `<span class="muted">—</span>`)}</div>
-            <div class="muted">Considering</div><div>${SSCrm.esc(l.interest || "—")}</div>
+          <div class="card-head">
+            <h2>Contact details</h2>
+            <span class="muted" style="font-size:12px">Click any field to edit</span>
+          </div>
+          <div class="form">
+            <label><span>Name</span><input id="f-name" value="${SSCrm.esc(l.name)}" required/></label>
+            <div class="row">
+              <label><span>Phone</span><input id="f-phone" type="tel" value="${SSCrm.esc(l.phone || "")}"/></label>
+              <label><span>Email</span><input id="f-email" type="email" value="${SSCrm.esc(l.email || "")}"/></label>
+            </div>
+            <label><span>Street address</span><input id="f-street" value="${SSCrm.esc(l.address_street || "")}"/></label>
+            <div class="row-3">
+              <label><span>City</span><input id="f-city" value="${SSCrm.esc(l.address_city || "")}"/></label>
+              <label><span>State</span><input id="f-state" value="${SSCrm.esc(l.address_state || "")}" maxlength="2"/></label>
+              <label><span>ZIP</span><input id="f-zip" value="${SSCrm.esc(l.address_zip || "")}"/></label>
+            </div>
+            <label><span>Considering / interest</span><input id="f-interest" value="${SSCrm.esc(l.interest || "")}" placeholder="e.g. Plantation Shutters, Motorized Shades"/></label>
+            <label><span>Their message</span><textarea id="f-message" rows="3">${SSCrm.esc(l.message || "")}</textarea></label>
+            <label><span>Quoted amount ($, optional)</span><input id="f-quoted" type="text" value="${l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : ""}" placeholder="$0.00"/></label>
+            <div class="form-actions">
+              <button class="btn primary" onclick="saveDetails()">Save changes</button>
+              ${mapUrl ? `<a class="btn ghost" href="${mapUrl}" target="_blank" rel="noopener">📍 Open address in Maps</a>` : ""}
+            </div>
+          </div>
+
+          <hr class="sep"/>
+          <div style="display:grid;grid-template-columns:140px 1fr;gap:8px 14px;font-size:13px;color:var(--ink-soft)">
             <div class="muted">Submitted</div><div>${SSCrm.fmtDateTime(l.created_at)}</div>
-            <div class="muted">Source</div><div>${SSCrm.esc(l.source_page || "web")}</div>
+            <div class="muted">Source page</div><div>${SSCrm.esc(l.source_page || "web")}</div>
             ${l.utm_source ? `<div class="muted">UTM source</div><div>${SSCrm.esc(l.utm_source)}</div>` : ""}
             ${l.utm_campaign ? `<div class="muted">UTM campaign</div><div>${SSCrm.esc(l.utm_campaign)}</div>` : ""}
             ${l.utm_medium ? `<div class="muted">UTM medium</div><div>${SSCrm.esc(l.utm_medium)}</div>` : ""}
             ${l.referrer ? `<div class="muted">Referrer</div><div style="font-size:12px;word-break:break-all">${SSCrm.esc(l.referrer.slice(0, 100))}</div>` : ""}
           </div>
-          ${l.message ? `
-            <hr class="sep"/>
-            <div class="muted" style="font-size:12px;margin-bottom:6px">Their message</div>
-            <div style="background:var(--bg-soft);border-left:3px solid var(--accent);padding:14px 18px;border-radius:var(--r-sm);font-style:italic;color:var(--ink)">${SSCrm.esc(l.message)}</div>
-          ` : ""}
         </div>
 
         <div class="card" style="margin-top:14px">
@@ -140,6 +155,35 @@ function renderNotes(arr) {
         <div class="activity__time">${SSCrm.esc(n.author || "—")} · ${SSCrm.fmtDateTime(n.created_at)}</div>
       </div>
     </li>`).join("")}</ul>`;
+}
+
+async function saveDetails() {
+  const v = (id) => document.getElementById(id).value.trim();
+  const body = {
+    name:           v("f-name"),
+    phone:          v("f-phone") || null,
+    email:          v("f-email") || null,
+    address_street: v("f-street") || null,
+    address_city:   v("f-city") || null,
+    address_state:  v("f-state") || null,
+    address_zip:    v("f-zip") || null,
+    interest:       v("f-interest") || null,
+    message:        v("f-message") || null,
+  };
+  // Parse quoted amount (accept "$1,234.56" or "1234.56" or empty)
+  const quotedRaw = v("f-quoted");
+  if (quotedRaw) {
+    body.quoted_amount_cents = SSCrm.parseMoney(quotedRaw);
+  } else {
+    body.quoted_amount_cents = null;
+  }
+  if (!body.name) { SSCrm.toast("Name is required", "error"); return; }
+  try {
+    const { lead } = await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify(body) });
+    state.lead = lead;
+    SSCrm.toast("Lead saved", "success");
+    render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 
 async function updateStatus(status) {
