@@ -156,6 +156,38 @@ export async function seedTiersFromWindows(db, proposalId, projectId) {
 }
 
 /**
+ * Sync the originating lead's quoted_amount_cents to the proposal's "best"
+ * tier total (or whichever tier is currently selected, if the customer has
+ * accepted one). Called whenever a proposal is created or its line items
+ * change so the kanban / lead list always shows a real number.
+ *
+ * Returns the new amount in cents, or null if no lead is attached.
+ */
+export async function syncLeadQuotedFromProposal(db, proposalId) {
+  const proposal = await db.prepare(
+    `SELECT pr.*, p.lead_id FROM proposals pr JOIN projects p ON p.id = pr.project_id WHERE pr.id = ?1`
+  ).bind(proposalId).first();
+  if (!proposal || !proposal.lead_id) return null;
+
+  // Pick the customer-selected tier if any, otherwise prefer 'best' → 'better' → 'good'
+  const preferred = proposal.selected_tier || "best";
+  const tiers = (await db.prepare(
+    `SELECT tier, total_cents FROM proposal_tiers WHERE proposal_id = ?1`
+  ).bind(proposalId).all()).results || [];
+  if (!tiers.length) return null;
+
+  const tierOrder = { best: 0, better: 1, good: 2 };
+  const sorted = [...tiers].sort((a, b) => (tierOrder[a.tier] ?? 9) - (tierOrder[b.tier] ?? 9));
+  const tier = tiers.find((t) => t.tier === preferred) || sorted[0];
+  const amount = tier?.total_cents || 0;
+
+  await db.prepare(
+    `UPDATE leads SET quoted_amount_cents = ?1, updated_at = datetime('now') WHERE id = ?2`
+  ).bind(amount, proposal.lead_id).run();
+  return amount;
+}
+
+/**
  * Mark a project as fully booked (customer signed the contract).
  * - Updates project.status to 'contracted'
  * - If the project was spawned from a lead, bumps lead.status to 'won'

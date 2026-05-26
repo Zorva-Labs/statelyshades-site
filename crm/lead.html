@@ -122,7 +122,31 @@ function render() {
           </div>
           <label><span>Considering / interest</span><input id="f-interest" value="${SSCrm.esc(l.interest || "")}" placeholder="e.g. Plantation Shutters, Motorized Shades"/></label>
           <label><span>Their message</span><textarea id="f-message" rows="3">${SSCrm.esc(l.message || "")}</textarea></label>
-          <label><span>Quoted amount ($, optional)</span><input id="f-quoted" type="text" value="${l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : ""}" placeholder="$0.00"/></label>
+          ${(() => {
+            // Quoted amount: if a proposal exists, this is auto-synced from the proposal's
+            // selected tier (or the "best" tier when none selected yet). Show it as locked
+            // so the admin can't drift it out of sync. With no proposal yet, it's a plain
+            // free-text field they can fill in manually.
+            const prop = workspace?.proposals?.[0] || null;
+            if (prop) {
+              const tier = prop.selected_tier || "best";
+              const amt = l.quoted_amount_cents != null ? SSCrm.fmtMoney(l.quoted_amount_cents) : "—";
+              return `<label>
+                <span>Quoted amount <span class="muted" style="font-weight:400">· auto-linked to proposal</span></span>
+                <input id="f-quoted" type="text" value="${amt}" readonly disabled
+                       style="background:var(--bg-soft);color:var(--ink);font-weight:600"
+                       title="Auto-synced from proposal ${SSCrm.esc(prop.number)} (${tier} tier). Edit the proposal to change."/>
+                <span class="muted" style="font-size:11px;margin-top:4px;display:block">
+                  From <a href="/crm/proposal.html?id=${prop.id}" style="color:var(--accent-ink)">${SSCrm.esc(prop.number)}</a> · <strong>${tier}</strong> tier · ${SSCrm.esc(prop.status)}
+                </span>
+              </label>`;
+            }
+            return `<label>
+              <span>Quoted amount ($, optional)</span>
+              <input id="f-quoted" type="text" value="${l.quoted_amount_cents ? SSCrm.fmtMoney(l.quoted_amount_cents) : ""}" placeholder="$0.00"/>
+              <span class="muted" style="font-size:11px;margin-top:4px;display:block">Will auto-link once a proposal is sent.</span>
+            </label>`;
+          })()}
           <div class="form-actions">
             <button class="btn primary" onclick="saveDetails()">Save changes</button>
             ${mapUrl ? `<a class="btn ghost" href="${mapUrl}" target="_blank" rel="noopener">📍 Open address in Maps</a>` : ""}
@@ -322,12 +346,13 @@ async function saveDetails() {
     interest:       v("f-interest") || null,
     message:        v("f-message") || null,
   };
-  // Parse quoted amount (accept "$1,234.56" or "1234.56" or empty)
-  const quotedRaw = v("f-quoted");
-  if (quotedRaw) {
-    body.quoted_amount_cents = SSCrm.parseMoney(quotedRaw);
-  } else {
-    body.quoted_amount_cents = null;
+  // Parse quoted amount only if a proposal hasn't taken over the field —
+  // otherwise the input is disabled and its display value is the formatted
+  // proposal total, which we must NOT round-trip back to the DB.
+  const qInput = document.getElementById("f-quoted");
+  if (qInput && !qInput.disabled) {
+    const quotedRaw = qInput.value.trim();
+    body.quoted_amount_cents = quotedRaw ? SSCrm.parseMoney(quotedRaw) : null;
   }
   if (!body.name) { SSCrm.toast("Name is required", "error"); return; }
   try {

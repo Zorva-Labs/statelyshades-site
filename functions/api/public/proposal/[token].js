@@ -3,7 +3,7 @@
 //   accept response: { ok: true, contract_token } — customer should immediately redirect to /contract/?t=…
 import { json, hashIp } from "../../../_lib/auth.js";
 import { trackView, recordActivity } from "../../../_lib/db.js";
-import { createContractFromProposalTier } from "../../../_lib/lifecycle.js";
+import { createContractFromProposalTier, syncLeadQuotedFromProposal } from "../../../_lib/lifecycle.js";
 
 export async function onRequestGet(context) {
   const token = context.params.token;
@@ -37,6 +37,8 @@ export async function onRequestPost(context) {
     await context.env.DB.prepare(
       `UPDATE proposals SET selected_tier=?1, selected_total_cents=?2, status='tier_selected', updated_at=datetime('now') WHERE id=?3`
     ).bind(body.tier, t?.total_cents || 0, p.id).run();
+    // Push the newly-selected tier amount back to the lead so reporting reflects it
+    await syncLeadQuotedFromProposal(context.env.DB, p.id);
     await recordActivity(context.env.DB, {
       entityType: "proposal", entityId: p.id, action: "tier-selected",
       actorKind: "customer", details: { tier: body.tier, ip_hash: ipHash },

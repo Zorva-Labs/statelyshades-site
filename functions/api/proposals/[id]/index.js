@@ -1,5 +1,6 @@
 import { requireAuth, json } from "../../../_lib/auth.js";
 import { recomputeTierTotals, recordActivity } from "../../../_lib/db.js";
+import { syncLeadQuotedFromProposal } from "../../../_lib/lifecycle.js";
 
 export async function onRequestGet(context) {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
@@ -70,6 +71,8 @@ export async function onRequestPatch(context) {
         await recomputeTierTotals(context.env.DB, t.id);
       }
     }
+    // Tier line items changed → push the new "best"-tier total back to the lead
+    await syncLeadQuotedFromProposal(context.env.DB, id);
   }
   await recordActivity(context.env.DB, {
     entityType: "proposal", entityId: id, action: "updated",

@@ -1,7 +1,7 @@
 import { requireAuth, json } from "../../_lib/auth.js";
 import { genToken, nextSequence, formatDocNumber } from "../../_lib/tokens.js";
 import { recordActivity } from "../../_lib/db.js";
-import { seedTiersFromWindows } from "../../_lib/lifecycle.js";
+import { seedTiersFromWindows, syncLeadQuotedFromProposal } from "../../_lib/lifecycle.js";
 
 const TIERS = ["good", "better", "best"];
 
@@ -58,6 +58,8 @@ export async function onRequestPost(context) {
   // dimensions, room, color from the window). Admin can then differentiate
   // tiers by swapping products in each.
   await seedTiersFromWindows(context.env.DB, r.id, body.project_id);
+  // Mirror the proposal total back to the lead's quoted_amount_cents
+  await syncLeadQuotedFromProposal(context.env.DB, r.id);
   await recordActivity(context.env.DB, {
     entityType: "proposal", entityId: r.id, action: "created",
     actorKind: "admin", actorId: auth.id, actorName: auth.email,

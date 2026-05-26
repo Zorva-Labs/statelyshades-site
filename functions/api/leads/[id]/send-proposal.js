@@ -4,7 +4,7 @@
 import { requireAuth, json } from "../../../_lib/auth.js";
 import { upsertContact, recordActivity } from "../../../_lib/db.js";
 import { genToken, nextSequence, formatDocNumber } from "../../../_lib/tokens.js";
-import { seedTiersFromWindows } from "../../../_lib/lifecycle.js";
+import { seedTiersFromWindows, syncLeadQuotedFromProposal } from "../../../_lib/lifecycle.js";
 
 const TIERS = ["good", "better", "best"];
 
@@ -33,16 +33,34 @@ export async function onRequestPost(context) {
     },
   });
 
-  // 2. Create project — name comes from body or sensibly defaults from lead.interest
+  // 2. Reuse this lead's draft project if one exists (it was lazy-created when
+  // the admin opened the lead page and added windows). Falling back to INSERT
+  // is critical-data-loss territory — without the reuse, the windows that
+  // already live on the draft project would be orphaned and the proposal
+  // would be seeded with nothing.
   const projectName = (body.project_name && String(body.project_name).trim()) ||
     (lead.interest ? `${lead.interest} — ${lead.name}` : `Whole house — ${lead.name}`);
   const siteAddress = [lead.address_street, [lead.address_city, lead.address_state].filter(Boolean).join(", "), lead.address_zip].filter(Boolean).join(", ") || null;
 
-  const projectRow = await DB.prepare(
-    `INSERT INTO projects (contact_id, lead_id, name, description, status, site_address)
-     VALUES (?1, ?2, ?3, ?4, 'quoted', ?5) RETURNING id`
-  ).bind(contactId, leadId, projectName, lead.message || null, siteAddress).first();
-  const projectId = projectRow.id;
+  // Prefer an existing un-contracted project for this lead (status != 'contracted')
+  let project = await DB.prepare(
+    `SELECT * FROM projects WHERE lead_id = ?1 AND status != 'contracted' ORDER BY id LIMIT 1`
+  ).bind(leadId).first();
+
+  if (project) {
+    // Bump the existing draft project's status + bring it under this contact
+    // and refresh the name/address from what the admin just typed.
+    await DB.prepare(
+      `UPDATE projects SET contact_id=?1, name=?2, status='quoted', site_address=COALESCE(?3, site_address), updated_at=datetime('now') WHERE id=?4`
+    ).bind(contactId, projectName, siteAddress, project.id).run();
+  } else {
+    const projectRow = await DB.prepare(
+      `INSERT INTO projects (contact_id, lead_id, name, description, status, site_address)
+       VALUES (?1, ?2, ?3, ?4, 'quoted', ?5) RETURNING id`
+    ).bind(contactId, leadId, projectName, lead.message || null, siteAddress).first();
+    project = { id: projectRow.id };
+  }
+  const projectId = project.id;
 
   // 3. Create proposal — load default template if no template_id given
   const tpl = body.template_id
@@ -71,8 +89,13 @@ export async function onRequestPost(context) {
   }
   // Pre-populate each tier from the windows the admin already entered on the lead
   await seedTiersFromWindows(DB, proposalRow.id, projectId);
+  // Now that tiers have totals, mirror the "best" tier total onto the lead so the
+  // kanban + leads list show the quoted amount as soon as the proposal is created.
+  await syncLeadQuotedFromProposal(DB, proposalRow.id);
 
   // 4. Update lead: link to the new contact + bump status to 'quoted'
+  // NOTE: quoted_amount_cents is set above by syncLeadQuotedFromProposal —
+  // do not clobber it here.
   await DB.prepare(
     `UPDATE leads SET contact_id = ?1, status = 'quoted', updated_at = datetime('now') WHERE id = ?2`
   ).bind(contactId, leadId).run();
