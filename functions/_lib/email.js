@@ -1,42 +1,51 @@
-// Purelymail wrapper + branded HTML email templates.
-// Env vars used:
-//   PURELYMAIL_API_KEY  — bearer token
-//   PURELYMAIL_FROM     — defaults to hello@statelyshades.com
-//   PURELYMAIL_FROM_NAME — defaults to "Stately Shades"
+// Resend wrapper + branded HTML email templates.
+//
+// Env vars (Cloudflare Pages secrets):
+//   RESEND_API_KEY        — re_xxxxxxxx
+//   RESEND_FROM           — fallback to "Stately Shades <onboarding@resend.dev>"
+//                           Once statelyshades.com is verified on Resend, set
+//                           this to "Stately Shades <hello@statelyshades.com>"
+//                           and customer-facing mail flips to the branded
+//                           domain with zero code change.
+//   RESEND_DEFAULT_REPLY  — defaults to "hello@statelyshades.com" so replies
+//                           come back to the real mailbox even when sending
+//                           from the resend.dev sandbox sender.
+//
+// History: we used Purelymail until their public /api/v0/sendMail endpoint
+// went 404 in May 2026. Resend gives a clean REST API + Cloudflare-friendly
+// deliverability and is free up to 3k/mo.
 
-const PURELYMAIL_ENDPOINT = "https://purelymail.com/api/v0/sendMail";
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const DEFAULT_FROM = "Stately Shades <onboarding@resend.dev>";
+const DEFAULT_REPLY = "hello@statelyshades.com";
 
 // Best-effort mail send. Callers `await sendEmail(...)` but we never throw —
 // every code path here resolves so a downstream API never crashes because the
 // mail provider is unreachable or rejecting. The return shape is informational
 // only: { skipped, status, json, error } — most callers ignore it.
 export async function sendEmail(env, { to, subject, html, text, replyTo, attachments }) {
-  if (!env.PURELYMAIL_API_KEY) {
-    console.warn("[email] PURELYMAIL_API_KEY missing — skipping send");
+  if (!env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY missing — skipping send");
     return { skipped: true, reason: "no_api_key" };
   }
-  const from = env.PURELYMAIL_FROM || "hello@statelyshades.com";
-  const fromName = env.PURELYMAIL_FROM_NAME || "Stately Shades";
+  const from = env.RESEND_FROM || DEFAULT_FROM;
   const body = {
-    name: fromName,
     from,
     to: Array.isArray(to) ? to : [to],
     subject,
-    body: html || text,
-    bodyHtml: html,
-    bodyText: text || stripHtml(html),
-    replyTo: replyTo || from,
+    html: html || undefined,
+    text: text || (html ? stripHtml(html) : undefined),
+    reply_to: replyTo || env.RESEND_DEFAULT_REPLY || DEFAULT_REPLY,
   };
+  // Resend supports attachments as { filename, content (base64) }
   if (attachments && attachments.length) body.attachments = attachments;
 
   try {
-    const res = await fetch(PURELYMAIL_ENDPOINT, {
+    const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Purelymail uses a custom header rather than Authorization: Bearer.
-        // See ~/.claude/projects/.../memory/reference_purelymail.md.
-        "Purelymail-Api-Token": env.PURELYMAIL_API_KEY,
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
       },
       body: JSON.stringify(body),
     });
@@ -44,9 +53,7 @@ export async function sendEmail(env, { to, subject, html, text, replyTo, attachm
     let json;
     try { json = JSON.parse(raw); } catch { json = { raw: raw.slice(0, 200) }; }
     if (!res.ok) {
-      console.error("[email] Purelymail send failed:", res.status, raw.slice(0, 200));
-    } else if (json && json.type && json.type !== "success") {
-      console.error("[email] Purelymail non-success:", json);
+      console.error("[email] Resend send failed:", res.status, raw.slice(0, 200));
     }
     return { status: res.status, json };
   } catch (e) {

@@ -1,12 +1,14 @@
 // POST /api/contact — receives the consultation form and emails it to
-// hello@statelyshades.com via Purelymail.
+// hello@statelyshades.com via Resend (re_…).
 //
 // Env required (set on the Pages project):
-//   PURELYMAIL_API_KEY — Purelymail API token (pm-live-...)
+//   RESEND_API_KEY — Resend API token (re_...)
+//   RESEND_FROM    — optional; defaults to "Stately Shades Website <onboarding@resend.dev>"
+//                    Set this to a verified custom-domain sender when ready.
+
+import { sendEmail } from "../_lib/email.js";
 
 const TO_ADDRESS = "hello@statelyshades.com";
-const FROM_ADDRESS = "hello@statelyshades.com";
-const FROM_NAME = "Stately Shades Website";
 
 export async function onRequestPost({ request, env }) {
   // NOTE on mail delivery: we keep mail send best-effort. The lead is ALWAYS
@@ -139,42 +141,18 @@ https://statelyshades.com/crm/
     console.error("contact.js: env.DB is not configured");
   }
 
-  // 2) Fire-and-forget mail send. We never let mail failure block the customer
-  // response — the admin will see the lead in the CRM and the failure in logs.
-  if (env.PURELYMAIL_API_KEY) {
-    try {
-      const purelyResp = await fetch("https://purelymail.com/api/v0/sendMail", {
-        method: "POST",
-        headers: {
-          "Purelymail-Api-Token": env.PURELYMAIL_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: FROM_NAME,
-          from: FROM_ADDRESS,
-          to: [TO_ADDRESS],
-          replyTo: email,
-          subject,
-          body: textBody,
-          bodyHtml: htmlBody,
-        }),
-      });
-      if (!purelyResp.ok) {
-        const errText = await purelyResp.text().catch(() => "");
-        console.error("Purelymail send failed:", purelyResp.status, errText.slice(0, 200));
-      } else {
-        let payload = null;
-        try { payload = await purelyResp.json(); } catch (_) {}
-        if (payload && payload.type && payload.type !== "success") {
-          console.error("Purelymail returned non-success:", payload);
-        }
-      }
-    } catch (e) {
-      console.error("Purelymail fetch threw:", e?.message || e);
-    }
-  } else {
-    console.error("contact.js: PURELYMAIL_API_KEY is not configured");
-  }
+  // 2) Fire-and-forget mail send via Resend. sendEmail never throws — a mail
+  // failure just logs to the Pages function console. The customer is told
+  // their lead was captured (it was) regardless of email delivery.
+  // We set Reply-To to the customer's email so hitting "Reply" in the admin
+  // mailbox responds directly to the lead.
+  await sendEmail(env, {
+    to: TO_ADDRESS,
+    replyTo: email,
+    subject,
+    text: textBody,
+    html: htmlBody,
+  });
 
   // 3) Surface the outcome. DB failure is the only reason we'd refuse the lead
   // (because then it's truly lost). Mail failure is invisible to the customer.
