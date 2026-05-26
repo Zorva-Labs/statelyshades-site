@@ -133,11 +133,11 @@ function render(k, lines) {
         <p style="font-size:0.92rem;color:var(--color-ink-soft);margin:0 0 22px">By typing your name and signing below, you accept the terms above and authorize Stately Shades to release your order to manufacturing.</p>
         <label><span>Full legal name</span><input id="signer-name" autocomplete="name"/></label>
         <label><span>Email (for receipt)</span><input id="signer-email" type="email" autocomplete="email" value="${esc(k.contact_email)}"/></label>
-        <!-- Intentionally NOT a <label> wrapper: a label with no `for` attribute
+        <!-- Intentionally NOT a label wrapper: a label without a for attr
              implicitly associates with the first form control inside it, so
-             clicking the canvas would dispatch a synthetic click on the Clear
-             button below — wiping every stroke on mouseup. Use a div + a
-             standalone <span> caption instead. -->
+             clicking the canvas would dispatch a synthetic click on the
+             Clear button below, wiping every stroke on mouseup. Use a div
+             with a standalone span caption instead. -->
         <div class="sig-field">
           <span class="sig-field-label">Draw your signature</span>
           <div class="sig">
