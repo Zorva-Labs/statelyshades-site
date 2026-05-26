@@ -249,25 +249,114 @@ function prettyTime(iso) {
 }
 
 let pad = null;
+// Signature pad — uses Pointer Events (unified mouse/touch/stylus), captures
+// the pointer on down so we keep getting moves even if it leaves the canvas,
+// and sizes the bitmap to the device pixel ratio so retina screens render
+// crisp strokes. We store every stroke as point arrays and REDRAW on resize
+// so rotating the phone or showing/hiding the iOS keyboard (both trigger CSS
+// width changes, which clear the underlying bitmap) never wipes the
+// signature the user already drew.
 function wirePad() {
   const canvas = document.getElementById("sig-pad");
   const ctx = canvas.getContext("2d");
-  ctx.strokeStyle = "#14110D"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
-  let drawing = false, hasStroke = false;
-  const pos = (e) => {
+  const strokes = [];          // Array<Array<{x:cssX, y:cssY}>> in CSS-pixel coords
+  let current = null;          // The stroke currently being drawn
+
+  function sizeToCss() {
+    // The canvas BITMAP is dpr-scaled to match its visible CSS size — but only
+    // ONCE per layout change. Re-applying the size to a value it already has
+    // would clear the bitmap, so we guard with a dimension diff.
+    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
-    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left;
-    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top;
-    return [x * sx, y * sy];
+    const w = Math.round(rect.width  * dpr);
+    const h = Math.round(rect.height * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      // Setting width/height clears + resets all ctx state — re-apply.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // 1 ctx unit = 1 CSS px
+      ctx.strokeStyle = "#14110D";
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      redrawAll();
+    }
+  }
+
+  function redrawAll() {
+    const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    for (const stroke of strokes) drawStroke(stroke);
+  }
+
+  function drawStroke(stroke) {
+    if (stroke.length < 1) return;
+    ctx.beginPath();
+    ctx.moveTo(stroke[0].x, stroke[0].y);
+    for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y);
+    // Single dot for a tap-without-drag: draw a tiny circle so it isn't invisible
+    if (stroke.length === 1) {
+      ctx.arc(stroke[0].x, stroke[0].y, 1, 0, Math.PI * 2);
+      ctx.fillStyle = "#14110D";
+      ctx.fill();
+    } else {
+      ctx.stroke();
+    }
+  }
+
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function onDown(e) {
+    if (e.button != null && e.button !== 0) return;   // only the primary button
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    current = [pos(e)];
+    strokes.push(current);
+    drawStroke(current);
+  }
+  function onMove(e) {
+    if (!current) return;
+    e.preventDefault();
+    const p = pos(e);
+    const last = current[current.length - 1];
+    // Skip jitter — pointer events on stylus can fire dozens of identical positions per ms
+    if (Math.abs(p.x - last.x) < 0.5 && Math.abs(p.y - last.y) < 0.5) return;
+    current.push(p);
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+  function onUp(e) {
+    if (!current) return;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    current = null;
+  }
+
+  // Pointer events cover mouse + touch + pen with one API, and ResizeObserver
+  // catches any layout change (rotation, keyboard show/hide on iOS, sidebar
+  // toggle) so we can resize the bitmap without losing the drawn strokes.
+  canvas.addEventListener("pointerdown",   onDown);
+  canvas.addEventListener("pointermove",   onMove);
+  canvas.addEventListener("pointerup",     onUp);
+  canvas.addEventListener("pointercancel", onUp);
+  canvas.addEventListener("pointerleave",  (e) => { /* don't end — capture keeps tracking */ });
+
+  // Initial sizing + observe future layout changes
+  sizeToCss();
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(sizeToCss).observe(canvas);
+  }
+  window.addEventListener("orientationchange", sizeToCss);
+
+  pad = {
+    clear:     () => { strokes.length = 0; redrawAll(); },
+    isEmpty:   () => strokes.length === 0,
+    toDataURL: () => canvas.toDataURL("image/png"),
   };
-  const start = (e) => { e.preventDefault(); drawing = true; hasStroke = true; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); };
-  const move = (e) => { if (!drawing) return; e.preventDefault(); const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
-  const end = () => { drawing = false; };
-  canvas.addEventListener("mousedown", start); canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-  canvas.addEventListener("touchstart", start); canvas.addEventListener("touchmove", move); canvas.addEventListener("touchend", end);
-  pad = { clear: () => { ctx.clearRect(0, 0, canvas.width, canvas.height); hasStroke = false; }, isEmpty: () => !hasStroke, toDataURL: () => canvas.toDataURL("image/png") };
   document.getElementById("sig-clear").onclick = () => pad.clear();
 }
 
