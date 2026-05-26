@@ -45,7 +45,22 @@
     .signed-box { background: var(--color-espresso); color: var(--color-bg); padding: 40px; text-align: center; margin-top: 40px; }
     .signed-box h2 { color: var(--color-bg); font-family: var(--font-display); font-size: 2rem; font-weight: 400; margin: 0 0 12px; }
     .signed-box p { color: rgba(247,242,234,.82); font-family: var(--font-display); font-style: italic; margin: 0; }
-    @media print { body { background: #fff; } .sign-btn, .sign-bar button { display: none; } }
+
+    /* Install scheduler */
+    .sched-box { background: #fff; border: 2px solid var(--color-brass); padding: 30px; margin-top: 24px; }
+    .sched-box h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0 0 8px; color: var(--color-ink); }
+    .sched-box .sub { font-family: var(--font-display); font-style: italic; color: var(--color-ink-soft); margin: 0 0 18px; }
+    .sched-day { background: var(--color-bg-2); border: 1px solid var(--color-line-soft); padding: 14px 18px; margin-bottom: 8px; }
+    .sched-day h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; margin: 0 0 10px; color: var(--color-ink); }
+    .sched-slots { display: flex; flex-wrap: wrap; gap: 8px; }
+    .sched-slot { padding: 8px 14px; background: #fff; border: 1px solid var(--color-line); cursor: pointer; font: inherit; font-size: 0.88rem; color: var(--color-ink); border-radius: 2px; transition: all 150ms ease; }
+    .sched-slot:hover { border-color: var(--color-brass); }
+    .sched-slot.is-picked { background: var(--color-ink); color: var(--color-bg); border-color: var(--color-ink); }
+    .sched-confirm { background: var(--color-ink); color: var(--color-bg); border: 0; padding: 14px 28px; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; margin-top: 18px; }
+    .sched-confirm:hover { background: var(--color-espresso-2); }
+    .sched-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media print { body { background: #fff; } .sign-btn, .sign-bar button, .sched-box { display: none; } }
   </style>
 </head>
 <body>
@@ -102,8 +117,9 @@ function render(k, lines) {
     ${isExecuted ? `
       <div class="signed-box">
         <h2>Job is booked.</h2>
-        <p>Signed by you on ${formatDt(k.signed_by_customer_at)}, counter-signed by Stately Shades on ${formatDt(k.counter_signed_at)}.</p>
+        <p>Signed on ${formatDt(k.signed_by_customer_at)}. ${k.deposit_cents > 0 ? `Deposit due: <strong style="color:var(--color-champagne)">${money(k.deposit_cents)}</strong>` : "Payment due on completion."}</p>
       </div>
+      <div id="install-scheduler"></div>
     ` : isSigned ? `
       <div class="signed-box" style="background:var(--color-brass);color:var(--color-ink)">
         <h2 style="color:var(--color-ink)">Thank you — signed!</h2>
@@ -127,6 +143,109 @@ function render(k, lines) {
   `;
 
   if (!isSigned) wirePad();
+  if (isExecuted) loadInstallScheduler();
+}
+
+let pickedSlot = null;
+
+async function loadInstallScheduler() {
+  const host = document.getElementById("install-scheduler");
+  if (!host) return;
+
+  // Check if an install is already on the books
+  const existing = await fetch("/api/public/contract/" + token + "/install").then((r) => r.json()).catch(() => ({ appointment: null }));
+  if (existing.appointment) {
+    host.innerHTML = `
+      <div class="sched-box" style="border-color:#3A8C5A;background:#F0FDF4">
+        <h2 style="color:#14110D">Install scheduled ✓</h2>
+        <p class="sub" style="color:#14110D">${formatDt(existing.appointment.start_at)} (${existing.appointment.duration_min} min). Check your email for the calendar invite.</p>
+        <p style="font-size:0.9rem;color:var(--color-ink-soft);margin:0">Need to change? Call or text <a href="tel:+16292988241" style="color:var(--color-brass);border-bottom:1px solid currentColor">629-298-8241</a>.</p>
+      </div>
+    `;
+    return;
+  }
+
+  host.innerHTML = `
+    <div class="sched-box">
+      <h2>Schedule your install.</h2>
+      <p class="sub">Pick a time below — installs typically take 2–6 hours depending on window count. We'll bring drop cloths and tools.</p>
+      <div id="sched-slots"><p style="color:var(--color-ink-soft);font-size:0.9rem">Loading times…</p></div>
+      <div id="sched-confirm-host" style="margin-top:16px"></div>
+    </div>
+  `;
+  try {
+    const slotsData = await fetch("/api/public/slots").then((r) => r.json());
+    renderSlots(slotsData);
+  } catch (e) {
+    document.getElementById("sched-slots").innerHTML = `<p style="color:#B85450">Couldn't load times — please call 629-298-8241.</p>`;
+  }
+}
+
+function renderSlots(slotsData) {
+  const dates = Object.keys(slotsData.slots || {}).sort().slice(0, 7); // show first week of availability
+  if (!dates.length) {
+    document.getElementById("sched-slots").innerHTML = `<p style="color:var(--color-ink-soft)">No times available. Please call <a href="tel:+16292988241">629-298-8241</a> to schedule.</p>`;
+    return;
+  }
+  document.getElementById("sched-slots").innerHTML = dates.map((d) => `
+    <div class="sched-day">
+      <h3>${prettyDate(d)}</h3>
+      <div class="sched-slots">${slotsData.slots[d].map((s) => `<button class="sched-slot" data-start="${s.start}" onclick="pickSlot(this)">${prettyTime(s.start)}</button>`).join("")}</div>
+    </div>
+  `).join("");
+}
+
+function pickSlot(btn) {
+  document.querySelectorAll(".sched-slot").forEach((b) => b.classList.remove("is-picked"));
+  btn.classList.add("is-picked");
+  pickedSlot = btn.dataset.start;
+  const day = prettyDate(pickedSlot.slice(0, 10));
+  document.getElementById("sched-confirm-host").innerHTML = `
+    <p style="margin:0 0 10px;color:var(--color-ink)"><strong>${day}</strong> at <strong>${prettyTime(pickedSlot)}</strong></p>
+    <label style="display:block;margin-bottom:10px;font-size:0.85rem;color:var(--color-ink-soft)">
+      <span style="display:block;margin-bottom:4px">Expected install length</span>
+      <select id="sched-dur" style="padding:8px 12px;border:1px solid var(--color-line);font:inherit;font-size:0.9rem;background:#fff">
+        <option value="120">2 hours · few windows</option>
+        <option value="240" selected>4 hours · typical job</option>
+        <option value="360">6 hours · whole house</option>
+        <option value="480">8 hours · full day</option>
+      </select>
+    </label>
+    <button class="sched-confirm" id="sched-confirm-btn" onclick="confirmSlot()">Confirm install</button>
+  `;
+}
+
+async function confirmSlot() {
+  if (!pickedSlot) return;
+  const btn = document.getElementById("sched-confirm-btn");
+  btn.disabled = true; btn.textContent = "Booking…";
+  const dur = parseInt(document.getElementById("sched-dur").value || "240", 10);
+  try {
+    const res = await fetch("/api/public/contract/" + token + "/install", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start_at: pickedSlot, duration_min: dur }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Couldn't schedule.");
+    loadInstallScheduler();  // re-render to show the confirmation
+  } catch (e) {
+    alert(e.message);
+    btn.disabled = false; btn.textContent = "Confirm install";
+  }
+}
+
+function prettyDate(d) {
+  const dt = new Date(d + "T12:00:00Z");
+  const today = new Date().toISOString().slice(0, 10);
+  if (d === today) return "Today, " + dt.toLocaleDateString(undefined, { month: "long", day: "numeric" });
+  return dt.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
+function prettyTime(iso) {
+  const [, t] = (iso || "").split("T");
+  if (!t) return "";
+  const [h, m] = t.split(":").map((n) => parseInt(n, 10));
+  const ap = h < 12 ? "am" : "pm";
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${ap}`;
 }
 
 let pad = null;

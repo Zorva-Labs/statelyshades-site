@@ -1,0 +1,103 @@
+// Shared lifecycle helpers — used by both admin endpoints (manual conversion)
+// and the public token endpoints (auto-conversion on customer accept/sign).
+import { genToken, nextSequence, formatDocNumber } from "./tokens.js";
+import { recordActivity } from "./db.js";
+
+const FALLBACK_TERMS = {
+  custom_order: `<h3>Materials &amp; Manufacture</h3><p>Made-to-order, 2-6 week lead.</p><h3>Deposit</h3><p>50% deposit due at signing.</p><h3>Warranty</h3><p>Original manufacturer warranty + 90-day workmanship.</p>`,
+  install_only: `<h3>Scope</h3><p>Install only — customer-supplied product. No deposit. Pay on completion. 90-day workmanship warranty on the install only.</p>`,
+  repair: `<h3>Scope</h3><p>Repair service. Pay on completion. 90-day warranty on the repair.</p>`,
+};
+
+const FALLBACK_INTROS = {
+  custom_order: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the supply and installation of custom window treatments at the project address listed.",
+  install_only: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the professional installation of window treatments supplied by the customer at the project address listed.",
+  repair: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the repair service detailed in the scope of work below.",
+};
+
+const FALLBACK_WINDOWS = {
+  custom_order: "Weeks 4–6 from contract execution",
+  install_only: "Scheduled within 1–2 weeks of customer-supplied products arriving on site",
+  repair: "Single visit, typically within 1 week",
+};
+
+/**
+ * Create a draft contract from an accepted proposal tier.
+ * Used by both POST /api/proposals/[id]/convert (admin) and POST /api/public/proposal/[token] (customer auto-accept).
+ *
+ * @param {D1Database} db
+ * @param {object} proposal - the proposal row (must have id, project_id, number, selected_tier)
+ * @param {object|null} actor - { kind: 'admin'|'customer', id?, name? }
+ * @returns {Promise<{ contract_id: number, contract_number: string, view_token: string }>}
+ */
+export async function createContractFromProposalTier(db, proposal, actor = { kind: "system" }) {
+  // Determine which tier — prefer selected, fall back to "best"
+  const tierKey = proposal.selected_tier || "best";
+  const tier = await db.prepare(`SELECT * FROM proposal_tiers WHERE proposal_id=?1 AND tier=?2`).bind(proposal.id, tierKey).first();
+  if (!tier) throw new Error(`Tier "${tierKey}" not found on proposal ${proposal.id}`);
+
+  // Custom_order is the default contract type for proposal conversions
+  const contractType = "custom_order";
+
+  // Load default template for this contract type
+  const tpl = await db.prepare(`SELECT * FROM document_templates WHERE kind='contract' AND subkind=?1 AND is_default=1 ORDER BY id LIMIT 1`).bind(contractType).first();
+  const intro = tpl?.intro || FALLBACK_INTROS[contractType];
+  const terms = tpl?.terms_html || FALLBACK_TERMS[contractType];
+  const installWindow = tpl?.estimated_install_window || FALLBACK_WINDOWS[contractType];
+
+  const year = new Date().getUTCFullYear();
+  const seq = await nextSequence(db, `contract-${year}`);
+  const number = formatDocNumber("C", year, seq);
+  const token = genToken(16);
+  const totalCents = tier.total_cents || 0;
+  const depositCents = Math.round(totalCents / 2);
+
+  const r = await db.prepare(
+    `INSERT INTO contracts (project_id, proposal_id, number, view_token, status, contract_type, total_cents, deposit_cents,
+       intro, scope_html, terms_html, estimated_install_window, author_user_id)
+     VALUES (?1, ?2, ?3, ?4, 'draft', ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12) RETURNING id`
+  ).bind(
+    proposal.project_id, proposal.id, number, token, contractType, totalCents, depositCents,
+    intro,
+    `<p>Per the accepted <strong>${tierKey}</strong> tier of proposal ${proposal.number}.</p>`,
+    terms,
+    installWindow,
+    actor?.kind === "admin" ? actor.id : null,
+  ).first();
+
+  // Copy lines from the accepted tier
+  const lines = (await db.prepare(`SELECT description, room, width_in, height_in, quantity, unit_price_cents, line_total_cents, position FROM proposal_tier_lines WHERE tier_id=?1 ORDER BY position, id`).bind(tier.id).all()).results || [];
+  for (const l of lines) {
+    await db.prepare(
+      `INSERT INTO contract_lines (contract_id, description, room, width_in, height_in, quantity, unit_price_cents, line_total_cents, position)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)`
+    ).bind(
+      r.id, l.description, l.room || null,
+      l.width_in ?? null, l.height_in ?? null,
+      l.quantity, l.unit_price_cents, l.line_total_cents, l.position
+    ).run();
+  }
+
+  // Advance the project status — accepting a proposal moves the job into "proposed"
+  await db.prepare(`UPDATE projects SET status='proposed', updated_at=datetime('now') WHERE id=?1`).bind(proposal.project_id).run();
+
+  await recordActivity(db, {
+    entityType: "contract", entityId: r.id, action: "created-from-proposal",
+    actorKind: actor?.kind || "system", actorId: actor?.id || null, actorName: actor?.name || null,
+    details: { proposal_id: proposal.id, tier: tierKey, total_cents: totalCents },
+  });
+
+  return { contract_id: r.id, contract_number: number, view_token: token };
+}
+
+/**
+ * Mark a project as fully booked (customer signed the contract).
+ * Updates the project status, and adds an activity log entry.
+ */
+export async function markProjectBooked(db, projectId, contractId) {
+  await db.prepare(`UPDATE projects SET status='contracted', updated_at=datetime('now') WHERE id=?1`).bind(projectId).run();
+  await recordActivity(db, {
+    entityType: "project", entityId: projectId, action: "booked",
+    actorKind: "customer", details: { contract_id: contractId },
+  });
+}

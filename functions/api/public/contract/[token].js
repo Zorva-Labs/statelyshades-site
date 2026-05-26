@@ -4,6 +4,7 @@ import { json, hashIp } from "../../../_lib/auth.js";
 import { sha256Hex } from "../../../_lib/tokens.js";
 import { trackView, recordActivity } from "../../../_lib/db.js";
 import { sendEmail, brandedEmail, escapeHtml } from "../../../_lib/email.js";
+import { markProjectBooked } from "../../../_lib/lifecycle.js";
 
 const SITE_URL = "https://statelyshades.com";
 
@@ -54,10 +55,14 @@ export async function onRequestPost(context) {
   const ipHash = await hashIp(context.request.headers.get("CF-Connecting-IP"));
   const ua = context.request.headers.get("User-Agent") || null;
 
+  // Customer signing books the job — go straight to fully_executed
+  // (admin counter-sign is optional record-keeping, not gating)
   await context.env.DB.prepare(
     `UPDATE contracts SET
-       status='signed_by_customer',
+       status='fully_executed',
        signed_by_customer_at=datetime('now'),
+       counter_signed_at=datetime('now'),
+       counter_signer_name='Stately Shades',
        signer_name=?1, signer_email=?2,
        signature_image=?3,
        signed_ip_hash=?4, signed_user_agent=?5,
@@ -77,21 +82,52 @@ export async function onRequestPost(context) {
     details: { ip_hash: ipHash, ua, doc_hash: docHash },
   });
 
+  // Mark the project as booked
+  await markProjectBooked(context.env.DB, k.project_id, k.id);
+
+  // Send confirmation email to customer
+  const customerEmail = body.signer_email || k.signer_email;
+  if (customerEmail) {
+    await sendEmail(context.env, {
+      to: customerEmail,
+      subject: `You're booked — ${k.number} · Stately Shades`,
+      html: brandedEmail({
+        title: "You're booked.",
+        body: `
+          <p>Hi ${escapeHtml(body.signer_name.split(" ")[0])},</p>
+          <p>Thank you for signing contract <strong>${escapeHtml(k.number)}</strong>. Your job is officially booked.</p>
+          <p>Here's what happens next:</p>
+          <ol style="line-height:1.7;color:#56493C">
+            <li>${k.deposit_cents > 0 ? `<strong>Deposit:</strong> please send ${moneyFmt(k.deposit_cents)} by check, ACH, Venmo, or Cash App to release the order.` : `<strong>Payment:</strong> due upon completion of the install.`}</li>
+            <li><strong>Schedule your install</strong> using the link below — pick a day that works for you.</li>
+            <li>We'll arrive on the scheduled day with drop cloths and tools, install, and demonstrate every product before we leave.</li>
+          </ol>
+          <p>Questions? Reply to this email or call <a href="tel:+16292988241">629-298-8241</a>.</p>
+        `,
+        ctaLabel: "Schedule Your Install",
+        ctaUrl: `${SITE_URL}/contract/?t=${k.view_token}#schedule`,
+      }),
+    });
+  }
+
   // Notify the team
   await sendEmail(context.env, {
     to: context.env.STAFF_EMAIL || "hello@statelyshades.com",
-    subject: `Contract signed by customer — ${k.number}`,
+    subject: `🎉 Job booked — ${k.number}`,
     html: brandedEmail({
-      title: "A contract was just signed.",
+      title: "A new job was just booked.",
       body: `
         <p><strong>${escapeHtml(k.number)}</strong> was signed by <strong>${escapeHtml(body.signer_name)}</strong>.</p>
         <p>Document hash: <code style="font-size:11px">${escapeHtml(docHash)}</code></p>
-        <p>Counter-sign in the admin to release the order.</p>
+        <p>${k.deposit_cents > 0 ? `Deposit due: <strong>${moneyFmt(k.deposit_cents)}</strong>` : `No deposit — payment on completion.`}</p>
+        <p>Watch for the customer to schedule their install — they'll get a confirmation iCal when they do.</p>
       `,
       ctaLabel: "Open Contract",
       ctaUrl: `${SITE_URL}/crm/contract.html?id=${k.id}`,
     }),
   });
 
-  return json({ ok: true });
+  return json({ ok: true, booked: true, contract_token: k.view_token });
 }
+
+function moneyFmt(cents) { return "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }

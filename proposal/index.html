@@ -110,7 +110,23 @@ async function accept() {
     const res = await fetch("/api/public/proposal/" + token, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "accept", name }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Couldn't accept.");
-    load();
+
+    // Auto-flow: if the backend created a contract, jump to it for signature
+    if (data.contract_token) {
+      // Show a brief celebration before redirecting
+      document.querySelector(".doc").innerHTML = `
+        <div style="text-align:center;padding:80px 20px">
+          <div style="font-family:var(--font-display);font-size:2.4rem;color:var(--color-brass);margin-bottom:14px">Accepted.</div>
+          <p style="color:var(--color-ink-soft);font-family:var(--font-display);font-style:italic;font-size:1.15rem;margin-bottom:24px">Taking you to the contract to book the job…</p>
+          <div style="display:inline-block;width:24px;height:24px;border:3px solid var(--color-line);border-top-color:var(--color-brass);border-radius:50%;animation:spin 800ms linear infinite"></div>
+        </div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+      `;
+      setTimeout(() => { location.href = "/contract/?t=" + data.contract_token + "&from=proposal"; }, 1400);
+    } else {
+      // Conversion failed — show the success state but no contract yet
+      load();
+    }
   } catch (e) { alert(e.message); }
 }
 

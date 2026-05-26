@@ -1,7 +1,9 @@
 // GET /api/public/proposal/[token]  → proposal + tiers + lines + comments
 // POST /api/public/proposal/[token]  body: { action: "select_tier" | "accept" | "comment", tier?, name?, body? }
+//   accept response: { ok: true, contract_token } — customer should immediately redirect to /contract/?t=…
 import { json, hashIp } from "../../../_lib/auth.js";
 import { trackView, recordActivity } from "../../../_lib/db.js";
+import { createContractFromProposalTier } from "../../../_lib/lifecycle.js";
 
 export async function onRequestGet(context) {
   const token = context.params.token;
@@ -45,6 +47,8 @@ export async function onRequestPost(context) {
   if (body.action === "accept") {
     if (!body.name) return json({ error: "Please type your name to accept." }, 400);
     if (!p.selected_tier) return json({ error: "Pick a tier first." }, 400);
+
+    // 1) Mark the proposal accepted
     await context.env.DB.prepare(
       `UPDATE proposals SET status='accepted', accepted_at=datetime('now'), accepted_by_name=?1, accepted_ip_hash=?2, updated_at=datetime('now') WHERE id=?3`
     ).bind(body.name, ipHash, p.id).run();
@@ -53,7 +57,23 @@ export async function onRequestPost(context) {
       actorKind: "customer", actorName: body.name,
       details: { ip_hash: ipHash, tier: p.selected_tier },
     });
-    return json({ ok: true });
+
+    // 2) Auto-create a draft contract from the accepted tier
+    let contractToken = null;
+    try {
+      const result = await createContractFromProposalTier(
+        context.env.DB,
+        // The proposal row from the earlier query already has all needed fields
+        { id: p.id, project_id: p.project_id, number: p.number, selected_tier: p.selected_tier },
+        { kind: "customer", name: body.name }
+      );
+      contractToken = result.view_token;
+    } catch (e) {
+      // If conversion fails (e.g. tier missing), still return accept success — admin can convert manually
+      console.error("auto-convert failed:", e);
+    }
+
+    return json({ ok: true, contract_token: contractToken });
   }
 
   if (body.action === "comment") {
