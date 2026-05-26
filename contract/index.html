@@ -34,6 +34,8 @@
     .sign-box h2 { margin-top: 0; }
     .sign-box label { display: block; margin-bottom: 16px; }
     .sign-box label span { display: block; font-size: 0.78rem; color: var(--color-ink-soft); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.12em; }
+    .sign-box .sig-field { display: block; margin-bottom: 16px; }
+    .sign-box .sig-field-label { display: block; font-size: 0.78rem; color: var(--color-ink-soft); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.12em; }
     .sign-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-line); font: inherit; font-size: 0.95rem; }
     .sig { background: #fff; border: 1px solid var(--color-line); }
     .sig canvas { display: block; width: 100%; height: 180px; cursor: crosshair; touch-action: none; background: linear-gradient(transparent calc(100% - 1px), var(--color-line) calc(100% - 1px)); }
@@ -131,12 +133,18 @@ function render(k, lines) {
         <p style="font-size:0.92rem;color:var(--color-ink-soft);margin:0 0 22px">By typing your name and signing below, you accept the terms above and authorize Stately Shades to release your order to manufacturing.</p>
         <label><span>Full legal name</span><input id="signer-name" autocomplete="name"/></label>
         <label><span>Email (for receipt)</span><input id="signer-email" type="email" autocomplete="email" value="${esc(k.contact_email)}"/></label>
-        <label><span>Draw your signature</span>
+        <!-- Intentionally NOT a <label> wrapper: a label with no `for` attribute
+             implicitly associates with the first form control inside it, so
+             clicking the canvas would dispatch a synthetic click on the Clear
+             button below — wiping every stroke on mouseup. Use a div + a
+             standalone <span> caption instead. -->
+        <div class="sig-field">
+          <span class="sig-field-label">Draw your signature</span>
           <div class="sig">
             <canvas id="sig-pad" width="700" height="180"></canvas>
             <div class="sig-bar"><span>Use mouse, finger, or stylus</span><button type="button" id="sig-clear">Clear</button></div>
           </div>
-        </label>
+        </div>
         <button class="sign-btn" id="sign-btn" onclick="sign()">Sign &amp; book the job</button>
       </div>
     `}
@@ -249,10 +257,16 @@ function prettyTime(iso) {
 }
 
 let pad = null;
-// Hand-rolled signature pad with BOTH pointer events AND mouse-event fallback
-// in case pointer events don't fire on the user's browser. Also exposes a
-// debug counter on the page so we can see exactly when/why strokes might
-// disappear (look at the small "[N strokes]" indicator next to the Clear btn).
+// Pointer events on the canvas. Strokes are painted directly onto the bitmap
+// and stay there until the user clicks Clear or submits. No library, no
+// resize handler, no dpr scaling — see commit history for the labyrinth of
+// red herrings that led here.
+//
+// CRITICAL: the parent of the canvas must NOT be a <label> element. A label
+// with no `for` attribute implicitly forwards clicks to the first form
+// control inside it — which in our markup is the Clear button. Wrapping
+// the canvas in <label> caused every mouseup to wipe the signature.
+// The canvas is now in a <div class="sig-field"> instead.
 function wirePad() {
   const canvas = document.getElementById("sig-pad");
   canvas.width  = canvas.offsetWidth  || 700;
@@ -263,19 +277,8 @@ function wirePad() {
   ctx.lineCap     = "round";
   ctx.lineJoin    = "round";
 
-  let drawing  = false;
-  let strokeN  = 0;
-  let pointN   = 0;
-
-  // Debug indicator — shows live point/stroke counts so we can tell if the
-  // canvas is being cleared, or events aren't firing, or something else
-  // entirely. Once stable I'll remove this.
-  const dbg = document.createElement("span");
-  dbg.id = "sig-dbg";
-  dbg.style.cssText = "font-family:monospace;font-size:0.7rem;color:#9D7A3E;margin-right:auto;padding-left:8px";
-  dbg.textContent = "[0 strokes · 0 pts]";
-  document.querySelector(".sig-bar").prepend(dbg);
-  function refresh() { dbg.textContent = `[${strokeN} strokes · ${pointN} pts]`; }
+  let drawing = false;
+  let strokes = 0;
 
   function point(e) {
     const r = canvas.getBoundingClientRect();
@@ -287,30 +290,26 @@ function wirePad() {
     if (drawing) return;
     if (e.button != null && e.button !== 0) return;
     if (e.preventDefault) e.preventDefault();
-    drawing = true; strokeN++; pointN++;
+    drawing = true; strokes++;
     const p = point(e);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x + 0.1, p.y + 0.1);
+    ctx.lineTo(p.x + 0.1, p.y + 0.1);  // visible dot for a tap
     ctx.stroke();
-    refresh();
   }
   function moveStroke(e) {
     if (!drawing) return;
     if (e.preventDefault) e.preventDefault();
-    pointN++;
     const p = point(e);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    if (pointN % 5 === 0) refresh();
   }
-  function endStroke() {
-    if (!drawing) return;
-    drawing = false;
-    refresh();
-  }
+  function endStroke() { drawing = false; }
 
-  // Pointer events (modern; mouse + touch + stylus)
+  // Pointer events first (unified mouse + touch + pen). Triple-redundant
+  // event coverage: also bind mouse and touch fallbacks so older browsers
+  // still work. The `drawing` flag prevents double-counting strokes when
+  // a single user gesture fires both a pointer and a mouse event.
   canvas.addEventListener("pointerdown", (e) => {
     try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
     startStroke(e);
@@ -319,12 +318,10 @@ function wirePad() {
   canvas.addEventListener("pointerup",     endStroke);
   canvas.addEventListener("pointercancel", endStroke);
 
-  // Mouse fallback — fires if pointer events are unavailable or blocked
   canvas.addEventListener("mousedown", startStroke);
   canvas.addEventListener("mousemove", moveStroke);
   window.addEventListener("mouseup",   endStroke);
 
-  // Touch fallback for ancient browsers
   canvas.addEventListener("touchstart", (e) => {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
@@ -335,12 +332,12 @@ function wirePad() {
     const t = e.touches[0];
     moveStroke({ clientX: t.clientX, clientY: t.clientY, preventDefault: () => e.preventDefault() });
   }, { passive: false });
-  canvas.addEventListener("touchend", endStroke);
+  canvas.addEventListener("touchend",    endStroke);
   canvas.addEventListener("touchcancel", endStroke);
 
   pad = {
-    clear:     () => { ctx.clearRect(0, 0, canvas.width, canvas.height); strokeN = 0; pointN = 0; refresh(); },
-    isEmpty:   () => strokeN === 0,
+    clear:     () => { ctx.clearRect(0, 0, canvas.width, canvas.height); strokes = 0; },
+    isEmpty:   () => strokes === 0,
     toDataURL: () => canvas.toDataURL("image/png"),
   };
   document.getElementById("sig-clear").onclick = () => pad.clear();
