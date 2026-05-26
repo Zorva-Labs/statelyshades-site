@@ -204,19 +204,127 @@ function renderDocTab(docs, kind, prefix, addFn) {
   `;
 }
 
+// ============================================================
+// Windows tab — grouped by room with a top-down floor-plan SVG.
+// Each window has a letter (A, B, C…) that appears both on the SVG and
+// in the editor row, so an installer can match the worksheet to a wall.
+// ============================================================
+const WALLS = ["back", "left", "right", "front"];
+
+let productCatalog = null;
+async function ensureCatalog() {
+  if (productCatalog) return productCatalog;
+  const { products } = await SSCrm.fetchJSON("/api/products");
+  productCatalog = products.filter((p) => p.active);
+  return productCatalog;
+}
+
 function renderWindowsTab(ws) {
+  const byRoom = {};
+  const roomOrder = [];
+  for (const w of ws) {
+    const key = w.room || "(unassigned)";
+    if (!byRoom[key]) { byRoom[key] = []; roomOrder.push(key); }
+    byRoom[key].push(w);
+  }
+  setTimeout(populateProductSelects, 0);
   return `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="ws-toolbar">
-      <h3 style="font-size:14px;color:var(--ink-soft)">${ws.length} window${ws.length === 1 ? "" : "s"} measured</h3>
-      <div style="display:flex;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px" class="ws-toolbar">
+      <div>
+        <h3 style="font-size:14px;color:var(--ink-soft);margin:0">${ws.length} window${ws.length === 1 ? "" : "s"} across ${roomOrder.length} room${roomOrder.length === 1 ? "" : "s"}</h3>
+        <p class="muted" style="font-size:12px;margin:4px 0 0">Each room is a top-down floor plan from the entry's perspective. Pick a wall and the window appears in the plan.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="printWorksheet()">🖨 Print for installer</button>
-        <button class="btn ghost sm" onclick="addWindow()">+ Window</button>
+        <button class="btn secondary sm" onclick="addWindow()">+ Window</button>
+        <button class="btn primary sm" onclick="addRoom()">+ Room</button>
         <button class="btn primary sm" onclick="saveWindows()">Save</button>
       </div>
     </div>
-    <table class="lines"><thead><tr>
-      <th style="width:22%">Room</th><th>Label</th><th>W″</th><th>H″</th><th>Mount</th><th>Depth″</th><th>Notes</th><th></th>
-    </tr></thead><tbody id="ws-body">${ws.length ? ws.map((w, i) => winRow(w, i)).join("") : winRow({}, 0)}</tbody></table>
+    <div id="rooms-host" style="display:flex;flex-direction:column;gap:14px">
+      ${roomOrder.length
+        ? roomOrder.map((r) => roomCard(r, byRoom[r])).join("")
+        : `<div class="card" style="text-align:center;padding:40px;color:var(--ink-soft);font-size:14px">No windows tracked yet — click <strong>+ Room</strong> to start.</div>`}
+    </div>
+  `;
+}
+
+function roomCard(roomName, windows) {
+  return `<div class="card room-card" data-room="${SSCrm.esc(roomName)}">
+    <div class="card-head" style="display:flex;align-items:center;gap:10px">
+      <input class="room-name" value="${SSCrm.esc(roomName === "(unassigned)" ? "" : roomName)}" placeholder="Room name (Living, Primary BR…)"
+             style="flex:1;border:0;padding:6px 0;font-size:18px;font-weight:600;background:transparent;color:var(--ink);min-width:0"/>
+      <span class="room-count muted" style="font-size:12px">${windows.length} window${windows.length === 1 ? "" : "s"}</span>
+      <button class="btn ghost sm" onclick="addWindowToRoom(this)">+ Window here</button>
+      <button class="btn ghost sm" onclick="removeRoom(this)" style="color:var(--danger)" title="Remove room (and its windows)">Remove</button>
+    </div>
+    <div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start;margin-top:12px" class="room-body">
+      <div class="room-floorplan">${floorplanSvg(windows)}</div>
+      <div class="room-windows" style="overflow-x:auto">
+        <table class="lines" style="min-width:580px"><thead><tr>
+          <th style="width:32px">#</th>
+          <th>Label</th>
+          <th style="width:90px">Wall</th>
+          <th class="num" style="width:58px">W″</th>
+          <th class="num" style="width:58px">H″</th>
+          <th style="width:78px">Mount</th>
+          <th>Product</th>
+          <th style="width:100px">Color</th>
+          <th>Notes</th>
+          <th style="width:28px"></th>
+        </tr></thead>
+        <tbody class="room-window-rows">
+          ${windows.map((w, i) => winRow(w, i)).join("") || winRow({}, 0)}
+        </tbody></table>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Top-down floor plan SVG, viewer at the entry (bottom of the square)
+function floorplanSvg(windows) {
+  const VB = 320, M = 30;
+  const RX = M, RY = M, RW = VB - M*2, RH = VB - M*2;
+  const buckets = { back: [], left: [], right: [], front: [], "(none)": [] };
+  windows.forEach((w, i) => {
+    const wall = WALLS.includes(w.wall) ? w.wall : "(none)";
+    buckets[wall].push({ w, idx: i, letter: String.fromCharCode(65 + i) });
+  });
+  const rects = [];
+  for (const wall of WALLS) {
+    const list = buckets[wall];
+    if (!list.length) continue;
+    const n = list.length;
+    list.forEach((e, j) => {
+      const t = (j + 0.5) / n;
+      const WSZ = 38, WT = 9;
+      let x, y, ww, wh;
+      if (wall === "back")  { x = RX + t * RW - WSZ/2; y = RY - WT/2;             ww = WSZ; wh = WT; }
+      if (wall === "front") { x = RX + t * RW - WSZ/2; y = RY + RH - WT/2;        ww = WSZ; wh = WT; }
+      if (wall === "left")  { x = RX - WT/2;            y = RY + t * RH - WSZ/2;  ww = WT;  wh = WSZ; }
+      if (wall === "right") { x = RX + RW - WT/2;       y = RY + t * RH - WSZ/2;  ww = WT;  wh = WSZ; }
+      const cx = x + ww/2, cy = y + wh/2;
+      rects.push(`
+        <rect x="${x}" y="${y}" width="${ww}" height="${wh}" rx="2" fill="#3B82F6" stroke="#1E40AF" stroke-width="1" data-idx="${e.idx}" style="cursor:pointer"/>
+        <text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" pointer-events="none">${e.letter}</text>
+      `);
+    });
+  }
+  const unassigned = buckets["(none)"].length;
+  return `
+    <svg viewBox="0 0 ${VB} ${VB}" style="width:100%;max-width:340px;height:auto;background:#F8FAFC;border:1px solid var(--line);border-radius:var(--r);display:block">
+      <rect x="${RX}" y="${RY}" width="${RW}" height="${RH}" fill="#FFFFFF" stroke="#0F172A" stroke-width="2.5"/>
+      <text x="${VB/2}" y="${RY - 10}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em">BACK</text>
+      <text x="${RX - 6}" y="${VB/2}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em" transform="rotate(-90 ${RX - 6} ${VB/2})">LEFT</text>
+      <text x="${RX + RW + 6}" y="${VB/2}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em" transform="rotate(90 ${RX + RW + 6} ${VB/2})">RIGHT</text>
+      <text x="${VB/2}" y="${RY + RH + 16}" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600" letter-spacing="0.05em">FRONT (near entry)</text>
+      ${rects.join("")}
+      <g transform="translate(${VB/2}, ${RY + RH + 4})">
+        <path d="M 0 14 L -6 22 L 6 22 Z" fill="#0F172A"/>
+        <text x="0" y="32" text-anchor="middle" font-size="10" font-weight="700" fill="#0F172A">ENTRY</text>
+      </g>
+    </svg>
+    ${unassigned ? `<p class="muted" style="font-size:11px;margin:6px 0 0">${unassigned} window${unassigned === 1 ? " has" : "s have"} no wall yet — pick one to place ${unassigned === 1 ? "it" : "them"} on the plan.</p>` : ""}
   `;
 }
 
@@ -294,30 +402,130 @@ function printWorksheet() {
 }
 
 function winRow(w, i) {
+  const letter = String.fromCharCode(65 + (i % 26));
   return `<tr data-idx="${i}">
-    <td><input data-f="room" value="${SSCrm.esc(w.room || "")}" placeholder="Living"/></td>
-    <td><input data-f="label" value="${SSCrm.esc(w.label || "")}" placeholder="North"/></td>
+    <td style="text-align:center;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);font-size:13px">${letter}</td>
+    <td><input data-f="label" value="${SSCrm.esc(w.label || "")}" placeholder="North, Bay-left…"/></td>
+    <td>
+      <select data-f="wall" onchange="redrawCardFromInput(this)">
+        <option value="">—</option>
+        <option value="back"  ${w.wall === "back"  ? "selected" : ""}>Back</option>
+        <option value="left"  ${w.wall === "left"  ? "selected" : ""}>Left</option>
+        <option value="right" ${w.wall === "right" ? "selected" : ""}>Right</option>
+        <option value="front" ${w.wall === "front" ? "selected" : ""}>Front</option>
+      </select>
+    </td>
     <td><input class="num" data-f="width_in" value="${w.width_in ?? ""}" type="number" step="0.125"/></td>
     <td><input class="num" data-f="height_in" value="${w.height_in ?? ""}" type="number" step="0.125"/></td>
     <td><select data-f="mount"><option value="">—</option><option ${w.mount === "inside" ? "selected" : ""}>inside</option><option ${w.mount === "outside" ? "selected" : ""}>outside</option></select></td>
-    <td><input class="num" data-f="depth_in" value="${w.depth_in ?? ""}" type="number" step="0.125"/></td>
+    <td><select data-f="product_id" class="js-prod">${prodOptions(w.product_id)}</select></td>
+    <td><input data-f="color" value="${SSCrm.esc(w.color || "")}" placeholder="White, walnut…"/></td>
     <td><input data-f="notes" value="${SSCrm.esc(w.notes || "")}"/></td>
-    <td><button class="rm" onclick="this.closest('tr').remove()" title="Remove">×</button></td>
+    <td><button class="rm" onclick="removeWinRow(this)" title="Remove">×</button></td>
   </tr>`;
 }
+
+function prodOptions(selectedId) {
+  if (!productCatalog) return `<option value="">— —</option>`;
+  return `<option value="">— Product —</option>` + productCatalog.map((p) => `<option value="${p.id}" ${selectedId == p.id ? "selected" : ""}>${SSCrm.esc(p.name)}</option>`).join("");
+}
+async function populateProductSelects() {
+  await ensureCatalog();
+  document.querySelectorAll("select.js-prod").forEach((sel) => {
+    const cur = sel.value;
+    sel.innerHTML = prodOptions(cur);
+    if (cur) sel.value = cur;
+  });
+}
+
 function wireWindows() {}
-function addWindow() {
-  const t = document.getElementById("ws-body");
-  t.insertAdjacentHTML("beforeend", winRow({}, t.children.length));
+
+function redrawCardFromInput(el) { refreshCard(el.closest(".room-card")); }
+function removeWinRow(btn) { const card = btn.closest(".room-card"); btn.closest("tr").remove(); refreshCard(card); }
+function removeRoom(btn) {
+  if (!confirm("Remove this room and all its windows?")) return;
+  btn.closest(".room-card").remove();
+}
+
+function refreshCard(card) {
+  if (!card) return;
+  const rows = [...card.querySelectorAll(".room-window-rows tr")];
+  rows.forEach((tr, i) => {
+    tr.querySelector("td:first-child").textContent = String.fromCharCode(65 + (i % 26));
+    tr.dataset.idx = i;
+  });
+  const windows = rows.map(collectRowData);
+  card.querySelector(".room-floorplan").innerHTML = floorplanSvg(windows);
+  card.querySelector(".room-count").textContent = `${rows.length} window${rows.length === 1 ? "" : "s"}`;
+}
+function collectRowData(tr) {
+  const v = (f) => tr.querySelector(`[data-f="${f}"]`)?.value || "";
+  return {
+    label: v("label"),
+    wall:  v("wall") || null,
+    width_in:  v("width_in") !== ""  ? Number(v("width_in"))  : null,
+    height_in: v("height_in") !== "" ? Number(v("height_in")) : null,
+    mount: v("mount") || null,
+    product_id: v("product_id") ? parseInt(v("product_id"), 10) : null,
+    color: v("color") || null,
+    notes: v("notes") || null,
+  };
+}
+
+async function addRoom() {
+  const name = prompt("Room name?  (Living, Primary BR, Kitchen…)");
+  if (!name) return;
+  const cntStr = prompt(`How many windows in ${name}?`, "1");
+  const count = Math.max(1, Math.min(20, parseInt(cntStr || "1", 10) || 1));
+  await ensureCatalog();
+  const host = document.getElementById("rooms-host");
+  // Clear the empty-state card if it's there
+  if (host.querySelector(".card") && !host.querySelector(".room-card")) host.innerHTML = "";
+  const windows = Array.from({ length: count }, () => ({ room: name }));
+  host.insertAdjacentHTML("beforeend", roomCard(name, windows));
+  populateProductSelects();
+  const newCard = host.lastElementChild;
+  newCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  refreshCard(newCard);
+}
+async function addWindow() {
+  await ensureCatalog();
+  let card = document.querySelector('.room-card[data-room="(unassigned)"]');
+  if (!card) {
+    const host = document.getElementById("rooms-host");
+    if (host.querySelector(".card") && !host.querySelector(".room-card")) host.innerHTML = "";
+    host.insertAdjacentHTML("beforeend", roomCard("(unassigned)", [{}]));
+    populateProductSelects();
+    return;
+  }
+  card.querySelector(".room-window-rows").insertAdjacentHTML("beforeend", winRow({}, card.querySelectorAll(".room-window-rows tr").length));
+  populateProductSelects();
+  refreshCard(card);
+}
+async function addWindowToRoom(btn) {
+  await ensureCatalog();
+  const card = btn.closest(".room-card");
+  card.querySelector(".room-window-rows").insertAdjacentHTML("beforeend", winRow({}, card.querySelectorAll(".room-window-rows tr").length));
+  populateProductSelects();
+  refreshCard(card);
 }
 async function saveWindows() {
-  const rows = [...document.querySelectorAll("#ws-body tr")].map((tr) => {
-    const o = {};
-    tr.querySelectorAll("[data-f]").forEach((el) => { const v = el.value.trim(); o[el.dataset.f] = v === "" ? null : v; });
-    return o;
-  }).filter((w) => w.room);
-  try { await SSCrm.fetchJSON(`/api/projects/${id}/windows`, { method: "PUT", body: JSON.stringify({ windows: rows }) }); SSCrm.toast("Windows saved", "success"); state = await SSCrm.fetchJSON("/api/projects/" + id); }
-  catch (e) { SSCrm.toast(e.message, "error"); }
+  const out = [];
+  document.querySelectorAll(".room-card").forEach((card) => {
+    const room = card.querySelector(".room-name").value.trim();
+    card.querySelectorAll(".room-window-rows tr").forEach((tr) => {
+      const data = collectRowData(tr);
+      if (!room && !data.label && data.width_in == null && data.height_in == null) return;
+      out.push({ ...data, room: room || "(unassigned)" });
+    });
+  });
+  try {
+    await SSCrm.fetchJSON(`/api/projects/${id}/windows`, { method: "PUT", body: JSON.stringify({ windows: out }) });
+    SSCrm.toast(`Saved ${out.length} window${out.length === 1 ? "" : "s"}`, "success");
+    state = await SSCrm.fetchJSON("/api/projects/" + id);
+    // Rerender the tab so freshly-saved rows pick up DB ids + redraw
+    switchTab("windows");
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 
 async function saveProject() {
