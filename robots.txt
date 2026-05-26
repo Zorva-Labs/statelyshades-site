@@ -2,5 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /crm/
 Disallow: /api/
+Disallow: /thanks/
+Disallow: /proposal/
+Disallow: /contract/
+Disallow: /portal/
 
 Sitemap: https://statelyshades.com/sitemap.xml

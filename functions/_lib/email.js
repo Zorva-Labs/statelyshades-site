@@ -6,10 +6,14 @@
 
 const PURELYMAIL_ENDPOINT = "https://purelymail.com/api/v0/sendMail";
 
+// Best-effort mail send. Callers `await sendEmail(...)` but we never throw —
+// every code path here resolves so a downstream API never crashes because the
+// mail provider is unreachable or rejecting. The return shape is informational
+// only: { skipped, status, json, error } — most callers ignore it.
 export async function sendEmail(env, { to, subject, html, text, replyTo, attachments }) {
   if (!env.PURELYMAIL_API_KEY) {
     console.warn("[email] PURELYMAIL_API_KEY missing — skipping send");
-    return { skipped: true };
+    return { skipped: true, reason: "no_api_key" };
   }
   const from = env.PURELYMAIL_FROM || "hello@statelyshades.com";
   const fromName = env.PURELYMAIL_FROM_NAME || "Stately Shades";
@@ -25,18 +29,30 @@ export async function sendEmail(env, { to, subject, html, text, replyTo, attachm
   };
   if (attachments && attachments.length) body.attachments = attachments;
 
-  const res = await fetch(PURELYMAIL_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.PURELYMAIL_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
-  const text2 = await res.text();
-  let json;
-  try { json = JSON.parse(text2); } catch { json = { raw: text2 }; }
-  return { status: res.status, json };
+  try {
+    const res = await fetch(PURELYMAIL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Purelymail uses a custom header rather than Authorization: Bearer.
+        // See ~/.claude/projects/.../memory/reference_purelymail.md.
+        "Purelymail-Api-Token": env.PURELYMAIL_API_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    const raw = await res.text().catch(() => "");
+    let json;
+    try { json = JSON.parse(raw); } catch { json = { raw: raw.slice(0, 200) }; }
+    if (!res.ok) {
+      console.error("[email] Purelymail send failed:", res.status, raw.slice(0, 200));
+    } else if (json && json.type && json.type !== "success") {
+      console.error("[email] Purelymail non-success:", json);
+    }
+    return { status: res.status, json };
+  } catch (e) {
+    console.error("[email] fetch threw:", e?.message || e);
+    return { skipped: true, error: e?.message || "fetch_failed" };
+  }
 }
 
 function stripHtml(html) {

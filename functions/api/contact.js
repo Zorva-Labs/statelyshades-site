@@ -9,10 +9,11 @@ const FROM_ADDRESS = "hello@statelyshades.com";
 const FROM_NAME = "Stately Shades Website";
 
 export async function onRequestPost({ request, env }) {
-  if (!env.PURELYMAIL_API_KEY) {
-    return json({ error: "Mail service is not configured." }, 500);
-  }
-
+  // NOTE on mail delivery: we keep mail send best-effort. The lead is ALWAYS
+  // saved to D1 first — that's the source of truth for the CRM. If Purelymail
+  // (or any future provider) fails, we still confirm receipt to the customer
+  // so the front-end never shows a "network error" on a successfully captured
+  // lead. Admin sees the failure in Pages function logs and via the CRM.
   let data;
   try {
     const ct = request.headers.get("content-type") || "";
@@ -92,38 +93,11 @@ https://statelyshades.com/crm/
   <p style="margin: 28px 0 0; font-size: 12px; color: #8B7F6F;">Sent from the Stately Shades website. This lead has been saved to the CRM automatically.</p>
 </div>`;
 
-  const purelyResp = await fetch("https://purelymail.com/api/v0/sendMail", {
-    method: "POST",
-    headers: {
-      "Purelymail-Api-Token": env.PURELYMAIL_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: FROM_NAME,
-      from: FROM_ADDRESS,
-      to: [TO_ADDRESS],
-      replyTo: email,
-      subject,
-      body: textBody,
-      bodyHtml: htmlBody,
-    }),
-  });
-
-  let mailError = null;
-  if (!purelyResp.ok) {
-    const errText = await purelyResp.text().catch(() => "");
-    console.error("Purelymail send failed:", purelyResp.status, errText);
-    mailError = "purelymail_http_" + purelyResp.status;
-  } else {
-    let payload = null;
-    try { payload = await purelyResp.json(); } catch (_) {}
-    if (payload && payload.type && payload.type !== "success") {
-      console.error("Purelymail returned non-success:", payload);
-      mailError = "purelymail_" + (payload.type || "unknown");
-    }
-  }
-
-  // Persist lead to D1 (CRM) regardless of mail outcome
+  // 1) Persist the lead to D1 first — this is the source of truth. If this
+  // fails we DO surface an error to the customer (otherwise the lead would
+  // disappear silently).
+  let dbOk = false;
+  let dbError = null;
   if (env.DB) {
     try {
       const ipRaw = request.headers.get("CF-Connecting-IP") || "";
@@ -155,16 +129,59 @@ https://statelyshades.com/crm/
           ref, ua, ipHash
         )
         .run();
+      dbOk = true;
     } catch (e) {
-      console.error("D1 lead insert failed:", e.message);
-      // don't fail the user request just because CRM write failed
+      console.error("D1 lead insert failed:", e?.message || e);
+      dbError = e?.message || "db_unknown";
     }
+  } else {
+    // No DB binding configured — log loudly but don't block the customer
+    console.error("contact.js: env.DB is not configured");
   }
 
-  if (mailError) {
+  // 2) Fire-and-forget mail send. We never let mail failure block the customer
+  // response — the admin will see the lead in the CRM and the failure in logs.
+  if (env.PURELYMAIL_API_KEY) {
+    try {
+      const purelyResp = await fetch("https://purelymail.com/api/v0/sendMail", {
+        method: "POST",
+        headers: {
+          "Purelymail-Api-Token": env.PURELYMAIL_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: FROM_NAME,
+          from: FROM_ADDRESS,
+          to: [TO_ADDRESS],
+          replyTo: email,
+          subject,
+          body: textBody,
+          bodyHtml: htmlBody,
+        }),
+      });
+      if (!purelyResp.ok) {
+        const errText = await purelyResp.text().catch(() => "");
+        console.error("Purelymail send failed:", purelyResp.status, errText.slice(0, 200));
+      } else {
+        let payload = null;
+        try { payload = await purelyResp.json(); } catch (_) {}
+        if (payload && payload.type && payload.type !== "success") {
+          console.error("Purelymail returned non-success:", payload);
+        }
+      }
+    } catch (e) {
+      console.error("Purelymail fetch threw:", e?.message || e);
+    }
+  } else {
+    console.error("contact.js: PURELYMAIL_API_KEY is not configured");
+  }
+
+  // 3) Surface the outcome. DB failure is the only reason we'd refuse the lead
+  // (because then it's truly lost). Mail failure is invisible to the customer.
+  if (!dbOk && env.DB) {
     return json(
-      { error: "We couldn't send your request right now. Please call us at 629-298-8241." },
-      502
+      { error: "We had trouble saving your request. Please call us at 629-298-8241.", detail: dbError || "db_unavailable" },
+      503
     );
   }
   return json({ success: true }, 200);
