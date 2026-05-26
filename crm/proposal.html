@@ -72,8 +72,11 @@ function render() {
       ${tiers.map(renderTier).join("")}
     </div>
 
-    <div class="form-actions" style="margin-top:18px">
-      <button class="btn primary" onclick="saveAll()">Save proposal</button>
+    <div class="form-actions" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn secondary" onclick="saveAll()">💾 Save proposal</button>
+      ${canSend ? `<button class="btn primary" onclick="saveThenSend()">📧 Save &amp; Send to customer →</button>` : ""}
+      ${isAccepted ? `<button class="btn success" onclick="convertToContract()">Convert to Contract →</button>` : ""}
+      ${p.status !== "draft" && p.status !== "accepted" ? `<span class="muted" style="font-size:13px">Status: <strong>${SSCrm.esc(p.status)}</strong> — re-open the proposal in Drafts to send again.</span>` : ""}
     </div>
 
     ${comments.length ? `
@@ -213,6 +216,19 @@ async function sendProposal() {
   if (!(await SSCrm.confirmDialog("Send this proposal to the customer?"))) return;
   try { await SSCrm.fetchJSON(`/api/proposals/${id}/send`, { method: "POST" }); SSCrm.toast("Proposal sent", "success"); state = await SSCrm.fetchJSON("/api/proposals/" + id); render(); }
   catch (e) { SSCrm.toast(e.message, "error"); }
+}
+// Convenience for the bottom-of-page action: persist pending edits to all
+// tiers FIRST so the customer gets the freshest version, then email it.
+// Skips the confirm dialog (the button label "Save & Send" makes the intent
+// explicit) so it's a single confident click after a long edit session.
+async function saveThenSend() {
+  try {
+    await saveAll();
+    await SSCrm.fetchJSON(`/api/proposals/${id}/send`, { method: "POST" });
+    SSCrm.toast("Saved + sent to customer", "success");
+    state = await SSCrm.fetchJSON("/api/proposals/" + id);
+    render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function convertToContract() {
   if (!(await SSCrm.confirmDialog(`Create a contract from the ${state.proposal.selected_tier || "selected"} tier?`))) return;
