@@ -13,8 +13,10 @@ export async function onRequestPost(context) {
      WHERE pr.id=?1`
   ).bind(id).first();
   if (!p) return json({ error: "Not found" }, 404);
+  if (!p.contact_email) return json({ error: "Contact has no email address — add one on the contact page first." }, 400);
+
   const url = `${SITE_URL}/proposal/?t=${p.view_token}`;
-  await sendEmail(context.env, {
+  const result = await sendEmail(context.env, {
     to: p.contact_email,
     subject: `Your proposal — ${p.number}`,
     html: brandedEmail({
@@ -30,12 +32,26 @@ export async function onRequestPost(context) {
     }),
     text: `Your proposal ${p.number} is ready: ${url}`,
   });
+
+  // If SMTP actually failed, don't lie to the admin and mark it sent — surface
+  // the error so they can call/text the customer instead. The proposal stays
+  // 'draft' so the admin can retry once the underlying issue is fixed.
+  if (result?.skipped || result?.error || (result?.status && result.status >= 400)) {
+    console.error("[proposals/send] mail failed:", result);
+    return json({
+      error: "Email failed to send: " + (result.error || ("HTTP " + result.status)),
+      detail: result,
+      url, // still return the proposal URL so the admin can copy/paste manually
+    }, 502);
+  }
+
   await context.env.DB.prepare(
     `UPDATE proposals SET status='sent', sent_at=datetime('now'), updated_at=datetime('now') WHERE id=?1`
   ).bind(id).run();
   await recordActivity(context.env.DB, {
     entityType: "proposal", entityId: id, action: "sent",
     actorKind: "admin", actorId: auth.id, actorName: auth.email,
+    details: { to: p.contact_email, url, message_id: result.messageId },
   });
-  return json({ ok: true, url });
+  return json({ ok: true, url, message_id: result.messageId });
 }
