@@ -88,18 +88,28 @@
       }
 
       const rows = leads.map((l) => `
-        <tr onclick="location.href='/crm/lead.html?id=${l.id}'">
-          <td>
+        <tr data-id="${l.id}" data-name="${SSAdmin.esc(l.name)}">
+          <td onclick="location.href='/crm/lead.html?id=${l.id}'">
             <div class="lead-table__name">${SSAdmin.esc(l.name)}</div>
             <div class="lead-table__when">${SSAdmin.fmtDate(l.created_at)}</div>
           </td>
-          <td>
-            <div>${l.email ? `<a href="mailto:${SSAdmin.esc(l.email)}">${SSAdmin.esc(l.email)}</a>` : ""}</div>
-            <div class="lead-table__location">${l.phone ? `<a href="tel:${SSAdmin.esc(l.phone)}">${SSAdmin.esc(l.phone)}</a>` : ""}</div>
+          <td onclick="location.href='/crm/lead.html?id=${l.id}'">
+            <div>${l.email ? `<a href="mailto:${SSAdmin.esc(l.email)}" onclick="event.stopPropagation()">${SSAdmin.esc(l.email)}</a>` : ""}</div>
+            <div class="lead-table__location">${l.phone ? `<a href="tel:${SSAdmin.esc(l.phone)}" onclick="event.stopPropagation()">${SSAdmin.esc(l.phone)}</a>` : ""}</div>
           </td>
-          <td><div class="lead-table__interest">${SSAdmin.esc(l.interest || "—")}</div></td>
-          <td><div class="lead-table__location">${SSAdmin.esc([l.address_city, l.address_state].filter(Boolean).join(", ") || l.location || "—")}</div></td>
-          <td>${SSAdmin.pill(l.status)}</td>
+          <td onclick="location.href='/crm/lead.html?id=${l.id}'"><div class="lead-table__interest">${SSAdmin.esc(l.interest || "—")}</div></td>
+          <td onclick="location.href='/crm/lead.html?id=${l.id}'"><div class="lead-table__location">${SSAdmin.esc([l.address_city, l.address_state].filter(Boolean).join(", ") || l.location || "—")}</div></td>
+          <td onclick="location.href='/crm/lead.html?id=${l.id}'">${SSAdmin.pill(l.status)}</td>
+          <td class="lead-row-actions">
+            <button class="lead-row-delete" title="Delete this lead" data-del="${l.id}" aria-label="Delete ${SSAdmin.esc(l.name)}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </button>
+          </td>
         </tr>
       `).join("");
 
@@ -112,11 +122,35 @@
               <th>Considering</th>
               <th>Location</th>
               <th>Status</th>
+              <th style="width:48px"></th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
       `;
+
+      // Wire up the per-row delete buttons
+      container.querySelectorAll(".lead-row-delete").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.del;
+          const row = btn.closest("tr");
+          const name = row.dataset.name;
+          if (!confirm(`Delete lead "${name}"? This cannot be undone.`)) return;
+          btn.disabled = true;
+          try {
+            const res = await fetch("/api/leads/" + id, { method: "DELETE", credentials: "same-origin" });
+            if (!res.ok) throw new Error("Delete failed (HTTP " + res.status + ")");
+            row.style.transition = "opacity .2s ease, transform .2s ease";
+            row.style.opacity = "0";
+            row.style.transform = "translateX(20px)";
+            setTimeout(() => row.remove(), 220);
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+          }
+        });
+      });
     })().catch((err) => {
       if (err.message !== "Unauthorized") {
         document.getElementById("lead-table").innerHTML = `<div class="lead-table__empty">Couldn't load leads: ${SSAdmin.esc(err.message)}</div>`;

@@ -5,17 +5,39 @@
   --color-bg: #F7F2EA;
   --color-bg-2: #EFE8DB;
   --color-bg-3: #E5DCC9;
-  --color-ink: #14110D;
-  --color-ink-2: #2A241C;
-  --color-ink-soft: #56493C;
-  --color-muted: #8B7F6F;
+  /* Ink: deep black for body text (was #14110D — kept) */
+  --color-ink: #0A0805;
+  --color-ink-2: #1F1A14;
+  /* Soft ink: darkened from #56493C (~6.4:1 contrast on cream) to near-black (~12:1)
+     so muted/helper text is genuinely readable on the off-white background */
+  --color-ink-soft: #2A241C;
+  /* Muted: darkened from #8B7F6F (~4.2:1, borderline) to #3D3528 (~9:1) */
+  --color-muted: #3D3528;
   --color-line: #D9CFBB;
   --color-line-soft: #E8DFCD;
   --color-champagne: #D4B896;
+  /* Brass kept for accents/decorations only — never used for body text */
   --color-brass: #9D7A3E;
   --color-brass-hot: #C9A158;
   --color-espresso: #14110D;
   --color-espresso-2: #1F1A14;
+
+  /* Short aliases so the lifecycle-module styles (added later) work — these
+     blocks referenced var(--c-ink), var(--c-line), etc. before this alias existed,
+     which produced invisible/broken UI. The aliases below fix that retroactively. */
+  --c-bg: var(--color-bg);
+  --c-bg-2: var(--color-bg-2);
+  --c-bg-3: var(--color-bg-3);
+  --c-ink: var(--color-ink);
+  --c-ink-2: var(--color-ink-2);
+  --c-ink-soft: var(--color-ink-soft);
+  --c-muted: var(--color-muted);
+  --c-line: var(--color-line);
+  --c-line-soft: var(--color-line-soft);
+  --c-brass: var(--color-brass);
+  --c-brass-hot: var(--color-brass-hot);
+  --c-champagne: var(--color-champagne);
+  --dur-quick: 200ms;
 
   --color-status-new:       #C9A158;
   --color-status-contacted: #5D8AA8;
@@ -35,15 +57,24 @@
 html, body {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--color-ink);
+  font-size: 16px;            /* bumped from 15 — every CRM screen is read closely, give it air */
+  line-height: 1.6;
+  color: var(--color-ink);    /* near-black on cream — high contrast for body */
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--color-brass); text-decoration: none; }
-a:hover { color: var(--color-brass-hot); }
+a { color: #5a4a90; text-decoration: underline; text-underline-offset: 2px; }  /* darker than brass, links read clearly on cream */
+a:hover { color: var(--color-brass); }
 button { font: inherit; cursor: pointer; }
+
+/* Force black-on-cream readability everywhere in the admin: any text
+   colored with --color-ink-soft or --color-muted now uses near-black ink */
+.admin .muted, .admin .lead-table__when, .admin .lead-table__location, .admin .lead-table__interest {
+  color: var(--color-ink-soft) !important;  /* now #2A241C — near-black */
+}
+.admin small, .admin .form-grid label > span:first-child {
+  color: var(--color-ink-soft);
+}
 
 .admin {
   display: grid;
@@ -655,3 +686,99 @@ button { font: inherit; cursor: pointer; }
 .modal { background: #fff; padding: 28px; border: 1px solid var(--c-line); max-width: 440px; width: 100%; }
 .modal p { font-size: 0.95rem; line-height: 1.5; margin: 0 0 18px; }
 .modal__buttons { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* =============================================================
+   Per-row delete button on leads list
+   ============================================================= */
+.lead-row-actions {
+  width: 48px;
+  padding: 0 12px;
+  text-align: center;
+}
+.lead-row-delete {
+  width: 36px; height: 36px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--color-muted);    /* now #3D3528, near-black — clearly visible */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.lead-row-delete:hover {
+  background: rgba(184,84,80,.08);
+  color: #B85450;
+  border-color: rgba(184,84,80,.4);
+}
+.lead-row-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* =============================================================
+   READABILITY OVERRIDES — make every CRM screen comfortable to read
+   ============================================================= */
+
+/* Lead-table cells: bump font + force ink color */
+.lead-table table { font-size: 0.95rem; }
+.lead-table td, .lead-table th { padding: 16px 18px; color: var(--color-ink); }
+.lead-table th {
+  font-size: 0.7rem;        /* up from 0.62 */
+  color: var(--color-ink-soft);
+  letter-spacing: 0.16em;
+}
+.lead-table__name { font-weight: 600; font-size: 1rem; color: var(--color-ink); }
+.lead-table__when { color: var(--color-ink-soft); font-size: 0.82rem; margin-top: 2px; }
+.lead-table__interest { color: var(--color-ink); font-size: 0.95rem; }
+.lead-table__location { color: var(--color-ink-soft); font-size: 0.88rem; }
+.lead-table tbody tr { cursor: default; }
+.lead-table tbody tr:hover { background: rgba(20,17,13,.025); }
+.lead-table tbody td { cursor: pointer; }
+.lead-table tbody td.lead-row-actions { cursor: default; }
+
+/* Generic data tables (used by contacts, projects, estimates, etc.) */
+.data-table table { font-size: 0.95rem; }
+.data-table td, .data-table th { color: var(--color-ink); }
+.data-table thead th {
+  color: var(--color-brass);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+}
+.data-table .muted { color: var(--color-ink-soft); font-size: 0.9em; }
+
+/* Lead detail page — make labels, body, and headings high-contrast */
+.lead-detail h2, .lead-detail h3 { color: var(--color-ink); }
+.lead-detail label > span:first-child {
+  color: var(--color-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.lead-detail input, .lead-detail select, .lead-detail textarea {
+  color: var(--color-ink);
+  font-size: 0.95rem;
+}
+.lead-detail .lead-meta { color: var(--color-ink-soft); font-size: 0.88rem; }
+
+/* Form helper text + admin sub-headlines */
+.admin__sub { color: var(--color-ink-soft); font-size: 0.92rem; }
+.admin__header h1 { color: var(--color-ink); }
+
+/* Eyebrows / section labels — keep them brass-accented but bump weight for legibility */
+.eyebrow, .admin__nav-label {
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+/* Status pill — bump readable size */
+.pill, .status {
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* All admin pages: make sure prose paragraphs are black, not gray */
+.panel p, .panel li, .panel td, .panel th { color: var(--color-ink); }
+.panel .muted { color: var(--color-ink-soft); }
+
+/* Buttons — adjust contrast */
+.btn-primary { color: #fff; }
+.btn-secondary, .btn-danger, .btn-ghost { font-weight: 600; }
