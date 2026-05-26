@@ -31,20 +31,25 @@ export async function onRequestPost(context) {
   const token = genToken(16);
   const validDays = parseInt(body.valid_days || 30, 10);
   const validUntil = new Date(Date.now() + validDays * 86400 * 1000).toISOString().slice(0, 10);
+  // Load default proposal template
+  const tpl = body.template_id
+    ? await context.env.DB.prepare(`SELECT * FROM document_templates WHERE id=?1`).bind(body.template_id).first()
+    : await context.env.DB.prepare(`SELECT * FROM document_templates WHERE kind='proposal' AND is_default=1 ORDER BY id LIMIT 1`).first();
+
+  const intro = body.intro || tpl?.intro || "Thank you for the opportunity to dress your windows. We've put together three options below — each one custom-fit to your home.";
+  const tierTitles = {
+    good:   tpl?.tier_good_title   || "The Essentials",
+    better: tpl?.tier_better_title || "The Smart-Home Package",
+    best:   tpl?.tier_best_title   || "The Heirloom Build",
+  };
+
   const r = await context.env.DB.prepare(
     `INSERT INTO proposals (project_id, number, view_token, status, intro, notes_internal, valid_until, author_user_id)
      VALUES (?1,?2,?3,'draft',?4,?5,?6,?7) RETURNING id`
-  ).bind(
-    body.project_id, number, token,
-    body.intro || "Thank you for the opportunity to dress your windows. We've put together three options below — each one custom-fit to your home.",
-    body.notes_internal || null, validUntil, auth.id,
-  ).first();
+  ).bind(body.project_id, number, token, intro, body.notes_internal || null, validUntil, auth.id).first();
 
-  // Seed the three tiers
   for (const t of TIERS) {
-    await context.env.DB.prepare(
-      `INSERT INTO proposal_tiers (proposal_id, tier, title) VALUES (?1,?2,?3)`
-    ).bind(r.id, t, defaultTitle(t)).run();
+    await context.env.DB.prepare(`INSERT INTO proposal_tiers (proposal_id, tier, title) VALUES (?1,?2,?3)`).bind(r.id, t, tierTitles[t]).run();
   }
   await recordActivity(context.env.DB, {
     entityType: "proposal", entityId: r.id, action: "created",

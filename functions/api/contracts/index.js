@@ -120,21 +120,27 @@ export async function onRequestPost(context) {
     depositCents = Math.round(totalCents / 2);  // 50% for custom orders
   }
 
-  // Default intro by type
-  const defaultIntros = {
-    custom_order: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the supply and installation of custom window treatments at the project address listed.",
-    install_only: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the professional installation of window treatments supplied by the customer at the project address listed.",
-    repair: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the repair service detailed in the scope of work below.",
-    service_call: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the service call detailed below.",
-  };
-
-  // Default install window by type
-  const defaultWindows = {
-    custom_order: "Weeks 4–6 from contract execution",
-    install_only: "Scheduled within 1–2 weeks of customer-supplied products arriving on site",
-    repair: "Single visit, typically within 1 week",
-    service_call: "Single visit, scheduled at signing",
-  };
+  // Load the default template for this contract type from the editable document_templates table.
+  // Fall back to the hardcoded constant if the template was deleted.
+  let tplIntro, tplTerms, tplWindow;
+  const tpl = body.template_id
+    ? await context.env.DB.prepare(`SELECT * FROM document_templates WHERE id=?1`).bind(body.template_id).first()
+    : await context.env.DB.prepare(`SELECT * FROM document_templates WHERE kind='contract' AND subkind=?1 AND is_default=1 ORDER BY id LIMIT 1`).bind(contractType).first();
+  if (tpl) {
+    tplIntro = tpl.intro;
+    tplTerms = tpl.terms_html;
+    tplWindow = tpl.estimated_install_window;
+  } else {
+    const fallbacks = {
+      custom_order:   { intro: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the supply and installation of custom window treatments at the project address listed.", window: "Weeks 4–6 from contract execution" },
+      install_only:   { intro: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the professional installation of window treatments supplied by the customer at the project address listed.", window: "Scheduled within 1–2 weeks of customer-supplied products arriving on site" },
+      repair:         { intro: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the repair service detailed in the scope of work below.", window: "Single visit, typically within 1 week" },
+      service_call:   { intro: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the service call detailed below.", window: "Single visit, scheduled at signing" },
+    };
+    tplIntro = fallbacks[contractType].intro;
+    tplTerms = TERMS_BY_TYPE[contractType] || TERMS_BY_TYPE.custom_order;
+    tplWindow = fallbacks[contractType].window;
+  }
 
   const r = await context.env.DB.prepare(
     `INSERT INTO contracts (project_id, estimate_id, proposal_id, number, view_token, status, contract_type, total_cents, deposit_cents,
@@ -145,10 +151,10 @@ export async function onRequestPost(context) {
     body.estimate_id || null,
     body.proposal_id || null,
     number, token, contractType, totalCents, depositCents,
-    body.intro || defaultIntros[contractType],
+    body.intro || tplIntro,
     body.scope_html || "",
-    body.terms_html || TERMS_BY_TYPE[contractType] || TERMS_BY_TYPE.custom_order,
-    body.estimated_install_window || defaultWindows[contractType],
+    body.terms_html || tplTerms,
+    body.estimated_install_window || tplWindow,
     auth.id,
   ).first();
 

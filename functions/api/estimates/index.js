@@ -28,15 +28,19 @@ export async function onRequestPost(context) {
   const seq = await nextSequence(context.env.DB, `estimate-${year}`);
   const number = formatDocNumber("EST", year, seq);
   const token = genToken(16);
-  const validDays = parseInt(body.valid_days || 30, 10);
+
+  // Load default estimate template
+  const tpl = body.template_id
+    ? await context.env.DB.prepare(`SELECT * FROM document_templates WHERE id=?1`).bind(body.template_id).first()
+    : await context.env.DB.prepare(`SELECT * FROM document_templates WHERE kind='estimate' AND is_default=1 ORDER BY id LIMIT 1`).first();
+  const validDays = parseInt(body.valid_days || tpl?.valid_days || 30, 10);
   const validUntil = new Date(Date.now() + validDays * 86400 * 1000).toISOString().slice(0, 10);
+  const notesCustomer = body.notes_customer || tpl?.notes_customer || null;
+
   const r = await context.env.DB.prepare(
     `INSERT INTO estimates (project_id, number, view_token, status, valid_until, notes_customer, notes_internal, author_user_id)
      VALUES (?1,?2,?3,'draft',?4,?5,?6,?7) RETURNING id`
-  ).bind(
-    body.project_id, number, token, validUntil,
-    body.notes_customer || null, body.notes_internal || null, auth.id,
-  ).first();
+  ).bind(body.project_id, number, token, validUntil, notesCustomer, body.notes_internal || null, auth.id).first();
   await recordActivity(context.env.DB, {
     entityType: "estimate", entityId: r.id, action: "created",
     actorKind: "admin", actorId: auth.id, actorName: auth.email,

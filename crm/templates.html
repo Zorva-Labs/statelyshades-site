@@ -5,113 +5,261 @@
 <body>
 <script src="/crm/crm-app.js"></script>
 <script>
-let templates = [];
+const TABS = [
+  { key: "email",      label: "Email" },
+  { key: "contract",   label: "Contracts" },
+  { key: "proposal",   label: "Proposals" },
+  { key: "estimate",   label: "Estimates" },
+];
+
+let emailTemplates = [];
+let docTemplates = [];
+let activeTab = "email";
 let editingId = null;
+let editingKind = null;   // "email" or "document"
+
 (async () => {
-  const user = await SSCrm.mount({ title: "Email Templates", subtitle: "Reusable messages with {{merge}} fields",
-    actions: `<button class="btn primary" onclick="newTpl()">+ New template</button>`, wide: true });
+  const user = await SSCrm.mount({
+    title: "Templates",
+    subtitle: "Reusable boilerplate for emails &amp; documents",
+    wide: true,
+  });
   if (!user) return;
-  await load();
+
+  activeTab = new URLSearchParams(location.search).get("tab") || "email";
+  await loadAll();
+  render();
 })();
-async function load() {
-  ({ templates } = await SSCrm.fetchJSON("/api/templates"));
-  const groups = {};
-  for (const t of templates) (groups[t.category] ||= []).push(t);
-  const page = document.getElementById("page");
-  page.innerHTML = `
-    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start">
-      <div class="card">
-        <div class="card-head"><h2>Templates</h2></div>
-        <div id="tpl-list">${Object.keys(groups).sort().map((cat) => `
-          <div style="margin-bottom:12px">
-            <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;font-weight:600">${SSCrm.esc(cat)}</div>
-            ${groups[cat].map((t) => `<a href="#" data-tid="${t.id}" onclick="event.preventDefault();selectTpl(${t.id})" style="display:block;padding:8px 12px;border-radius:var(--r-sm);font-size:13px;color:var(--ink);text-decoration:none">${SSCrm.esc(t.name)}</a>`).join("")}
-          </div>`).join("")}
+
+async function loadAll() {
+  const [emails, docs] = await Promise.all([
+    SSCrm.fetchJSON("/api/templates"),
+    SSCrm.fetchJSON("/api/document-templates"),
+  ]);
+  emailTemplates = emails.templates || [];
+  docTemplates = docs.templates || [];
+}
+
+function render() {
+  document.getElementById("page").innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--line);border-radius:var(--r);overflow:hidden">
+      <nav style="display:flex;border-bottom:1px solid var(--line);padding:0 14px">
+        ${TABS.map((t) => `<button class="tab-btn" data-tab="${t.key}" style="padding:14px 18px;font-size:13px;font-weight:${activeTab === t.key ? "600" : "500"};color:${activeTab === t.key ? "var(--accent)" : "var(--ink-soft)"};background:transparent;border:0;border-bottom:2px solid ${activeTab === t.key ? "var(--accent)" : "transparent"};cursor:pointer">${SSCrm.esc(t.label)}</button>`).join("")}
+      </nav>
+      <div id="tab-content" style="padding:24px"></div>
+    </div>
+  `;
+  document.querySelectorAll(".tab-btn").forEach((b) => b.onclick = () => { activeTab = b.dataset.tab; editingId = null; render(); });
+  renderTab();
+}
+
+function renderTab() {
+  const c = document.getElementById("tab-content");
+  if (activeTab === "email") c.innerHTML = renderTemplatesList(emailTemplates, "email");
+  else c.innerHTML = renderTemplatesList(docTemplates.filter((t) => t.kind === activeTab), "document");
+  wireRowClicks();
+}
+
+function renderTemplatesList(templates, kind) {
+  if (!templates.length) {
+    return `<p class="muted" style="text-align:center;padding:30px">No ${activeTab} templates yet. <button class="btn primary sm" onclick="newTemplate()" style="margin-left:10px">+ New template</button></p>`;
+  }
+  return `
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start">
+      <div>
+        <button class="btn primary" onclick="newTemplate()" style="width:100%;margin-bottom:10px">+ New template</button>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          ${templates.map((t) => `
+            <button class="tpl-row" data-id="${t.id}" data-kind="${kind}" style="text-align:left;padding:10px 14px;border:0;border-radius:var(--r-sm);background:${editingId === t.id ? "var(--accent-soft)" : "transparent"};color:${editingId === t.id ? "var(--accent-ink)" : "var(--ink)"};cursor:pointer;font-size:13px">
+              <strong>${SSCrm.esc(t.name)}</strong>
+              ${t.is_default ? `<span style="font-size:10px;color:var(--accent);font-weight:600;margin-left:6px">DEFAULT</span>` : ""}
+              ${t.subkind ? `<div style="font-size:11px;color:var(--ink-soft);font-weight:400;margin-top:2px">${SSCrm.esc(t.subkind)}</div>` : ""}
+              ${kind === "email" ? `<div style="font-size:11px;color:var(--ink-soft);font-weight:400;margin-top:2px">${SSCrm.esc(t.category || "general")}</div>` : ""}
+            </button>
+          `).join("")}
         </div>
       </div>
-      <div class="card" id="editor">
-        <p class="muted" style="text-align:center;padding:40px">Select a template on the left to edit, or click "+ New template" above.</p>
-      </div>
+      <div id="editor">${editingId ? "" : `<p class="muted" style="text-align:center;padding:40px">Pick a template on the left to edit.</p>`}</div>
     </div>
-  `;
-  // Show merge field reference
-  page.insertAdjacentHTML("beforeend", `
-    <div class="card" style="margin-top:14px">
-      <div class="card-head"><h2>Merge fields you can use</h2></div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;font-size:12px">
-        <div><strong>{{contact.name}}</strong><div class="muted">Full name</div></div>
-        <div><strong>{{contact.first_name}}</strong><div class="muted">First name only</div></div>
-        <div><strong>{{contact.email}}</strong><div class="muted">Email</div></div>
-        <div><strong>{{project.name}}</strong><div class="muted">Job name</div></div>
-        <div><strong>{{estimate.number}}</strong><div class="muted">EST-2026-####</div></div>
-        <div><strong>{{estimate.total}}</strong><div class="muted">Formatted $</div></div>
-        <div><strong>{{estimate.view_url}}</strong><div class="muted">Customer link</div></div>
-        <div><strong>{{contract.number}}</strong><div class="muted">C-2026-####</div></div>
-        <div><strong>{{contract.deposit}}</strong><div class="muted">Deposit due</div></div>
-        <div><strong>{{appointment.pretty_date}}</strong><div class="muted">May 25 at 2:30 pm</div></div>
-        <div><strong>{{appointment.cancel_url}}</strong><div class="muted">Reschedule link</div></div>
-        <div><strong>{{proposal.view_url}}</strong><div class="muted">Customer link</div></div>
-      </div>
-    </div>
-  `);
-}
-function selectTpl(id) {
-  editingId = id;
-  document.querySelectorAll("[data-tid]").forEach((a) => a.style.background = (parseInt(a.dataset.tid) === id ? "var(--accent-soft)" : ""));
-  const t = templates.find((t) => t.id === id);
-  if (!t) return;
-  document.getElementById("editor").innerHTML = `
-    <div class="card-head"><h2>${SSCrm.esc(t.name)}</h2>
-      <div style="display:flex;gap:6px">
-        <button class="btn ghost sm" onclick="testRender()">Preview</button>
-        <button class="btn danger sm" onclick="delTpl(${t.id})">Delete</button>
-      </div>
-    </div>
-    <div class="form">
-      <div class="row">
-        <label><span>Name</span><input id="f-name" value="${SSCrm.esc(t.name)}"/></label>
-        <label><span>Category</span>
-          <select id="f-cat">
-            ${["general","lead","appointment","estimate","proposal","contract","install"].map((c) => `<option ${c === t.category ? "selected" : ""}>${c}</option>`).join("")}
-          </select>
-        </label>
-      </div>
-      <label><span>Subject line</span><input id="f-subj" value="${SSCrm.esc(t.subject)}"/></label>
-      <label><span>Body (HTML allowed — use {{merge.fields}})</span>
-        <textarea id="f-body" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.body_html)}</textarea></label>
-      <div class="form-actions"><button class="btn primary" onclick="saveTpl(${t.id})">Save</button></div>
-    </div>
+    ${kind === "email" ? mergeFieldsHelp() : ""}
   `;
 }
-async function newTpl() {
-  const name = prompt("Template name?"); if (!name) return;
-  const cat = prompt("Category (general, lead, appointment, estimate, proposal, contract, install)?", "general"); if (!cat) return;
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
-  try { await SSCrm.fetchJSON("/api/templates", { method: "POST", body: JSON.stringify({ slug, name, category: cat, subject: "Subject here", body_html: "<p>Hello {{contact.first_name}},</p><p>Body here…</p>" }) }); await load(); }
-  catch (e) { SSCrm.toast(e.message, "error"); }
+
+function wireRowClicks() {
+  document.querySelectorAll(".tpl-row").forEach((row) => {
+    row.onclick = () => {
+      editingId = parseInt(row.dataset.id, 10);
+      editingKind = row.dataset.kind;
+      render();
+      renderEditor();
+    };
+  });
+  if (editingId) renderEditor();
 }
-async function saveTpl(id) {
+
+function renderEditor() {
+  const editor = document.getElementById("editor");
+  if (!editor) return;
+  if (editingKind === "email") {
+    const t = emailTemplates.find((x) => x.id === editingId);
+    if (!t) return;
+    editor.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0;font-size:15px">${SSCrm.esc(t.name)}</h3>
+        <div style="display:flex;gap:8px"><button class="btn ghost sm" onclick="previewEmail()">Preview</button><button class="btn danger sm" onclick="delEmail(${t.id})">Delete</button></div>
+      </div>
+      <div class="form">
+        <div class="row">
+          <label><span>Name</span><input id="e-name" value="${SSCrm.esc(t.name)}"/></label>
+          <label><span>Category</span>
+            <select id="e-cat">${["general","lead","appointment","estimate","proposal","contract","install"].map((c) => `<option ${c === t.category ? "selected" : ""}>${c}</option>`).join("")}</select>
+          </label>
+        </div>
+        <label><span>Subject</span><input id="e-subj" value="${SSCrm.esc(t.subject)}"/></label>
+        <label><span>Body (HTML; use {{merge.fields}})</span><textarea id="e-body" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.body_html)}</textarea></label>
+        <div class="form-actions"><button class="btn primary" onclick="saveEmail(${t.id})">Save</button></div>
+      </div>
+    `;
+  } else {
+    const t = docTemplates.find((x) => x.id === editingId);
+    if (!t) return;
+    editor.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0;font-size:15px">${SSCrm.esc(t.name)} ${t.is_default ? `<span style="font-size:11px;color:var(--accent);margin-left:8px">DEFAULT</span>` : ""}</h3>
+        <div style="display:flex;gap:8px">
+          ${!t.is_default ? `<button class="btn secondary sm" onclick="makeDefault(${t.id})">Make default</button>` : ""}
+          <button class="btn danger sm" onclick="delDoc(${t.id})">Delete</button>
+        </div>
+      </div>
+      <div class="form">
+        <div class="row">
+          <label><span>Name</span><input id="d-name" value="${SSCrm.esc(t.name)}"/></label>
+          ${t.kind === "contract" ? `<label><span>Contract type</span>
+            <select id="d-subkind">${["custom_order","install_only","repair","service_call"].map((s) => `<option ${s === t.subkind ? "selected" : ""}>${s}</option>`).join("")}</select>
+          </label>` : `<div></div>`}
+        </div>
+
+        <label><span>Intro (customer-facing opener)</span><textarea id="d-intro" rows="3">${SSCrm.esc(t.intro || "")}</textarea></label>
+
+        ${t.kind === "contract" ? `
+          <label><span>Scope (HTML — usually populated per-contract)</span><textarea id="d-scope" rows="4" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.scope_html || "")}</textarea></label>
+          <label><span>Terms (HTML — boilerplate terms &amp; conditions)</span><textarea id="d-terms" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.terms_html || "")}</textarea></label>
+          <label><span>Default install window</span><input id="d-window" value="${SSCrm.esc(t.estimated_install_window || "")}"/></label>
+        ` : ""}
+
+        ${t.kind === "proposal" ? `
+          <div class="row-3">
+            <label><span>Good tier title</span><input id="d-tg" value="${SSCrm.esc(t.tier_good_title || "")}"/></label>
+            <label><span>Better tier title</span><input id="d-tb" value="${SSCrm.esc(t.tier_better_title || "")}"/></label>
+            <label><span>Best tier title</span><input id="d-tx" value="${SSCrm.esc(t.tier_best_title || "")}"/></label>
+          </div>
+        ` : ""}
+
+        ${t.kind === "estimate" ? `
+          <label><span>Default customer notes (shown on the estimate)</span><textarea id="d-notes" rows="3">${SSCrm.esc(t.notes_customer || "")}</textarea></label>
+          <label><span>Default validity period (days)</span><input id="d-days" type="number" value="${t.valid_days || 30}" min="1" max="365"/></label>
+        ` : ""}
+
+        <div class="form-actions"><button class="btn primary" onclick="saveDoc(${t.id})">Save changes</button></div>
+      </div>
+    `;
+  }
+}
+
+async function newTemplate() {
+  if (activeTab === "email") {
+    const name = prompt("Template name?"); if (!name) return;
+    const cat = prompt("Category (general, lead, appointment, estimate, proposal, contract, install)?", "general"); if (!cat) return;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    try {
+      await SSCrm.fetchJSON("/api/templates", { method: "POST", body: JSON.stringify({ slug, name, category: cat, subject: "Subject here", body_html: "<p>Hello {{contact.first_name}},</p><p>Body…</p>" }) });
+      await loadAll(); render();
+    } catch (e) { SSCrm.toast(e.message, "error"); }
+  } else {
+    const name = prompt(`${activeTab[0].toUpperCase()+activeTab.slice(1)} template name?`); if (!name) return;
+    const subkind = activeTab === "contract" ? prompt("Contract type (custom_order, install_only, repair, service_call)?", "custom_order") : null;
+    try {
+      const body = { kind: activeTab, name, subkind, is_default: false };
+      if (activeTab === "contract") { body.terms_html = "<h3>New section</h3><p>Edit me.</p>"; body.intro = "Intro paragraph."; body.estimated_install_window = "TBD"; }
+      if (activeTab === "proposal") { body.intro = "Intro paragraph."; body.tier_good_title = "Good"; body.tier_better_title = "Better"; body.tier_best_title = "Best"; }
+      if (activeTab === "estimate") { body.notes_customer = "Notes here."; body.valid_days = 30; }
+      await SSCrm.fetchJSON("/api/document-templates", { method: "POST", body: JSON.stringify(body) });
+      await loadAll(); render();
+    } catch (e) { SSCrm.toast(e.message, "error"); }
+  }
+}
+
+async function saveEmail(id) {
   try {
     await SSCrm.fetchJSON("/api/templates/" + id, { method: "PATCH", body: JSON.stringify({
-      name: document.getElementById("f-name").value.trim(),
-      category: document.getElementById("f-cat").value,
-      subject: document.getElementById("f-subj").value.trim(),
-      body_html: document.getElementById("f-body").value,
+      name: document.getElementById("e-name").value.trim(),
+      category: document.getElementById("e-cat").value,
+      subject: document.getElementById("e-subj").value.trim(),
+      body_html: document.getElementById("e-body").value,
     })});
-    SSCrm.toast("Saved", "success"); await load();
+    SSCrm.toast("Saved", "success"); await loadAll(); render();
   } catch (e) { SSCrm.toast(e.message, "error"); }
 }
-async function delTpl(id) {
-  if (!(await SSCrm.confirmDialog("Archive this template?"))) return;
-  await SSCrm.fetchJSON("/api/templates/" + id, { method: "DELETE" }); await load();
+async function delEmail(id) {
+  if (!(await SSCrm.confirmDialog("Archive this email template?"))) return;
+  await SSCrm.fetchJSON("/api/templates/" + id, { method: "DELETE" });
+  editingId = null; await loadAll(); render();
 }
-function testRender() {
+
+async function saveDoc(id) {
+  const t = docTemplates.find((x) => x.id === id);
+  const body = { name: document.getElementById("d-name").value.trim(), intro: document.getElementById("d-intro").value };
+  if (t.kind === "contract") {
+    body.subkind = document.getElementById("d-subkind").value;
+    body.scope_html = document.getElementById("d-scope").value;
+    body.terms_html = document.getElementById("d-terms").value;
+    body.estimated_install_window = document.getElementById("d-window").value.trim();
+  }
+  if (t.kind === "proposal") {
+    body.tier_good_title = document.getElementById("d-tg").value.trim();
+    body.tier_better_title = document.getElementById("d-tb").value.trim();
+    body.tier_best_title = document.getElementById("d-tx").value.trim();
+  }
+  if (t.kind === "estimate") {
+    body.notes_customer = document.getElementById("d-notes").value;
+    body.valid_days = parseInt(document.getElementById("d-days").value, 10);
+  }
+  try { await SSCrm.fetchJSON("/api/document-templates/" + id, { method: "PATCH", body: JSON.stringify(body) }); SSCrm.toast("Saved", "success"); await loadAll(); render(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function makeDefault(id) {
+  try { await SSCrm.fetchJSON("/api/document-templates/" + id, { method: "PATCH", body: JSON.stringify({ is_default: true }) }); SSCrm.toast("Marked as default", "success"); await loadAll(); render(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function delDoc(id) {
+  if (!(await SSCrm.confirmDialog("Delete this template?"))) return;
+  await SSCrm.fetchJSON("/api/document-templates/" + id, { method: "DELETE" });
+  editingId = null; await loadAll(); render();
+}
+
+function previewEmail() {
   const sample = { "contact.first_name": "Mary", "contact.name": "Mary Johnson", "contact.email": "mary@example.com", "project.name": "Kitchen + Master", "estimate.number": "EST-2026-0042", "estimate.total": "$3,890.00", "estimate.view_url": "https://statelyshades.com/estimate/?t=demo", "contract.number": "C-2026-0042", "contract.total": "$3,890.00", "contract.deposit": "$1,945.00", "contract.view_url": "https://statelyshades.com/contract/?t=demo", "proposal.view_url": "https://statelyshades.com/proposal/?t=demo", "appointment.pretty_date": "Tuesday, June 3 at 2:30 pm Central", "appointment.cancel_url": "https://statelyshades.com/book/?cancel=demo" };
-  const body = document.getElementById("f-body").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
-  const subj = document.getElementById("f-subj").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
+  const body = document.getElementById("e-body").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
+  const subj = document.getElementById("e-subj").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
   const bg = document.createElement("div"); bg.className = "modal-bg";
-  bg.innerHTML = `<div class="modal" style="max-width:640px"><div class="modal-head">Preview</div><div class="modal-body"><div class="muted" style="font-size:12px">Subject</div><div style="font-weight:600;margin-bottom:14px">${SSCrm.esc(subj)}</div><hr class="sep"/><div>${body}</div></div><div class="modal-foot"><button class="btn primary" onclick="this.closest('.modal-bg').remove()">Close</button></div></div>`;
+  bg.innerHTML = `<div class="modal" style="max-width:680px"><div class="modal-head">Preview</div><div class="modal-body"><div class="muted" style="font-size:12px">Subject</div><div style="font-weight:600;margin-bottom:14px">${SSCrm.esc(subj)}</div><hr class="sep"/><div>${body}</div></div><div class="modal-foot"><button class="btn primary" onclick="this.closest('.modal-bg').remove()">Close</button></div></div>`;
   document.body.appendChild(bg);
   bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+}
+
+function mergeFieldsHelp() {
+  return `
+    <div style="background:var(--bg-soft);border-radius:var(--r);padding:14px 18px;margin-top:18px;font-size:12px">
+      <strong style="display:block;margin-bottom:8px;color:var(--ink)">Merge fields available in email templates</strong>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px">
+        <div><code>{{contact.name}}</code></div><div><code>{{contact.first_name}}</code></div><div><code>{{contact.email}}</code></div>
+        <div><code>{{project.name}}</code></div>
+        <div><code>{{estimate.number}}</code></div><div><code>{{estimate.total}}</code></div><div><code>{{estimate.view_url}}</code></div>
+        <div><code>{{contract.number}}</code></div><div><code>{{contract.deposit}}</code></div><div><code>{{contract.view_url}}</code></div>
+        <div><code>{{proposal.view_url}}</code></div>
+        <div><code>{{appointment.pretty_date}}</code></div><div><code>{{appointment.cancel_url}}</code></div>
+      </div>
+    </div>
+  `;
 }
 </script></body></html>

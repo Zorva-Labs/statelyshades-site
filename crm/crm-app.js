@@ -28,13 +28,14 @@ const NAV_GROUPS = [
   { label: "Setup", items: ["/crm/products.html", "/crm/templates.html", "/crm/activity.html"] },
 ];
 
+// JS actions — no nav, opens an inline modal that creates the entity and routes to its page on success
 const QUICK_ADD = [
-  { label: "New job", href: "/crm/contacts.html?action=new-job", kbd: "J", icon: iconBriefcase() },
-  { label: "New contact", href: "/crm/contacts.html?action=new", kbd: "C", icon: iconUsers() },
-  { label: "Book appointment", href: "/crm/calendar.html?action=new", kbd: "A", icon: iconCal() },
-  { label: "New estimate", href: "/crm/projects.html?action=new-estimate", kbd: "E", icon: iconDoc() },
-  { label: "New proposal", href: "/crm/projects.html?action=new-proposal", kbd: "P", icon: iconDoc() },
-  { label: "New contract", href: "/crm/projects.html?action=new-contract", kbd: "K", icon: iconDoc() },
+  { label: "New contact",      action: "quickAddContact",     kbd: "C", icon: iconUsers() },
+  { label: "New job",          action: "quickAddJob",         kbd: "J", icon: iconBriefcase() },
+  { label: "Book appointment", action: "quickAddAppointment", kbd: "A", icon: iconCal() },
+  { label: "New estimate",     action: "quickAddEstimate",    kbd: "E", icon: iconDoc() },
+  { label: "New proposal",     action: "quickAddProposal",    kbd: "P", icon: iconDoc() },
+  { label: "New contract",     action: "quickAddContract",    kbd: "K", icon: iconDoc() },
 ];
 
 // ============================================================
@@ -90,7 +91,7 @@ async function mount({ title = "", subtitle = "", actions = "", wide = false } =
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
         <div class="tnav__quickadd-menu" id="quickadd-menu">
-          ${QUICK_ADD.map((q) => `<a class="tnav__quickadd-item" href="${q.href}">${q.icon}<span>${esc(q.label)}</span><span class="kbd">${q.kbd}</span></a>`).join("")}
+          ${QUICK_ADD.map((q) => `<button class="tnav__quickadd-item" type="button" onclick="SSCrm.${q.action}();document.getElementById('quickadd-menu').classList.remove('is-open')">${q.icon}<span>${esc(q.label)}</span><span class="kbd">${q.kbd}</span></button>`).join("")}
         </div>
       </div>
       <div class="tnav__user">
@@ -301,7 +302,300 @@ function iconActivity() { return `<svg width="14" height="14" viewBox="0 0 24 24
 function iconSearch() { return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`; }
 
 // Export
+// ============================================================
+// Quick-Add modal infrastructure
+// ============================================================
+
+// Generic modal builder: title + body HTML + array of footer buttons
+function openModal({ title, body, buttons = [] }) {
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:560px">
+        <div class="modal-head">${esc(title)}</div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-foot">${buttons.map((b, i) => `<button class="btn ${b.kind || "ghost"}" data-i="${i}">${esc(b.label)}</button>`).join("")}</div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    const close = (v) => { bg.remove(); resolve(v); };
+    buttons.forEach((b, i) => bg.querySelector(`[data-i="${i}"]`).onclick = () => close(b.value !== undefined ? b.value : i));
+    bg.addEventListener("click", (e) => { if (e.target === bg) close(null); });
+    bg.querySelector(".modal-body input, .modal-body select, .modal-body textarea")?.focus();
+  });
+}
+
+// Contact-picker modal — type-ahead, returns selected contact or null
+async function pickContact({ allowNew = true } = {}) {
+  return new Promise(async (resolve) => {
+    const { contacts } = await fetchJSON("/api/contacts");
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:520px">
+        <div class="modal-head">Pick a contact</div>
+        <div class="modal-body">
+          <input type="search" id="pc-q" placeholder="Search name, email…" autocomplete="off" autofocus
+                 style="width:100%;padding:9px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;margin-bottom:12px"/>
+          <div id="pc-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:var(--r-sm)"></div>
+        </div>
+        <div class="modal-foot">
+          ${allowNew ? `<button class="btn secondary" id="pc-new">+ New contact</button>` : ""}
+          <button class="btn ghost" id="pc-cancel">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    const list = bg.querySelector("#pc-list");
+    function render(filter = "") {
+      const f = filter.toLowerCase();
+      const matches = contacts.filter((c) => !f || (c.name + " " + c.email + " " + (c.phone || "")).toLowerCase().includes(f)).slice(0, 50);
+      if (!matches.length) { list.innerHTML = `<div style="padding:30px;text-align:center;color:var(--ink-muted);font-size:13px">No contacts match.</div>`; return; }
+      list.innerHTML = matches.map((c) => `
+        <button type="button" data-id="${c.id}" style="display:block;width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;border-bottom:1px solid var(--line-soft);cursor:pointer;font-size:13px">
+          <strong style="color:var(--ink)">${esc(c.name)}</strong>
+          <div style="color:var(--ink-soft);font-size:12px">${esc(c.email)}${c.phone ? " · " + esc(c.phone) : ""}</div>
+        </button>
+      `).join("");
+      list.querySelectorAll("[data-id]").forEach((b) => b.onclick = () => { const c = contacts.find((x) => x.id === parseInt(b.dataset.id, 10)); bg.remove(); resolve(c); });
+    }
+    render();
+    bg.querySelector("#pc-q").oninput = (e) => render(e.target.value);
+    bg.querySelector("#pc-cancel").onclick = () => { bg.remove(); resolve(null); };
+    bg.addEventListener("click", (e) => { if (e.target === bg) { bg.remove(); resolve(null); } });
+    if (allowNew) {
+      bg.querySelector("#pc-new").onclick = async () => {
+        bg.remove();
+        const c = await quickAddContact({ skipNav: true });
+        resolve(c);
+      };
+    }
+  });
+}
+
+// Job/project picker — pick from a contact's jobs (creates one if none exist)
+async function pickJob(contactId) {
+  const { contacts: [contact], projects } = await Promise.all([
+    fetchJSON(`/api/contacts?q=`).then(async () => ({ contacts: [(await fetchJSON("/api/contacts/" + contactId)).contact] })),
+    fetchJSON(`/api/projects?contact_id=${contactId}`),
+  ]).then(([c, p]) => ({ ...c, ...p }));
+
+  if (!projects.length) {
+    // Auto-create one
+    const name = prompt(`No job yet for ${contact.name}. Name a new job (e.g. 'Whole house', 'Kitchen + Baths'):`, "Whole house");
+    if (!name) return null;
+    const { id } = await fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contactId, name }) });
+    return { id, name };
+  }
+  if (projects.length === 1) return projects[0];
+
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:520px">
+        <div class="modal-head">Pick a job for ${esc(contact.name)}</div>
+        <div class="modal-body" style="display:grid;gap:6px;max-height:340px;overflow-y:auto">
+          ${projects.map((p) => `<button class="btn ghost" data-pid="${p.id}" style="justify-content:space-between;padding:10px 12px;text-align:left"><strong>${esc(p.name)}</strong><span class="muted" style="font-size:12px">${esc(p.status)}</span></button>`).join("")}
+          <button class="btn secondary" data-new="1" style="margin-top:8px">+ New job</button>
+        </div>
+        <div class="modal-foot"><button class="btn ghost" data-cancel>Cancel</button></div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    bg.querySelectorAll("[data-pid]").forEach((b) => b.onclick = () => { bg.remove(); resolve(projects.find((p) => p.id === parseInt(b.dataset.pid, 10))); });
+    bg.querySelector("[data-new]").onclick = async () => {
+      bg.remove();
+      const name = prompt("New job name:", "");
+      if (!name) return resolve(null);
+      const { id } = await fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contactId, name }) });
+      resolve({ id, name });
+    };
+    bg.querySelector("[data-cancel]").onclick = () => { bg.remove(); resolve(null); };
+    bg.addEventListener("click", (e) => { if (e.target === bg) { bg.remove(); resolve(null); } });
+  });
+}
+
+// ---- Quick-add actions ----
+
+async function quickAddContact({ skipNav = false } = {}) {
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `
+    <div class="modal" style="max-width:480px">
+      <div class="modal-head">New contact</div>
+      <div class="modal-body">
+        <div class="form">
+          <label><span>Full name</span><input id="qc-name" autofocus required/></label>
+          <label><span>Email</span><input id="qc-email" type="email" required/></label>
+          <label><span>Phone (optional)</span><input id="qc-phone" type="tel"/></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-cancel>Cancel</button>
+        <button class="btn primary" data-save>Create &amp; open</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(bg);
+  return new Promise((resolve) => {
+    bg.querySelector("[data-cancel]").onclick = () => { bg.remove(); resolve(null); };
+    bg.querySelector("[data-save]").onclick = async () => {
+      const name = bg.querySelector("#qc-name").value.trim();
+      const email = bg.querySelector("#qc-email").value.trim();
+      const phone = bg.querySelector("#qc-phone").value.trim();
+      if (!name || !email) { toast("Name + email required", "error"); return; }
+      try {
+        const { id } = await fetchJSON("/api/contacts", { method: "POST", body: JSON.stringify({ name, email, phone: phone || null }) });
+        bg.remove();
+        if (!skipNav) location.href = "/crm/contact.html?id=" + id;
+        resolve({ id, name, email, phone });
+      } catch (e) { toast(e.message, "error"); }
+    };
+    bg.addEventListener("click", (e) => { if (e.target === bg) { bg.remove(); resolve(null); } });
+  });
+}
+
+async function quickAddJob() {
+  const contact = await pickContact();
+  if (!contact) return;
+  const name = prompt(`Job name for ${contact.name}?`, "Whole house");
+  if (!name) return;
+  try {
+    const { id } = await fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contact.id, name }) });
+    location.href = "/crm/project.html?id=" + id;
+  } catch (e) { toast(e.message, "error"); }
+}
+
+async function quickAddAppointment() {
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  // Pre-fill with tomorrow 10:00 Central
+  const tomorrow = new Date(Date.now() + 86400000);
+  const defaultDate = tomorrow.toISOString().slice(0, 10);
+  bg.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-head">Book appointment</div>
+      <div class="modal-body">
+        <div class="form">
+          <label><span>Customer name</span><input id="qa-name" autofocus required/></label>
+          <div class="row">
+            <label><span>Email</span><input id="qa-email" type="email" required/></label>
+            <label><span>Phone</span><input id="qa-phone" type="tel"/></label>
+          </div>
+          <div class="row">
+            <label><span>Date</span><input id="qa-date" type="date" value="${defaultDate}" required/></label>
+            <label><span>Start time</span><input id="qa-time" type="time" value="10:00" required/></label>
+          </div>
+          <div class="row">
+            <label><span>Duration (min)</span><input id="qa-dur" type="number" value="60" min="15" step="15"/></label>
+            <label><span>Type</span>
+              <select id="qa-type"><option value="consultation">Consultation</option><option value="measure">Measure</option><option value="install">Install</option><option value="service">Service</option></select>
+            </label>
+          </div>
+          <label><span>Site address (optional)</span><input id="qa-addr"/></label>
+          <label><span>Rooms (optional)</span><input id="qa-rooms" placeholder="Living, primary BR, 2 baths"/></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-cancel>Cancel</button>
+        <button class="btn primary" data-save>Book it</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(bg);
+  const close = () => bg.remove();
+  bg.querySelector("[data-cancel]").onclick = close;
+  bg.addEventListener("click", (e) => { if (e.target === bg) close(); });
+  bg.querySelector("[data-save]").onclick = async () => {
+    const date = bg.querySelector("#qa-date").value;
+    const time = bg.querySelector("#qa-time").value;
+    const dur = parseInt(bg.querySelector("#qa-dur").value || "60", 10);
+    const [h, m] = time.split(":").map((n) => parseInt(n, 10));
+    const totalMin = h * 60 + m + dur;
+    const endTime = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+    const body = {
+      name: bg.querySelector("#qa-name").value.trim(),
+      email: bg.querySelector("#qa-email").value.trim(),
+      phone: bg.querySelector("#qa-phone").value.trim() || null,
+      start_at: `${date}T${time}:00`,
+      end_at: `${date}T${endTime}:00`,
+      duration_min: dur,
+      type: bg.querySelector("#qa-type").value,
+      site_address: bg.querySelector("#qa-addr").value.trim() || null,
+      rooms: bg.querySelector("#qa-rooms").value.trim() || null,
+      status: "confirmed",
+      source: "admin",
+    };
+    if (!body.name || !body.email) { toast("Name + email required", "error"); return; }
+    try {
+      await fetchJSON("/api/appointments", { method: "POST", body: JSON.stringify(body) });
+      bg.remove();
+      toast("Appointment booked", "success");
+      if (location.pathname.includes("/calendar")) location.reload();
+      else location.href = "/crm/calendar.html";
+    } catch (e) { toast(e.message, "error"); }
+  };
+}
+
+async function quickAddEstimate() {
+  const contact = await pickContact();
+  if (!contact) return;
+  const job = await pickJob(contact.id);
+  if (!job) return;
+  try {
+    const { id } = await fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: job.id }) });
+    location.href = "/crm/estimate.html?id=" + id;
+  } catch (e) { toast(e.message, "error"); }
+}
+
+async function quickAddProposal() {
+  const contact = await pickContact();
+  if (!contact) return;
+  const job = await pickJob(contact.id);
+  if (!job) return;
+  try {
+    const { id } = await fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: job.id }) });
+    location.href = "/crm/proposal.html?id=" + id;
+  } catch (e) { toast(e.message, "error"); }
+}
+
+async function quickAddContract() {
+  const contact = await pickContact();
+  if (!contact) return;
+  const job = await pickJob(contact.id);
+  if (!job) return;
+  // Pick contract type
+  const type = await new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:520px">
+        <div class="modal-head">What kind of contract?</div>
+        <div class="modal-body" style="display:grid;gap:8px">
+          <button class="btn secondary" data-t="custom_order" style="justify-content:flex-start;padding:12px;text-align:left;flex-direction:column;align-items:flex-start;gap:2px"><strong style="font-size:13px">Custom Order</strong><span style="font-size:12px;color:var(--ink-soft);font-weight:400">We supply &amp; install. 50% deposit.</span></button>
+          <button class="btn secondary" data-t="install_only" style="justify-content:flex-start;padding:12px;text-align:left;flex-direction:column;align-items:flex-start;gap:2px"><strong style="font-size:13px">Install Only · BYO Blinds</strong><span style="font-size:12px;color:var(--ink-soft);font-weight:400">Lowes/Home Depot/Costco/Blinds.com. No deposit.</span></button>
+          <button class="btn secondary" data-t="repair" style="justify-content:flex-start;padding:12px;text-align:left;flex-direction:column;align-items:flex-start;gap:2px"><strong style="font-size:13px">Repair / Service Call</strong><span style="font-size:12px;color:var(--ink-soft);font-weight:400">Service-call fee + parts.</span></button>
+        </div>
+        <div class="modal-foot"><button class="btn ghost" data-no>Cancel</button></div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    bg.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { bg.remove(); resolve(b.dataset.t); });
+    bg.querySelector("[data-no]").onclick = () => { bg.remove(); resolve(null); };
+    bg.addEventListener("click", (e) => { if (e.target === bg) { bg.remove(); resolve(null); } });
+  });
+  if (!type) return;
+  try {
+    const { id } = await fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: job.id, contract_type: type }) });
+    location.href = "/crm/contract.html?id=" + id;
+  } catch (e) { toast(e.message, "error"); }
+}
+
 window.SSCrm = {
   fetchJSON, mount, fmtMoney, fmtMoneyShort, parseMoney, fmtDate, fmtDateTime, fmtTime, esc, pill, logout, toast, confirmDialog,
+  pickContact, pickJob, openModal,
+  quickAddContact, quickAddJob, quickAddAppointment, quickAddEstimate, quickAddProposal, quickAddContract,
   PROJECT_STATUSES,
 };
