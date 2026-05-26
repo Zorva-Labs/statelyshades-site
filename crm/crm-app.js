@@ -7,7 +7,7 @@
 const NAV = [
   { href: "/crm/",            label: "Dashboard", match: ["/crm/", "/crm/index.html"], icon: iconDash() },
   { href: "/crm/pipeline.html", label: "Pipeline", icon: iconKanban() },
-  { href: "/crm/leads.html",  label: "Leads", icon: iconLead() },
+  { href: "/crm/leads.html",  label: "Leads", icon: iconLead(), expandable: "leads" },
   { href: "/crm/contacts.html", label: "Contacts", icon: iconUsers() },
   { href: "/crm/projects.html", label: "Jobs", icon: iconBriefcase() },
   { href: "/crm/calendar.html", label: "Calendar", icon: iconCal() },
@@ -17,6 +17,19 @@ const NAV = [
   { href: "/crm/products.html", label: "Products", icon: iconBox() },
   { href: "/crm/templates.html", label: "Templates", icon: iconMail() },
   { href: "/crm/activity.html", label: "Activity", icon: iconActivity() },
+];
+
+// Lead status sub-items shown when the Leads nav row is expanded.
+// `color` lights up the left bar marker so each stage is visually distinct
+// (matches the pipeline kanban colors).
+const LEAD_STATUSES_NAV = [
+  { key: "new",       label: "New Leads",     color: "#94A3B8" },
+  { key: "replied",   label: "Replied",       color: "#F59E0B" },
+  { key: "consult",   label: "Consult",       color: "#6366F1" },
+  { key: "proposal",  label: "Proposal Sent", color: "#8B5CF6" },
+  { key: "booked",    label: "Booked",        color: "#2563EB" },
+  { key: "installed", label: "Installed",     color: "#10B981" },
+  { key: "lost",      label: "Lost",          color: "#94A3B8" },
 ];
 
 // Sidebar groups — all links visible (we have room in the vertical rail)
@@ -123,7 +136,42 @@ async function mount({ title = "", subtitle = "", actions = "", wide = false } =
 
 function navLink(n, currentPath) {
   const matches = n.match ? n.match.includes(currentPath) : currentPath === n.href || currentPath.startsWith(n.href.replace(".html", ""));
+  if (n.expandable === "leads") return leadsNav(n, currentPath, matches);
   return `<a class="tnav__link ${matches ? "is-active" : ""}" href="${n.href}">${n.icon}<span>${esc(n.label)}</span></a>`;
+}
+
+// Expandable Leads nav — parent row + a list of status sub-rows with colored
+// markers + count badges (populated async from /api/leads counts). Auto-opens
+// when the user is on the Leads page so the active filter is visible.
+function leadsNav(n, currentPath, matches) {
+  const params = new URLSearchParams(location.search);
+  const activeStatus = params.get("status") || "";
+  const expanded = matches; // open by default whenever we're on the leads section
+  const subItems = LEAD_STATUSES_NAV.map((s) => `
+    <a class="tnav__sub ${matches && activeStatus === s.key ? "is-active" : ""}"
+       href="/crm/leads.html?status=${s.key}"
+       data-status="${s.key}">
+      <span class="tnav__sub-dot" style="background:${s.color}"></span>
+      <span class="tnav__sub-label">${esc(s.label)}</span>
+      <span class="tnav__sub-count" data-status-count="${s.key}"></span>
+    </a>`).join("");
+
+  return `
+    <div class="tnav__group ${expanded ? "is-open" : ""}" data-leads-group>
+      <div class="tnav__group-head">
+        <a class="tnav__link tnav__link--expand ${matches ? "is-active" : ""}" href="${n.href}">
+          ${n.icon}
+          <span>${esc(n.label)}</span>
+          <span class="tnav__sub-count" data-status-count="_total"></span>
+        </a>
+        <button type="button" class="tnav__expand-toggle" aria-label="Toggle leads list"
+                onclick="this.closest('.tnav__group').classList.toggle('is-open')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="tnav__sublist">${subItems}</div>
+    </div>
+  `;
 }
 
 function moreMenu(path) {
@@ -143,7 +191,31 @@ function moreMenu(path) {
   `;
 }
 
+async function loadLeadCounts() {
+  if (!document.querySelector("[data-status-count]")) return; // no leads nav on this page
+  try {
+    const { counts } = await fetchJSON("/api/leads?limit=1");
+    const c = counts || {};
+    let total = 0;
+    document.querySelectorAll("[data-status-count]").forEach((el) => {
+      const key = el.dataset.statusCount;
+      if (key === "_total") return;
+      const n = c[key] || 0;
+      total += n;
+      if (n > 0) { el.textContent = n; el.classList.add("is-visible"); }
+    });
+    const totalEl = document.querySelector('[data-status-count="_total"]');
+    if (totalEl && total > 0) { totalEl.textContent = total; totalEl.classList.add("is-visible"); }
+  } catch (e) {
+    // Silent — the nav still works, just without counts
+  }
+}
+
 function wireNav() {
+  // Populate Lead-status sub-counts in the background — never blocks render.
+  // The /api/leads endpoint returns a counts object keyed by status.
+  loadLeadCounts();
+
   // Quick-add toggle
   const qBtn = document.getElementById("quickadd-btn");
   const qMenu = document.getElementById("quickadd-menu");

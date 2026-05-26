@@ -128,7 +128,54 @@ h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; margin: 0; color: var(--ink
 .tnav__link.is-active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
 .tnav__link svg { opacity: 0.7; flex-shrink: 0; }
 .tnav__link.is-active svg { opacity: 1; }
-.tnav__link span { flex: 1; }
+/* The label span (first/direct text wrapper) flexes; count badges + chevron stay tight. */
+.tnav__link > span:not(.tnav__sub-count) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Expandable Leads group: parent row + nested status sub-items (auto-opens
+   when the user is on /crm/leads.html; chevron toggles state) */
+.tnav__group { display: flex; flex-direction: column; }
+.tnav__group-head {
+  display: flex; align-items: center; gap: 2px;
+}
+.tnav__group-head .tnav__link { flex: 1; min-width: 0; }
+.tnav__expand-toggle {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 28px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: var(--ink-muted); border-radius: var(--r-sm);
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tnav__expand-toggle:hover { background: var(--bg-soft); color: var(--ink); }
+.tnav__group.is-open .tnav__expand-toggle { transform: rotate(180deg); color: var(--ink); }
+.tnav__sublist { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
+.tnav__group.is-open .tnav__sublist { max-height: 600px; margin: 2px 0 6px; }
+.tnav__sub {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px 6px 12px;
+  font-size: 12.5px; color: var(--ink-soft);
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  position: relative;
+}
+.tnav__sub:hover { background: var(--bg-hover); color: var(--ink); }
+.tnav__sub.is-active { background: var(--ink); color: #fff; font-weight: 600; }
+.tnav__sub.is-active .tnav__sub-label { color: #fff; }
+.tnav__sub-dot {
+  width: 4px; height: 18px; border-radius: 2px; flex-shrink: 0;
+}
+.tnav__sub-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tnav__sub-count {
+  display: none; /* hidden until populated */
+  background: var(--bg-soft); color: var(--ink-soft);
+  font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  padding: 2px 7px; border-radius: 10px;
+  flex-shrink: 0;
+}
+.tnav__sub-count.is-visible { display: inline-block; }
+.tnav__sub.is-active .tnav__sub-count { background: rgba(255,255,255,.18); color: #fff; }
+.tnav__link--expand .tnav__sub-count { margin-left: auto; }
 .tnav__section-label {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--ink-muted); font-weight: 600;
@@ -723,6 +770,10 @@ hr.sep { border: 0; border-top: 1px solid var(--line-soft); margin: 18px 0; }
   .tnav__user-btn { padding: 0; justify-content: center; }
   .tnav__user-btn::before { width: 28px; height: 28px; }
   .tnav__user-btn span { display: none; }
+  /* Collapse the expandable Leads sub-list when the sidebar is icons-only —
+     the sub-labels need horizontal room. Chevron toggle is hidden too. */
+  .tnav__sublist, .tnav__link--expand .tnav__expand-toggle { display: none; }
+  .tnav__link--expand .tnav__sub-count { display: none !important; }
 }
 
 @media (max-width: 700px) {
