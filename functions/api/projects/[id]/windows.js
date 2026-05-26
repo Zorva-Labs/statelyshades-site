@@ -1,5 +1,6 @@
 // /api/projects/[id]/windows — replace the whole window list for a project (bulk save)
 import { requireAuth, json } from "../../../_lib/auth.js";
+import { reseedEmptyProposalTiers } from "../../../_lib/lifecycle.js";
 
 export async function onRequestGet(context) {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
@@ -37,5 +38,9 @@ export async function onRequestPut(context) {
       w.wall || null,
     ).run();
   }
-  return json({ ok: true });
+  // If the project has draft proposals that were created before windows
+  // existed (empty tiers), populate them now so the admin doesn't have to
+  // re-create the proposal just to get line items.
+  const reseeded = await reseedEmptyProposalTiers(context.env.DB, projectId);
+  return json({ ok: true, reseeded });
 }

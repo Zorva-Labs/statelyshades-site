@@ -156,6 +156,37 @@ export async function seedTiersFromWindows(db, proposalId, projectId) {
 }
 
 /**
+ * After windows change on a project, refresh any draft proposals on that
+ * project whose tier line items are still empty — these are proposals that
+ * were created before the admin picked products on the windows. We never
+ * touch a tier that already has lines (the admin may have hand-edited it).
+ *
+ * Returns the number of tiers re-seeded.
+ */
+export async function reseedEmptyProposalTiers(db, projectId) {
+  const drafts = (await db.prepare(
+    `SELECT id FROM proposals WHERE project_id = ?1 AND status IN ('draft','sent','viewed','tier_selected')`
+  ).bind(projectId).all()).results || [];
+  if (!drafts.length) return 0;
+
+  let reseeded = 0;
+  for (const p of drafts) {
+    // Count lines across all tiers — only re-seed if ALL are empty
+    const row = await db.prepare(
+      `SELECT COUNT(ptl.id) AS line_count
+         FROM proposal_tiers pt
+         LEFT JOIN proposal_tier_lines ptl ON ptl.tier_id = pt.id
+        WHERE pt.proposal_id = ?1`
+    ).bind(p.id).first();
+    if ((row?.line_count || 0) > 0) continue;
+    await seedTiersFromWindows(db, p.id, projectId);
+    await syncLeadQuotedFromProposal(db, p.id);
+    reseeded++;
+  }
+  return reseeded;
+}
+
+/**
  * Sync the originating lead's quoted_amount_cents to the proposal's "best"
  * tier total (or whichever tier is currently selected, if the customer has
  * accepted one). Called whenever a proposal is created or its line items

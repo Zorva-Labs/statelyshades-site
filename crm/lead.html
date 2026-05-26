@@ -257,9 +257,14 @@ async function saveLeadWindows() {
   if (!workspace?.project) { SSCrm.toast("Save lead email first", "error"); return; }
   const rows = WindowsEditor.collect();
   try {
-    await SSCrm.fetchJSON(`/api/projects/${workspace.project.id}/windows`, { method: "PUT", body: JSON.stringify({ windows: rows }) });
-    SSCrm.toast(`Saved ${rows.length} window${rows.length === 1 ? "" : "s"}`, "success");
-    await loadWorkspace();
+    const resp = await SSCrm.fetchJSON(`/api/projects/${workspace.project.id}/windows`, { method: "PUT", body: JSON.stringify({ windows: rows }) });
+    const tail = resp.reseeded ? ` · ${resp.reseeded} proposal${resp.reseeded === 1 ? "" : "s"} populated from windows` : "";
+    SSCrm.toast(`Saved ${rows.length} window${rows.length === 1 ? "" : "s"}${tail}`, "success");
+    // Re-fetch both the lead (for the now-synced quoted_amount) and the workspace (for proposal totals)
+    await Promise.all([
+      (async () => { state = await SSCrm.fetchJSON("/api/leads/" + id); })(),
+      loadWorkspace(),
+    ]);
     render();
   } catch (e) { SSCrm.toast(e.message, "error"); }
 }
