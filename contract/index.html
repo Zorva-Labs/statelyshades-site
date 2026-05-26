@@ -65,10 +65,6 @@
 </head>
 <body>
 <main class="doc" id="root"><p style="text-align:center;color:var(--color-ink-soft);padding:40px">Loading…</p></main>
-<!-- signature_pad@5.0.4 (szimek/signature_pad) — battle-tested cross-browser
-     signature capture. Self-hosted from /assets/js/ because our CSP header
-     restricts script-src to 'self' (no third-party CDNs). ~13kb. -->
-<script src="/assets/js/signature_pad-5.0.4.min.js" defer></script>
 <script>
 const token = new URLSearchParams(location.search).get("t");
 if (!token) document.getElementById("root").innerHTML = `<p style="color:#B85450;text-align:center">Missing token.</p>`;
@@ -253,67 +249,67 @@ function prettyTime(iso) {
 }
 
 let pad = null;
-// Signature capture via the signature_pad library (szimek/signature_pad).
-// Handles all the edge cases that broke the hand-rolled version:
-//   • Synthesized mouse-after-touch on iOS (no double events)
-//   • Pointer capture so a finger leaving the canvas mid-stroke is OK
-//   • Device pixel ratio scaling on retina screens
-//   • Canvas-resize survives the iOS keyboard show/hide that triggers reflow
-//     — the library stores strokes and re-renders on resize automatically
+// Dead-simple signature pad: native Pointer Events on the canvas. No library,
+// no resize handler, no dpr scaling, no window event listeners — anything
+// dynamic was a vector for the "strokes disappear on mouseup" bug. The bitmap
+// is sized ONCE at mount time to match the canvas's CSS-rendered dimensions,
+// and from that point nothing touches canvas.width/height. Strokes are
+// painted directly onto the bitmap and stay there until the Clear button
+// is clicked (or the user submits).
 function wirePad() {
   const canvas = document.getElementById("sig-pad");
+  // Fix the bitmap dimensions to the CSS size, ONCE. Setting these clears
+  // the bitmap + resets context state, so do it before any ctx config.
+  canvas.width  = canvas.offsetWidth  || 700;
+  canvas.height = canvas.offsetHeight || 180;
+  const ctx = canvas.getContext("2d");
+  ctx.strokeStyle = "#14110D";
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = "round";
+  ctx.lineJoin    = "round";
 
-  // Library loads via <script defer>; if render() runs first, retry.
-  if (typeof SignaturePad === "undefined") {
-    setTimeout(wirePad, 50);
-    return;
+  let drawing = false;
+  let hasInk  = false;
+
+  function point(e) {
+    const r = canvas.getBoundingClientRect();
+    // Map CSS pixel coords to bitmap pixel coords in case CSS scales the canvas
+    const sx = canvas.width  / r.width;
+    const sy = canvas.height / r.height;
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
 
-  // Size the canvas BITMAP to match its CSS size × devicePixelRatio so retina
-  // strokes are crisp. Setting canvas.width clears + resets the context state,
-  // so we ALWAYS apply scale(ratio, ratio) right after as a single atomic op.
-  //
-  // Critical: guard against running on every spurious window-resize event.
-  // Re-applying scale() to a context that's already scaled COMPOUNDS the
-  // transform — next stroke renders way off-canvas, looking like it "vanished".
-  // We only resize when offsetWidth/offsetHeight actually changed.
-  let lastW = 0, lastH = 0;
-  function resizeCanvas() {
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const cssW = canvas.offsetWidth;
-    const cssH = canvas.offsetHeight;
-    if (!cssW || !cssH) return;             // not laid out yet
-    if (cssW === lastW && cssH === lastH) return;  // no real change → skip
-    lastW = cssW; lastH = cssH;
-    const data = sp ? sp.toData() : null;
-    canvas.width  = cssW * ratio;
-    canvas.height = cssH * ratio;
-    canvas.getContext("2d").scale(ratio, ratio);
-    if (sp) {
-      sp.clear();
-      if (data && data.length) sp.fromData(data);
-    }
-  }
-
-  const sp = new SignaturePad(canvas, {
-    backgroundColor: "rgba(255, 255, 255, 0)",
-    penColor: "#14110D",
-    minWidth: 1.2,
-    maxWidth: 2.4,
-    throttle: 16,
-    minDistance: 1,
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button != null && e.button !== 0) return;
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    drawing = true; hasInk = true;
+    const p = point(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    // Stamp a tiny dot so a single tap is visible
+    ctx.lineTo(p.x + 0.1, p.y + 0.1);
+    ctx.stroke();
   });
-
-  // Initial bitmap sizing. After this only orientation changes / explicit
-  // viewport-width changes should re-run it (guarded by the dimension diff).
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("orientationchange", resizeCanvas);
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = point(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+  function end(e) {
+    if (!drawing) return;
+    drawing = false;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+  canvas.addEventListener("pointerup",     end);
+  canvas.addEventListener("pointercancel", end);
 
   pad = {
-    clear:     () => sp.clear(),
-    isEmpty:   () => sp.isEmpty(),
-    toDataURL: () => sp.toDataURL("image/png"),
+    clear:     () => { ctx.clearRect(0, 0, canvas.width, canvas.height); hasInk = false; },
+    isEmpty:   () => !hasInk,
+    toDataURL: () => canvas.toDataURL("image/png"),
   };
   document.getElementById("sig-clear").onclick = () => pad.clear();
 }
