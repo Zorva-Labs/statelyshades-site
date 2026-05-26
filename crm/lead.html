@@ -34,6 +34,7 @@ let catalog = [];       // [{id, name, category, ...}]
   const user = await SSCrm.mount({
     title: "Lead",
     actions: `<a class="btn ghost" href="/crm/leads.html">← All leads</a>`,
+    wide: true,
   });
   if (!user) return;
   state = await SSCrm.fetchJSON("/api/leads/" + id);

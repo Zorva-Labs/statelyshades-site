@@ -658,6 +658,9 @@ hr.sep { border: 0; border-top: 1px solid var(--line-soft); margin: 18px 0; }
 }
 .lead-grid__main, .lead-grid__side { min-width: 0; }
 .lead-grid__side { display: flex; flex-direction: column; }
+/* Inside the responsive grid, forms + tables should fill the card width, not cap at 720 */
+.lead-grid .form,
+.app--wide .form { max-width: none; }
 
 @media (max-width: 900px) {
   .lead-grid { grid-template-columns: 1fr; }
