@@ -20,7 +20,16 @@ import { connect } from "cloudflare:sockets";
 
 const SMTP_HOST = "smtp.purelymail.com";
 const SMTP_PORT = 587;
+// Customer-facing From (default). Uses the real hello@ mailbox so iCloud /
+// Gmail / Outlook see a sender that actually exists on the domain — important
+// for deliverability. iCloud was rejecting crm@ as "policy violation" since
+// that local-part isn't backed by a real mailbox / DKIM identity.
 const DEFAULT_FROM = "Stately Shades <hello@statelyshades.com>";
+// Internal-admin From — used ONLY when the To matches PURELYMAIL_USER (i.e.
+// notifications to ourselves, like the new-lead alert). Using crm@ here
+// breaks the self-loop that Purelymail would otherwise file in Sent instead
+// of Inbox. External customers never see this address.
+const SELF_LOOP_FROM = "Stately Shades CRM <crm@statelyshades.com>";
 const CRLF = "\r\n";
 
 // Best-effort mail send. Never throws. Returns { status, json, messageId } on
@@ -44,11 +53,24 @@ export async function sendEmail(env, {
     console.warn("[email] PURELYMAIL_USER/PASSWORD missing — skipping send");
     return { skipped: true, reason: "no_creds" };
   }
-  const fromHeader = from || env.MAIL_FROM || DEFAULT_FROM;
   const toList  = Array.isArray(to)  ? to  : (to ? [to] : []);
   const ccList  = Array.isArray(cc)  ? cc  : (cc ? [cc] : []);
   const bccList = Array.isArray(bcc) ? bcc : (bcc ? [bcc] : []);
   const reply = replyTo || env.MAIL_DEFAULT_REPLY || env.PURELYMAIL_USER;
+  // Pick the right From based on the audience:
+  //   - Explicit `from` arg always wins
+  //   - If ALL recipients are external customers → use the real customer-
+  //     facing From (env.MAIL_FROM or hello@) for max deliverability
+  //   - If ANY recipient is the auth'd mailbox (admin notification path) →
+  //     use the self-loop-breaking alias (env.MAIL_FROM_ALIAS or crm@)
+  //     because the destination MTA would otherwise file it in Sent rather
+  //     than Inbox.
+  const authUser = (env.PURELYMAIL_USER || "").toLowerCase();
+  const allRecipients = [...toList, ...ccList, ...bccList].map(extractAddr).map((s) => s.toLowerCase());
+  const sendingToSelf = !!authUser && allRecipients.includes(authUser);
+  const customerFrom  = env.MAIL_FROM       || DEFAULT_FROM;
+  const selfLoopFrom  = env.MAIL_FROM_ALIAS || SELF_LOOP_FROM;
+  const fromHeader = from || (sendingToSelf ? selfLoopFrom : customerFrom);
   // SMTP envelope MAIL FROM uses the auth'd mailbox so Purelymail never rejects
   // the submission ("550 sender not allowed"). The visible From: header can be
   // anything on the same domain (e.g. crm@statelyshades.com) — this is how we
