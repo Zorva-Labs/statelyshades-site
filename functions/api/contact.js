@@ -1,10 +1,6 @@
-// POST /api/contact — receives the consultation form and emails it to
-// hello@statelyshades.com via Resend (re_…).
-//
-// Env required (set on the Pages project):
-//   RESEND_API_KEY — Resend API token (re_...)
-//   RESEND_FROM    — optional; defaults to "Stately Shades Website <onboarding@resend.dev>"
-//                    Set this to a verified custom-domain sender when ready.
+// POST /api/contact — receives the consultation form, saves the lead to D1,
+// and emails the admin via the shared sendEmail() wrapper (currently SMTP
+// to Purelymail; see _lib/email.js for env vars).
 
 import { sendEmail } from "../_lib/email.js";
 
