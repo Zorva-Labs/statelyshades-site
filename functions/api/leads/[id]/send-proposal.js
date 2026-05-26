@@ -4,7 +4,7 @@
 import { requireAuth, json } from "../../../_lib/auth.js";
 import { upsertContact, recordActivity } from "../../../_lib/db.js";
 import { genToken, nextSequence, formatDocNumber } from "../../../_lib/tokens.js";
-import { seedTiersFromWindows, syncLeadQuotedFromProposal } from "../../../_lib/lifecycle.js";
+import { seedTiersFromWindows, syncLeadQuotedFromProposal, bumpLeadStatusForward } from "../../../_lib/lifecycle.js";
 
 const TIERS = ["good", "better", "best"];
 
@@ -93,12 +93,13 @@ export async function onRequestPost(context) {
   // kanban + leads list show the quoted amount as soon as the proposal is created.
   await syncLeadQuotedFromProposal(DB, proposalRow.id);
 
-  // 4. Update lead: link to the new contact + bump status to 'proposal'
+  // 4. Update lead: link the contact + advance the pipeline. Status uses the
+  // forward-only helper so we never downgrade (e.g. if the lead was already
+  // 'booked' when admin re-sent a tweaked proposal).
   // NOTE: quoted_amount_cents is set above by syncLeadQuotedFromProposal —
   // do not clobber it here.
-  await DB.prepare(
-    `UPDATE leads SET contact_id = ?1, status = 'proposal', updated_at = datetime('now') WHERE id = ?2`
-  ).bind(contactId, leadId).run();
+  await DB.prepare(`UPDATE leads SET contact_id = ?1, updated_at = datetime('now') WHERE id = ?2`).bind(contactId, leadId).run();
+  await bumpLeadStatusForward(DB, leadId, "proposal", { actor: { kind: "admin", id: auth.id, name: auth.email } });
 
   // 5. Audit
   await recordActivity(DB, {

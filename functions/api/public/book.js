@@ -5,6 +5,7 @@ import { upsertContact, recordActivity } from "../../_lib/db.js";
 import { sendEmail, brandedEmail, escapeHtml } from "../../_lib/email.js";
 import { buildIcs } from "../../_lib/ical.js";
 import { fmtPretty } from "../../_lib/dates.js";
+import { bumpLeadStatusForward } from "../../_lib/lifecycle.js";
 
 const SITE_URL = "https://statelyshades.com";
 
@@ -77,6 +78,14 @@ export async function onRequestPost(context) {
     actorKind: "customer", actorName: body.name,
     details: { ip_hash: ipHash },
   });
+
+  // If this booking came from someone who already submitted a lead form,
+  // auto-advance their pipeline status to "consult". Match by email.
+  const matchingLead = await DB.prepare(`SELECT id FROM leads WHERE LOWER(email)=?1 ORDER BY id DESC LIMIT 1`)
+    .bind(body.email.toLowerCase()).first().catch(() => null);
+  if (matchingLead) {
+    await bumpLeadStatusForward(DB, matchingLead.id, "consult", { actor: { kind: "customer", name: body.name } });
+  }
 
   // Build iCal
   const ics = buildIcs({

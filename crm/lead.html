@@ -504,7 +504,10 @@ async function bookFromLead() {
     const endTime = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
     const addrParts = [l.address_street, [l.address_city, l.address_state].filter(Boolean).join(", "), l.address_zip].filter(Boolean);
     try {
+      // Pass lead_id so the server-side handler can auto-advance the pipeline
+      // to "consult" (forward-only, via bumpLeadStatusForward in lifecycle.js).
       await SSCrm.fetchJSON("/api/appointments", { method: "POST", body: JSON.stringify({
+        lead_id: l.id,
         name: l.name, email: l.email, phone: l.phone,
         start_at: `${date}T${time}:00`,
         end_at: `${date}T${endTime}:00`,
@@ -515,8 +518,6 @@ async function bookFromLead() {
         status: "confirmed",
         source: "admin",
       })});
-      // Bump lead status to consult — they've got a consultation on the calendar
-      await SSCrm.fetchJSON("/api/leads/" + id, { method: "PATCH", body: JSON.stringify({ status: "consult" }) });
       bg.remove();
       SSCrm.toast("Consultation booked", "success");
       // Refresh

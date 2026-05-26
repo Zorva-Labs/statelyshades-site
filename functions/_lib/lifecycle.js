@@ -218,6 +218,40 @@ export async function syncLeadQuotedFromProposal(db, proposalId) {
   return amount;
 }
 
+// Lead pipeline rank — only forward transitions are allowed. A lead at
+// "proposal" stays there when someone sends a follow-up email (no downgrade
+// to "replied"); a lead at "booked" stays booked when someone schedules a
+// post-install service call (no downgrade to "consult"). "installed" is
+// terminal forward-progress and only set manually; "lost" is a hard terminal
+// the admin chose, and we never auto-revive a lost lead.
+const LEAD_STATUS_RANK = {
+  new: 1, replied: 2, consult: 3, proposal: 4, booked: 5, installed: 6, lost: 99,
+};
+
+/**
+ * Move a lead's status forward to `target` IF the current status ranks lower
+ * AND the lead isn't terminal (lost). No-op otherwise. Always logs activity
+ * when a transition actually happens.
+ *
+ * Returns the new status (string), or null if no change.
+ */
+export async function bumpLeadStatusForward(db, leadId, target, { actor } = {}) {
+  if (!leadId || !target || !(target in LEAD_STATUS_RANK)) return null;
+  const lead = await db.prepare(`SELECT id, status FROM leads WHERE id=?1`).bind(leadId).first().catch(() => null);
+  if (!lead) return null;
+  const curRank = LEAD_STATUS_RANK[lead.status] ?? 0;
+  const newRank = LEAD_STATUS_RANK[target];
+  if (lead.status === "lost") return null;            // never auto-revive
+  if (newRank <= curRank) return null;                 // forward-only
+  await db.prepare(`UPDATE leads SET status=?1, updated_at=datetime('now') WHERE id=?2`).bind(target, leadId).run();
+  await recordActivity(db, {
+    entityType: "lead", entityId: leadId, action: target,
+    actorKind: actor?.kind || "system", actorId: actor?.id || null, actorName: actor?.name || null,
+    details: { from: lead.status, to: target, auto: true },
+  });
+  return target;
+}
+
 /**
  * Mark a project as fully booked (customer signed the contract).
  * - Updates project.status to 'contracted'
@@ -235,12 +269,11 @@ export async function markProjectBooked(db, projectId, contractId) {
     actorKind: "customer", details: { contract_id: contractId },
   });
 
-  // If this project came from a lead, flip the lead to 'booked' too
+  // If this project came from a lead, advance the lead's pipeline to 'booked'.
+  // bumpLeadStatusForward handles activity logging + forward-only invariants.
   if (project.lead_id) {
-    await db.prepare(`UPDATE leads SET status='booked', updated_at=datetime('now') WHERE id=?1`).bind(project.lead_id).run();
-    await recordActivity(db, {
-      entityType: "lead", entityId: project.lead_id, action: "booked",
-      actorKind: "customer", details: { project_id: projectId, contract_id: contractId },
+    await bumpLeadStatusForward(db, project.lead_id, "booked", {
+      actor: { kind: "customer" },
     });
   }
 }
