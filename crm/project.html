@@ -91,6 +91,7 @@ async function render() {
       <nav class="job__tabs" id="tabs">
         ${tab("overview", "Overview")}
         ${tab("windows", "Windows", windows.length)}
+        ${tab("messages", "Messages")}
         ${tab("proposals", "Proposals", proposals.length)}
         ${tab("contracts", "Contracts", contracts.length)}
         ${tab("activity", "Activity")}
@@ -187,6 +188,21 @@ function switchTab(tab) {
       const host = document.getElementById("rooms-host");
       WindowsEditor.init(host, windows, { catalog: cat });
     });
+  }
+  else if (tab === "messages") {
+    body.innerHTML = `<div id="email-timeline"></div>`;
+    const emailHost = document.getElementById("email-timeline");
+    const refresh = () => SSCrm.renderEmailTimeline(emailHost, {
+      project_id: project.id,
+      onCompose: async () => {
+        const res = await SSCrm.composeEmail({
+          contact: { id: project.contact_id, name: project.contact_name, email: project.contact_email, phone: project.contact_phone, address_street: project.site_address || "" },
+          project,
+        });
+        if (res?.ok) refresh();
+      },
+    });
+    refresh();
   }
   else if (tab === "proposals") body.innerHTML = renderDocTab(proposals, "proposal", "PROP", newProposal);
   else if (tab === "contracts") body.innerHTML = renderDocTab(contracts, "contract", "C", newContract);

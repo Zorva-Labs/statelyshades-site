@@ -894,9 +894,240 @@ async function pickProduct() {
   });
 }
 
+// ============================================================
+// Email integration — Compose modal + Messages timeline
+//
+// composeEmail({ contact, lead, project, defaultKind, parent })
+//   contact / lead / project — entity rows (with .id, .name, .email)
+//   defaultKind              — template kind to auto-pick (e.g. "lead_new")
+//   parent                   — { id, message_id_header, subject } when replying
+//
+// renderEmailTimeline(hostEl, { lead_id|contact_id|project_id, onCompose })
+//   Mounts a live timeline into hostEl. Calls onCompose when user clicks the
+//   Compose button (caller wires that to the modal with the right context).
+// ============================================================
+
+// Light client-side variable substitution so the live preview shows the
+// admin what the customer will see. Server re-renders authoritatively on send.
+const TPL_TOKEN_RE = /\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}/gi;
+function clientRender(tpl, vars) {
+  if (!tpl) return "";
+  return String(tpl).replace(TPL_TOKEN_RE, (_m, key) => {
+    const v = vars?.[key];
+    if (v == null || v === "") return `{{${key}}}`;
+    return String(v);
+  });
+}
+
+// Build the same {{vars}} dict the server would, from already-loaded entity rows
+function clientBuildVars({ contact, lead, project }) {
+  const name = (contact?.name) || (lead?.name) || "";
+  const first_name = name.trim().split(/\s+/)[0].replace(/[^A-Za-z'\-]/g, "");
+  const street = contact?.address_street || lead?.address_street || "";
+  const city   = contact?.address_city   || lead?.address_city   || "";
+  const state  = contact?.address_state  || lead?.address_state  || "";
+  const zip    = contact?.address_zip    || lead?.address_zip    || "";
+  const address = [street, [city, state].filter(Boolean).join(", "), zip].filter(Boolean).join(", ");
+  return {
+    name, first_name,
+    email: contact?.email || lead?.email || "",
+    phone: contact?.phone || lead?.phone || "",
+    street, city, state, zip, address,
+    interest: lead?.interest || project?.name || "",
+    quoted_amount: lead?.quoted_amount_cents ? fmtMoney(lead.quoted_amount_cents) : "",
+    proposal_link: "", // populated server-side
+    contract_link: "",
+    appointment_date: "",
+    appointment_time: "",
+  };
+}
+
+async function composeEmail({ contact, lead, project, defaultKind, parent } = {}) {
+  const peer = contact || lead || {};
+  if (!peer.email) {
+    toast("Add an email to this record first", "error");
+    return null;
+  }
+  // Pull the active template list (filtered to a kind if defaultKind given;
+  // otherwise show everything so the user can pick).
+  const { templates } = await fetchJSON("/api/email-templates" + (defaultKind ? `?kind=${defaultKind}` : ""));
+  // If no template auto-picked, also load all so the dropdown isn't empty
+  const allTemplates = defaultKind
+    ? (await fetchJSON("/api/email-templates").catch(() => ({ templates: [] }))).templates
+    : templates;
+
+  const initialTpl = templates.find((t) => t.is_default) || templates[0] || allTemplates[0] || null;
+  const vars = clientBuildVars({ contact, lead, project });
+
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:760px;width:96vw">
+        <div class="modal-head" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span>${parent ? "Reply" : "New email"} — ${esc(peer.name || peer.email)}</span>
+          <select id="cm-tpl" style="font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-sm);max-width:280px">
+            <option value="">— blank email —</option>
+            ${allTemplates.map((t) => `<option value="${t.id}" ${initialTpl && initialTpl.id === t.id ? "selected" : ""}>${esc(t.name)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="modal-body">
+          <div class="form">
+            <label><span>To</span><input id="cm-to" value="${esc(peer.email)}" required/></label>
+            <details><summary style="cursor:pointer;font-size:12px;color:var(--ink-soft);margin-bottom:8px">Cc / Bcc</summary>
+              <label><span>Cc</span><input id="cm-cc" placeholder="comma-separated"/></label>
+              <label><span>Bcc</span><input id="cm-bcc" placeholder="comma-separated"/></label>
+            </details>
+            <label><span>Subject</span><input id="cm-subject" required/></label>
+            <label><span>Message</span><textarea id="cm-body" rows="14" style="font-family:inherit;line-height:1.5"></textarea></label>
+            <p class="muted" style="font-size:11px;margin:0">Variables shown as <code>{{first_name}}</code> stay literal in the preview, get filled in server-side on send. Unresolved variables stay literal so you can spot missing data before sending.</p>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" data-cancel>Cancel</button>
+          <button class="btn primary" data-send>Send →</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+
+    const tplSel = bg.querySelector("#cm-tpl");
+    const subjI  = bg.querySelector("#cm-subject");
+    const bodyI  = bg.querySelector("#cm-body");
+    function loadTemplate(tplId) {
+      const t = allTemplates.find((x) => String(x.id) === String(tplId));
+      if (!t) return;
+      subjI.value = clientRender(t.subject, vars);
+      bodyI.value = clientRender(t.body_text || "", vars);
+    }
+    if (initialTpl) loadTemplate(initialTpl.id);
+    tplSel.addEventListener("change", () => loadTemplate(tplSel.value));
+
+    // Reply mode prefills subject "Re: ..." and parent_message_id
+    if (parent) {
+      const s = parent.subject || "";
+      subjI.value = s.replace(/^(re:\s*)+/i, "").trim();
+      subjI.value = "Re: " + subjI.value;
+    }
+
+    function close(result) { bg.remove(); resolve(result); }
+    bg.querySelector("[data-cancel]").onclick = () => close(null);
+    bg.addEventListener("click", (e) => { if (e.target === bg) close(null); });
+
+    bg.querySelector("[data-send]").onclick = async () => {
+      const btn = bg.querySelector("[data-send]");
+      btn.disabled = true; btn.textContent = "Sending…";
+      const payload = {
+        contact_id: contact?.id || null,
+        lead_id:    lead?.id    || null,
+        project_id: project?.id || null,
+        template_id: tplSel.value ? parseInt(tplSel.value, 10) : null,
+        to:      bg.querySelector("#cm-to").value.trim(),
+        cc:      bg.querySelector("#cm-cc").value.trim() || null,
+        bcc:     bg.querySelector("#cm-bcc").value.trim() || null,
+        subject: subjI.value.trim(),
+        body_text: bodyI.value,
+        parent_message_id: parent?.id || null,
+      };
+      try {
+        const res = await fetchJSON("/api/email-messages", { method: "POST", body: JSON.stringify(payload) });
+        toast(res.ok ? "Sent" : ("Send failed: " + (res.error || "unknown")), res.ok ? "success" : "error");
+        close(res);
+      } catch (e) {
+        toast(e.message || "Send failed", "error");
+        btn.disabled = false; btn.textContent = "Send →";
+      }
+    };
+  });
+}
+
+async function renderEmailTimeline(hostEl, { lead_id, contact_id, project_id, onCompose } = {}) {
+  if (!hostEl) return;
+  const params = new URLSearchParams();
+  if (lead_id != null) params.set("lead_id", lead_id);
+  if (contact_id != null) params.set("contact_id", contact_id);
+  if (project_id != null) params.set("project_id", project_id);
+  if (![...params.keys()].length) return;
+
+  hostEl.innerHTML = `<p class="muted" style="font-size:13px;padding:8px 0">Loading messages…</p>`;
+  let messages = [];
+  try {
+    const r = await fetchJSON("/api/email-messages?" + params.toString());
+    messages = r.messages || [];
+  } catch (e) {
+    hostEl.innerHTML = `<p class="muted" style="font-size:13px;padding:8px 0">Couldn't load messages: ${esc(e.message)}</p>`;
+    return;
+  }
+
+  const composeBtn = onCompose
+    ? `<button class="btn primary sm" id="email-compose-btn">+ Compose</button>`
+    : "";
+
+  if (!messages.length) {
+    hostEl.innerHTML = `
+      <div style="text-align:center;padding:24px 12px">
+        <p class="muted" style="font-size:13px;margin:0 0 12px">No emails yet — start the conversation.</p>
+        ${composeBtn}
+      </div>`;
+  } else {
+    hostEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <span class="muted" style="font-size:12px">${messages.length} message${messages.length === 1 ? "" : "s"} · newest first</span>
+        ${composeBtn}
+      </div>
+      <ul class="email-thread">
+        ${messages.map((m) => renderMessageRow(m)).join("")}
+      </ul>`;
+  }
+
+  const cb = hostEl.querySelector("#email-compose-btn");
+  if (cb && onCompose) cb.addEventListener("click", () => onCompose());
+
+  // Wire expand-toggles on each row
+  hostEl.querySelectorAll(".email-row__head").forEach((h) => {
+    h.addEventListener("click", () => h.closest(".email-row").classList.toggle("is-open"));
+  });
+}
+
+function renderMessageRow(m) {
+  const isOut = m.direction === "out";
+  const dt = m.sent_at || m.received_at || m.created_at;
+  const previewBody = m.body_text ? m.body_text.slice(0, 120).replace(/\s+/g, " ") + (m.body_text.length > 120 ? "…" : "") : "";
+  const statusPill = m.status === "failed"
+    ? `<span class="pill" data-s="lost" style="font-size:10px">failed</span>`
+    : "";
+  return `
+    <li class="email-row email-row--${isOut ? "out" : "in"}">
+      <button class="email-row__head" type="button">
+        <span class="email-row__dir">${isOut ? "↗" : "↙"}</span>
+        <div class="email-row__meta">
+          <div class="email-row__subject">${esc(m.subject || "(no subject)")}</div>
+          <div class="email-row__sub">${esc(previewBody)}</div>
+        </div>
+        <div class="email-row__right">
+          <span class="email-row__date">${fmtDate(dt)}</span>
+          ${statusPill}
+        </div>
+      </button>
+      <div class="email-row__body">
+        <div class="email-row__hdr">
+          <strong>${isOut ? "To" : "From"}:</strong> ${esc((isOut ? safeJSON(m.to_addrs)?.join(", ") : (m.from_name ? `${m.from_name} <${m.from_addr}>` : m.from_addr)) || "")}<br/>
+          <strong>Subject:</strong> ${esc(m.subject || "")}<br/>
+          <strong>Date:</strong> ${fmtDateTime(dt)}
+          ${m.template_kind ? `<br/><strong>Template:</strong> ${esc(m.template_kind)}` : ""}
+          ${m.error_message ? `<br/><strong style="color:var(--danger,#dc2626)">Error:</strong> <code>${esc(m.error_message)}</code>` : ""}
+        </div>
+        <pre class="email-row__pre">${esc(m.body_text || stripHtmlClient(m.body_html) || "(no body)")}</pre>
+      </div>
+    </li>`;
+}
+function safeJSON(s) { try { return JSON.parse(s); } catch { return null; } }
+function stripHtmlClient(s) { return s ? String(s).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : ""; }
+
 window.SSCrm = {
   fetchJSON, mount, fmtMoney, fmtMoneyShort, parseMoney, fmtDate, fmtDateTime, fmtTime, esc, pill, logout, toast, confirmDialog,
   pickContact, pickJob, openModal, pickProduct,
   quickAddContact, quickAddJob, quickAddAppointment, quickAddEstimate, quickAddProposal, quickAddContract,
+  composeEmail, renderEmailTimeline,
   PROJECT_STATUSES,
 };

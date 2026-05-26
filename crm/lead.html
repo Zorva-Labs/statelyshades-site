@@ -189,6 +189,12 @@ function render() {
     <!-- Windows: always full-width so the floor plan + table get the entire content area -->
     ${renderWindowsCard()}
 
+    <!-- Messages: email thread with this lead — outbound now, inbound after Phase B IMAP sync ships -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><h2>Messages</h2><span class="muted" style="font-size:12px">${l.email ? "" : "Add an email to enable"}</span></div>
+      <div id="email-timeline"></div>
+    </div>
+
     <!-- Notes: full width below -->
     <div class="card" style="margin-top:14px">
       <div class="card-head"><h2>Notes</h2><span class="muted" style="font-size:12px">${notes.length}</span></div>
@@ -204,6 +210,31 @@ function render() {
   const host = document.getElementById("rooms-host");
   if (host && workspace?.project) {
     WindowsEditor.init(host, workspace.windows || [], { catalog });
+  }
+  // Mount the email timeline + Compose button — only when the lead has an
+  // email address (otherwise we have nowhere to send). The default template
+  // kind is picked from the lead's current pipeline status so the right
+  // followup loads automatically.
+  const emailHost = document.getElementById("email-timeline");
+  if (emailHost && l.email) {
+    const kindForStatus = {
+      new: "lead_new",
+      replied: "lead_new",
+      consult: "consult_confirm",
+      proposal: "proposal_followup",
+      booked: "contract_followup",
+      installed: "post_install_thanks",
+    }[l.status] || null;
+    const refreshTimeline = () => SSCrm.renderEmailTimeline(emailHost, {
+      lead_id: l.id,
+      onCompose: async () => {
+        const res = await SSCrm.composeEmail({ lead: l, defaultKind: kindForStatus });
+        if (res?.ok) refreshTimeline();
+      },
+    });
+    refreshTimeline();
+  } else if (emailHost) {
+    emailHost.innerHTML = `<p class="muted" style="font-size:13px;padding:8px 0">Add the lead's email above and save to start emailing from the CRM.</p>`;
   }
 }
 

@@ -23,19 +23,45 @@ const SMTP_PORT = 587;
 const DEFAULT_FROM = "Stately Shades <hello@statelyshades.com>";
 const CRLF = "\r\n";
 
-// Best-effort mail send. Never throws. Callers ignore the return value or
-// log it — the source of truth for "lead captured" is D1, not mail delivery.
-export async function sendEmail(env, { to, subject, html, text, replyTo, attachments }) {
+// Best-effort mail send. Never throws. Returns { status, json, messageId } on
+// success or { skipped, error } on failure. messageId is the RFC 5322 header
+// value we generated for this send — callers use it for threading.
+//
+// Options:
+//   to, cc, bcc       — string or array of recipients (each may be "Name <a@x>")
+//   subject, html, text
+//   replyTo           — defaults to env.MAIL_DEFAULT_REPLY → PURELYMAIL_USER
+//   messageId         — pass a pre-generated <id@host> to override (else random)
+//   inReplyTo         — parent Message-ID, sets In-Reply-To + References headers
+//   references        — full References chain (whitespace separated)
+//   from              — full From header (defaults to MAIL_FROM env)
+//   attachments       — [{ filename, content (b64), content_type }]
+export async function sendEmail(env, {
+  to, cc, bcc, subject, html, text, replyTo, attachments,
+  messageId, inReplyTo, references, from,
+}) {
   if (!env.PURELYMAIL_USER || !env.PURELYMAIL_PASSWORD) {
     console.warn("[email] PURELYMAIL_USER/PASSWORD missing — skipping send");
     return { skipped: true, reason: "no_creds" };
   }
-  const from = env.MAIL_FROM || DEFAULT_FROM;
-  const recipients = Array.isArray(to) ? to : [to];
+  const fromHeader = from || env.MAIL_FROM || DEFAULT_FROM;
+  const toList  = Array.isArray(to)  ? to  : (to ? [to] : []);
+  const ccList  = Array.isArray(cc)  ? cc  : (cc ? [cc] : []);
+  const bccList = Array.isArray(bcc) ? bcc : (bcc ? [bcc] : []);
   const reply = replyTo || env.MAIL_DEFAULT_REPLY || env.PURELYMAIL_USER;
-  const fromAddr = extractAddr(from);
+  const fromAddr = extractAddr(fromHeader);
+  const mid = messageId || makeMessageId();
+
+  // RCPT TO list includes To + Cc + Bcc (envelope, not headers — Bcc never in headers)
+  const envelopeRecipients = [...toList, ...ccList, ...bccList].map(extractAddr);
+  if (envelopeRecipients.length === 0) {
+    return { skipped: true, error: "no_recipients" };
+  }
+
   const message = buildMimeMessage({
-    from, to: recipients, replyTo: reply, subject, html, text, attachments,
+    from: fromHeader, to: toList, cc: ccList,
+    replyTo: reply, subject, html, text, attachments,
+    messageId: mid, inReplyTo, references,
   });
 
   try {
@@ -45,14 +71,20 @@ export async function sendEmail(env, { to, subject, html, text, replyTo, attachm
       user: env.PURELYMAIL_USER,
       password: env.PURELYMAIL_PASSWORD,
       fromAddr,
-      recipients,
+      recipients: envelopeRecipients,
       message,
     });
-    return { status: 250, json: result };
+    return { status: 250, json: result, messageId: mid };
   } catch (e) {
     console.error("[email] SMTP send failed:", e?.message || e);
-    return { skipped: true, error: e?.message || "smtp_failed" };
+    return { skipped: true, error: e?.message || "smtp_failed", messageId: mid };
   }
+}
+
+// Generate an RFC 5322 Message-ID — exported so callers can pre-generate one
+// when they want to insert into D1 with the same ID before/while sending.
+export function makeMessageId(domain = "statelyshades.com") {
+  return `<${Math.random().toString(36).slice(2, 14)}.${Date.now().toString(36)}@${domain}>`;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -215,11 +247,12 @@ async function smtpAuthAndSend({ socket, user, password, fromAddr, recipients, m
 // MIME message builder
 // ────────────────────────────────────────────────────────────────────
 
-function buildMimeMessage({ from, to, replyTo, subject, html, text, attachments }) {
+function buildMimeMessage({ from, to, cc, replyTo, subject, html, text, attachments, messageId, inReplyTo, references }) {
   const boundary = "ssbnd_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const date = new Date().toUTCString();
-  const messageId = `<${Math.random().toString(36).slice(2, 14)}.${Date.now().toString(36)}@statelyshades.com>`;
-  const toLine = (Array.isArray(to) ? to : [to]).join(", ");
+  const mid = messageId || makeMessageId();
+  const toLine  = (Array.isArray(to) ? to : [to]).join(", ");
+  const ccLine  = cc && cc.length ? (Array.isArray(cc) ? cc : [cc]).join(", ") : "";
 
   const hasHtml = !!html;
   const hasText = !!(text || hasHtml);
@@ -227,10 +260,13 @@ function buildMimeMessage({ from, to, replyTo, subject, html, text, attachments 
   const headers = [
     `From: ${from}`,
     `To: ${toLine}`,
+    ccLine ? `Cc: ${ccLine}` : "",
     replyTo ? `Reply-To: ${replyTo}` : "",
     `Subject: ${encodeMimeHeader(subject || "(no subject)")}`,
     `Date: ${date}`,
-    `Message-ID: ${messageId}`,
+    `Message-ID: ${mid}`,
+    inReplyTo ? `In-Reply-To: ${inReplyTo}` : "",
+    references ? `References: ${references}` : (inReplyTo ? `References: ${inReplyTo}` : ""),
     `MIME-Version: 1.0`,
   ].filter(Boolean);
 

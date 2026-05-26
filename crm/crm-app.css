@@ -753,6 +753,45 @@ hr.sep { border: 0; border-top: 1px solid var(--line-soft); margin: 18px 0; }
   .room-floorplan { max-width: 260px; }
 }
 
+/* ---------------------------------------------------------------
+   Email thread (Messages timeline on lead / contact / project)
+--------------------------------------------------------------- */
+.email-thread { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.email-row {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-color var(--dur) var(--ease);
+}
+.email-row:hover { border-color: var(--line-strong); }
+.email-row--in  { border-left: 3px solid #6366F1; }
+.email-row--out { border-left: 3px solid #10B981; }
+.email-row__head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.email-row__head:hover { background: var(--bg-soft); }
+.email-row__dir { font-size: 16px; color: var(--ink-soft); font-weight: 700; }
+.email-row--out .email-row__dir { color: #10B981; }
+.email-row--in  .email-row__dir { color: #6366F1; }
+.email-row__meta { min-width: 0; }
+.email-row__subject { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.email-row__sub { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.email-row__right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.email-row__date { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.email-row__body { display: none; padding: 12px 16px 14px; border-top: 1px solid var(--line-soft); background: var(--bg-soft); }
+.email-row.is-open .email-row__body { display: block; }
+.email-row__hdr { font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; line-height: 1.7; }
+.email-row__pre { white-space: pre-wrap; word-wrap: break-word; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; background: var(--bg); border: 1px solid var(--line-soft); padding: 12px 14px; border-radius: var(--r-sm); margin: 0; max-height: 480px; overflow-y: auto; }
+
 /* Collapse the sidebar to icons-only at narrow widths, then to top bar on phones */
 @media (max-width: 1000px) {
   :root { --sidebar-w: 60px; }

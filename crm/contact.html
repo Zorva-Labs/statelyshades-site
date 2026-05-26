@@ -58,6 +58,11 @@ function render() {
             appointments.map((a) => `<tr><td>${SSCrm.fmtDateTime(a.start_at)}</td><td class="muted">${SSCrm.esc(a.type)}</td><td>${SSCrm.pill(a.status)}</td></tr>`).join("")
           }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No appointments yet.</p>`}
         </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-head"><h2>Messages</h2></div>
+          <div id="email-timeline"></div>
+        </div>
       </div>
 
       <div>
@@ -80,6 +85,21 @@ function render() {
       </div>
     </div>
   `;
+
+  // Mount the email timeline (lives across the contact relationship)
+  const emailHost = document.getElementById("email-timeline");
+  if (emailHost && c.email) {
+    const refresh = () => SSCrm.renderEmailTimeline(emailHost, {
+      contact_id: c.id,
+      onCompose: async () => {
+        const res = await SSCrm.composeEmail({ contact: c });
+        if (res?.ok) refresh();
+      },
+    });
+    refresh();
+  } else if (emailHost) {
+    emailHost.innerHTML = `<p class="muted" style="font-size:13px;padding:8px 0">Add an email above and save to start emailing from the CRM.</p>`;
+  }
 }
 
 async function save(id) {
