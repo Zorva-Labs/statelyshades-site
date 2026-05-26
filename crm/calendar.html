@@ -14,6 +14,7 @@ let viewYear, viewMonth;  // 0-indexed month
     title: "Calendar",
     subtitle: "Month view — click a day to add, click an event to view",
     actions: `<a class="btn secondary" href="/crm/availability.html">Edit availability →</a>
+              <button class="btn secondary" onclick="showSubscribeInstructions()">📱 Sync to phone</button>
               <button class="btn primary" onclick="SSCrm.quickAddAppointment()">+ Manual appointment</button>`,
     wide: true,
   });
@@ -205,5 +206,108 @@ function prettyDate(iso) {
   const today = new Date().toISOString().slice(0, 10);
   if (iso === today) return "Today, " + d.toLocaleDateString(undefined, { month: "long", day: "numeric" });
   return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
+
+// "Sync to phone" modal — shows the subscription URL with copy-to-clipboard
+// and step-by-step iPhone instructions. We fetch the token from a tiny
+// auth-gated endpoint so the URL only renders for logged-in admins.
+async function showSubscribeInstructions() {
+  let urlInfo;
+  try {
+    urlInfo = await SSCrm.fetchJSON("/api/calendar-feed-url");
+  } catch (e) {
+    SSCrm.toast(e.message || "Couldn't load feed URL", "error");
+    return;
+  }
+  const url = urlInfo.url || "";
+  const webcal = url.replace(/^https?:/, "webcal:");
+
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `
+    <div class="modal" style="max-width:620px;width:96vw">
+      <div class="modal-head">📱 Sync this calendar to your phone</div>
+      <div class="modal-body" style="padding:20px 24px">
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.55;color:var(--ink-soft)">
+          Subscribe your iPhone (or Apple Calendar / Google Calendar / Outlook) to this read-only feed. Every appointment in the CRM will appear on your phone, and updates flow through automatically — usually within an hour.
+        </p>
+
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-soft);margin-bottom:6px">Subscription URL</label>
+          <div style="display:flex;gap:8px">
+            <input id="feed-url" readonly value="${SSCrm.esc(webcal)}"
+              style="flex:1;font-family:var(--font-mono,ui-monospace,monospace);font-size:12px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--bg-soft)"/>
+            <button class="btn primary sm" id="copy-url">Copy</button>
+          </div>
+        </div>
+
+        <details open style="margin-bottom:14px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)">📱 On iPhone (Settings)</summary>
+          <ol style="margin:10px 0 0;padding-left:22px;font-size:13px;line-height:1.7;color:var(--ink-soft)">
+            <li>Open <strong>Settings → Calendar → Accounts → Add Account → Other</strong></li>
+            <li>Tap <strong>Add Subscribed Calendar</strong></li>
+            <li>Paste the URL above into <strong>Server</strong> and tap <strong>Next</strong></li>
+            <li>iPhone verifies the feed (takes a few seconds) — tap <strong>Save</strong></li>
+            <li>Open the Calendar app — appointments appear in a new calendar labeled "Stately Shades — Appointments"</li>
+          </ol>
+        </details>
+
+        <details style="margin-bottom:14px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)">📲 Even faster: tap the link from your phone</summary>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:var(--ink-soft)">
+            Email the <code style="background:var(--bg-soft);padding:2px 6px;border-radius:3px">webcal://</code> URL to yourself, then tap it on your iPhone. iOS recognizes <code>webcal://</code> and opens the subscribe sheet directly — no Settings navigation needed.
+          </p>
+          <button class="btn ghost sm" style="margin-top:10px" id="email-self">✉️ Email me this link</button>
+        </details>
+
+        <details style="margin-bottom:14px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)">💻 On Mac (Apple Calendar)</summary>
+          <ol style="margin:10px 0 0;padding-left:22px;font-size:13px;line-height:1.7;color:var(--ink-soft)">
+            <li>Calendar app → <strong>File → New Calendar Subscription</strong></li>
+            <li>Paste the URL → <strong>Subscribe</strong></li>
+            <li>Set refresh to <strong>Every 15 minutes</strong> for fastest pickup</li>
+          </ol>
+        </details>
+
+        <details>
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)">📋 On Google Calendar</summary>
+          <ol style="margin:10px 0 0;padding-left:22px;font-size:13px;line-height:1.7;color:var(--ink-soft)">
+            <li>Open Google Calendar → left sidebar → <strong>Other calendars → + → From URL</strong></li>
+            <li>Paste the URL → <strong>Add calendar</strong></li>
+            <li>Note: Google refreshes external feeds slowly (up to 12 hours). Apple Calendar is faster.</li>
+          </ol>
+        </details>
+
+        <p style="margin:24px 0 0;font-size:12px;color:var(--ink-muted);line-height:1.55">
+          <strong style="color:var(--ink)">This URL is a password.</strong> Anyone who has it can read all your appointment data. Don't share or post it. To rotate the URL (if it leaks), ask Zorva Labs to regenerate <code>CALENDAR_FEED_TOKEN</code>.
+        </p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn primary" data-cancel>Got it</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(bg);
+  bg.querySelector("[data-cancel]").onclick = () => bg.remove();
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+
+  bg.querySelector("#copy-url").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(webcal);
+      SSCrm.toast("Copied to clipboard", "success");
+    } catch (_) {
+      // Fallback: select the input so the user can copy manually
+      const inp = bg.querySelector("#feed-url");
+      inp.select(); inp.setSelectionRange(0, 999);
+      SSCrm.toast("Select the URL and press ⌘C", "info");
+    }
+  };
+  bg.querySelector("#email-self").onclick = () => {
+    const subject = encodeURIComponent("Subscribe to Stately Shades Calendar");
+    const body = encodeURIComponent(
+      `Tap this link on your iPhone to subscribe to the Stately Shades CRM calendar:\n\n${webcal}\n\nIf nothing happens when you tap it, copy the URL and add it manually under Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
 }
 </script></body></html>
