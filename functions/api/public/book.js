@@ -124,7 +124,10 @@ export async function onRequestPost(context) {
     attachments: [{
       filename: "stately-shades-consultation.ics",
       contentType: "text/calendar; method=REQUEST",
-      content: btoa(ics),
+      // UTF-8 → bytes → base64. Plain btoa(ics) throws InvalidCharacterError
+      // when the ics contains em-dashes, smart quotes, accented chars, or
+      // any code point above 0xFF (which crashed the install endpoint).
+      content: utf8ToBase64(ics),
     }],
   });
 
@@ -164,4 +167,13 @@ function formatAddress(a) {
   if (!a) return null;
   const parts = [a.street, a.city, a.state, a.zip].filter(Boolean);
   return parts.length ? parts.join(", ") : null;
+}
+
+// UTF-8-safe base64. btoa() only handles Latin1 (≤ 0xFF), so anything with
+// em-dashes / smart quotes / accents / emoji throws. Transcode to bytes first.
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
 }

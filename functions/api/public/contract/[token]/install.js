@@ -101,7 +101,11 @@ export async function onRequestPost(context) {
     attachments: [{
       filename: "stately-shades-install.ics",
       contentType: "text/calendar; method=REQUEST",
-      content: btoa(ics),
+      // btoa() is Latin1-only, but our customer/project strings contain em-
+      // dashes and other multi-byte UTF-8 chars. Encode to UTF-8 bytes first,
+      // then base64 those bytes — otherwise btoa throws InvalidCharacterError
+      // and the whole install scheduling endpoint crashes with a 1101.
+      content: utf8ToBase64(ics),
     }],
   });
 
@@ -129,4 +133,14 @@ function computeEndIso(startIso, durMin) {
   const [h, m] = t.split(":").map((n) => parseInt(n, 10));
   let total = h * 60 + m + durMin;
   return `${d}T${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`;
+}
+
+// UTF-8-safe base64 encode for email attachment bodies. btoa() chokes on
+// any code point above 0xFF (em-dashes, smart quotes, accented chars,
+// emoji, etc.), so we transcode to a byte sequence first then base64.
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
 }
