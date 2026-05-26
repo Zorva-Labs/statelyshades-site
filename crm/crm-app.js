@@ -692,10 +692,7 @@ async function pickProduct() {
     }
 
     function productRow(p) {
-      const dim = p.price_per_sqft_cents > 0;
-      const baseHint = p.base_price_cents > 0 ? fmtMoney(p.base_price_cents) : "";
-      const sqftHint = dim ? `+ ${fmtMoney(p.price_per_sqft_cents)}/sqft` : "";
-      const priceHint = [baseHint, sqftHint].filter(Boolean).join(" ") || "—";
+      const priceHint = p.base_price_cents > 0 ? fmtMoney(p.base_price_cents) + " / " + (p.unit || "ea") : "—";
       return `
         <button data-pp-id="${p.id}" type="button" style="display:flex;width:100%;align-items:center;gap:12px;padding:10px 22px;background:transparent;border:0;border-bottom:1px solid var(--bg-soft);text-align:left;cursor:pointer;font-size:13px">
           <div style="flex:1;min-width:0">
@@ -710,31 +707,32 @@ async function pickProduct() {
     function pickOne(productId) {
       const p = products.find((x) => x.id === productId);
       if (!p) return;
-      const dim = p.price_per_sqft_cents > 0;
-      // Step 2: capture qty + optional dimensions + room
+      // Step 2: capture qty + dimensions (for ordering, NOT pricing) + room
+      // Window-like products get dimension fields; flat services don't.
+      const isPhysical = !["install", "repair"].includes(p.category);
       bg.querySelector(".modal-body").innerHTML = `
         <div style="padding:22px">
           <div style="margin-bottom:14px">
             <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);font-weight:600">${esc(p.category)}</div>
             <div style="font-size:16px;font-weight:600;color:var(--ink);margin-top:2px">${esc(p.name)}</div>
             <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">
-              ${p.base_price_cents > 0 ? "Base " + fmtMoney(p.base_price_cents) : ""}
-              ${dim ? (p.base_price_cents > 0 ? " + " : "") + fmtMoney(p.price_per_sqft_cents) + " / sq ft" : ""}
+              Unit price: <strong>${fmtMoney(p.base_price_cents)}</strong> per ${esc(p.unit || "ea")}
             </div>
           </div>
           <div class="form">
             <div class="row">
-              <label><span>Qty</span><input id="pp-qty" type="number" min="0.01" step="0.5" value="1"/></label>
+              <label><span>Qty</span><input id="pp-qty" type="number" min="1" step="1" value="1" required/></label>
               <label><span>Room (optional)</span><input id="pp-room" placeholder="Living, Primary BR…"/></label>
             </div>
-            ${dim ? `
+            ${isPhysical ? `
               <div class="row">
-                <label><span>Width (in)</span><input id="pp-w" type="number" min="1" step="0.125" placeholder="e.g. 36"/></label>
-                <label><span>Height (in)</span><input id="pp-h" type="number" min="1" step="0.125" placeholder="e.g. 60"/></label>
+                <label><span>Width (in) — for ordering</span><input id="pp-w" type="number" min="0" step="0.125" placeholder="e.g. 36"/></label>
+                <label><span>Height (in) — for ordering</span><input id="pp-h" type="number" min="0" step="0.125" placeholder="e.g. 60"/></label>
               </div>
+              <p style="font-size:11px;color:var(--ink-muted);margin:-4px 0 0">Dimensions are saved to the line so you can order accurately — they don't change pricing.</p>
             ` : ""}
             <div id="pp-preview" style="background:var(--bg-soft);padding:12px 16px;border-radius:var(--r-sm);font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums">
-              <div>Unit price: <strong id="pp-unit">${fmtMoney(p.base_price_cents)}</strong></div>
+              <div>Unit price: <strong>${fmtMoney(p.base_price_cents)}</strong></div>
               <div>Line total: <strong id="pp-total" style="color:var(--money)">${fmtMoney(p.base_price_cents)}</strong></div>
             </div>
           </div>
@@ -748,28 +746,19 @@ async function pickProduct() {
       const room = bg.querySelector("#pp-room");
       const w = bg.querySelector("#pp-w");
       const h = bg.querySelector("#pp-h");
+      const unit = p.base_price_cents || 0;
 
       function recalc() {
-        const qtyVal = Number(qty.value || 1);
-        let unit = p.base_price_cents || 0;
-        if (dim) {
-          const wv = Number(w?.value || 0);
-          const hv = Number(h?.value || 0);
-          if (wv > 0 && hv > 0) {
-            const sqft = (wv * hv) / 144;
-            unit = (p.base_price_cents || 0) + Math.round(sqft * p.price_per_sqft_cents);
-          }
-        }
-        const total = Math.round(qtyVal * unit);
-        bg.querySelector("#pp-unit").textContent = fmtMoney(unit);
+        const qtyVal = Math.max(1, Math.round(Number(qty.value || 1)));
+        const total = qtyVal * unit;
         bg.querySelector("#pp-total").textContent = fmtMoney(total);
         bg.dataset.unit = unit;
         bg.dataset.total = total;
       }
-      [qty, w, h].filter(Boolean).forEach((el) => el.addEventListener("input", recalc));
+      qty.addEventListener("input", recalc);
       recalc();
-      // Default focus to dimensions if present, else qty
-      (w || qty).focus();
+      // Default focus to qty (then tab through to dimensions)
+      qty.focus(); qty.select();
 
       bg.querySelector("#pp-back").onclick = () => {
         bg.querySelector(".modal-body").innerHTML = `
@@ -803,21 +792,19 @@ async function pickProduct() {
       };
 
       bg.querySelector("#pp-add").onclick = () => {
-        const qtyVal = Number(qty.value || 1);
-        const unit = parseInt(bg.dataset.unit || "0", 10);
-        const total = parseInt(bg.dataset.total || "0", 10);
-        const wv = dim ? Number(w.value || 0) : null;
-        const hv = dim ? Number(h.value || 0) : null;
-        // Build description: "Faux Wood 2.5\" White — 36\" × 60\""
-        let desc = p.name;
-        if (dim && wv > 0 && hv > 0) desc += ` — ${wv}″ × ${hv}″`;
+        const qtyVal = Math.max(1, Math.round(Number(qty.value || 1)));
+        const total = qtyVal * unit;
+        const wv = w ? Number(w.value || 0) : 0;
+        const hv = h ? Number(h.value || 0) : 0;
+        // Description is just the product name. Dimensions live in their own
+        // editable columns on the line row so they're visible for ordering.
         close({
           product_id: p.id,
-          description: desc,
+          description: p.name,
           room: room.value.trim() || null,
           quantity: qtyVal,
-          width_in: wv && wv > 0 ? wv : null,
-          height_in: hv && hv > 0 ? hv : null,
+          width_in: wv > 0 ? wv : null,
+          height_in: hv > 0 ? hv : null,
           unit_price_cents: unit,
           line_total_cents: total,
         });

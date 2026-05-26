@@ -98,7 +98,14 @@ function renderTier(t) {
       <textarea class="t-title" data-f="title" rows="1" placeholder="Tier title" style="font-size:15px;font-weight:600;border:0;padding:4px 0;width:100%;box-sizing:border-box;resize:none;font-family:inherit;line-height:1.25;color:var(--ink);overflow:hidden;background:transparent" oninput="autoGrow(this)">${SSCrm.esc(t.title || "")}</textarea>
     </div>
     <textarea class="t-desc" data-f="description" rows="2" placeholder="Brief description (optional)" style="width:100%;border:1px solid var(--line-soft);padding:6px;border-radius:var(--r-sm);font-size:12px;margin-bottom:10px">${SSCrm.esc(t.description || "")}</textarea>
-    <table class="lines"><thead><tr><th>Item</th><th>Room</th><th class="num" style="width:48px">Qty</th><th class="num" style="width:80px">Unit</th><th class="num" style="width:90px">Total</th><th></th></tr></thead>
+    <table class="lines"><thead><tr>
+      <th>Item</th><th style="width:80px">Room</th>
+      <th class="num" style="width:60px" title="Width (in)">W″</th>
+      <th class="num" style="width:60px" title="Height (in)">H″</th>
+      <th class="num" style="width:48px">Qty</th>
+      <th class="num" style="width:80px">Unit</th>
+      <th class="num" style="width:90px">Total</th><th></th>
+    </tr></thead>
     <tbody class="tier-lines">${(t.lines || []).map(tierLineRow).join("") || tierLineRow({})}</tbody></table>
     <div class="add" style="display:flex;gap:8px"><button onclick="addFromCatalog(this)">+ Add from catalog</button><button onclick="addTierLine(this)">+ Custom line</button></div>
     <div style="border-top:1px solid var(--line-soft);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-weight:600">
@@ -107,19 +114,18 @@ function renderTier(t) {
   </div>`;
 }
 function tierLineRow(l) {
-  // Hidden inputs preserve product_id and dimensions through save
   const productId = l?.product_id || "";
-  const widthIn = l?.width_in || "";
-  const heightIn = l?.height_in || "";
+  const widthIn = l?.width_in ?? "";
+  const heightIn = l?.height_in ?? "";
   return `<tr>
     <td>
       <input data-f="description" value="${SSCrm.esc(l?.description || "")}" placeholder="Line item"/>
       <input type="hidden" data-f="product_id" value="${productId}"/>
-      <input type="hidden" data-f="width_in" value="${widthIn}"/>
-      <input type="hidden" data-f="height_in" value="${heightIn}"/>
     </td>
     <td><input data-f="room" value="${SSCrm.esc(l?.room || "")}" placeholder="Room"/></td>
-    <td><input class="num" data-f="quantity" value="${l?.quantity || 1}" type="number" step="0.5" min="0" onchange="recalcTier(this)"/></td>
+    <td><input class="num" data-f="width_in" value="${widthIn}" type="number" step="0.125" min="0" placeholder="—" title="Width (inches) for ordering"/></td>
+    <td><input class="num" data-f="height_in" value="${heightIn}" type="number" step="0.125" min="0" placeholder="—" title="Height (inches) for ordering"/></td>
+    <td><input class="num" data-f="quantity" value="${l?.quantity || 1}" type="number" step="1" min="1" onchange="recalcTier(this)"/></td>
     <td><input class="num" data-f="unit" value="${l?.unit_price_cents ? "$" + (l.unit_price_cents/100).toFixed(2) : ""}" onchange="recalcTier(this)"/></td>
     <td class="num money tier-line-money">${SSCrm.fmtMoney((l?.quantity || 1) * (l?.unit_price_cents || 0))}</td>
     <td><button class="rm" onclick="this.closest('tr').remove();recalcTierEl(this.closest('.card'))" title="Remove">×</button></td>
@@ -167,11 +173,11 @@ async function saveAll() {
       return {
         description: tr.querySelector("[data-f=description]").value.trim(),
         room: tr.querySelector("[data-f=room]")?.value.trim() || null,
-        quantity: Number(tr.querySelector("[data-f=quantity]").value || 1),
+        quantity: Math.max(1, Math.round(Number(tr.querySelector("[data-f=quantity]").value || 1))),
         unit_price_cents: SSCrm.parseMoney(tr.querySelector("[data-f=unit]").value),
         product_id: productIdRaw ? parseInt(productIdRaw, 10) : null,
-        width_in: widthRaw ? Number(widthRaw) : null,
-        height_in: heightRaw ? Number(heightRaw) : null,
+        width_in: widthRaw !== "" ? Number(widthRaw) : null,
+        height_in: heightRaw !== "" ? Number(heightRaw) : null,
       };
     }).filter((l) => l.description),
   }));

@@ -123,9 +123,32 @@ function switchTab(tab) {
   const { project, windows, estimates, proposals, contracts } = state;
 
   if (tab === "overview") {
+    // Compact Windows summary — Tave-style at-a-glance count + room breakdown
+    const roomCounts = {};
+    for (const w of windows) {
+      const key = w.room || "(unassigned)";
+      roomCounts[key] = (roomCounts[key] || 0) + 1;
+    }
+    const totalWindows = windows.length;
+    const roomSummary = totalWindows
+      ? Object.entries(roomCounts).map(([r, n]) => `<span style="display:inline-block;background:var(--bg-soft);padding:4px 10px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink)">${SSCrm.esc(r)} <strong>${n}</strong></span>`).join("")
+      : `<p class="muted" style="font-size:13px;margin:6px 0 0;font-style:italic">No windows tracked yet — measure them on the consultation visit and add them here.</p>`;
+
     body.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
         <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-head">
+              <h3>Windows on this job</h3>
+              <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
+            </div>
+            <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
+              ${totalWindows ? `<button class="btn secondary sm" onclick="newEstimateFromWindows()">+ Estimate from these windows</button>` : ""}
+            </div>
+          </div>
+
           <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:8px">Description</h3>
           <p style="color:var(--ink);font-size:14px;line-height:1.6">${SSCrm.esc(project.description || "No description.")}</p>
           <hr class="sep"/>
@@ -259,6 +282,14 @@ async function loadActivity() {
 async function newEstimate() {
   try { const { id: nid } = await SSCrm.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/estimate.html?id=" + nid; }
   catch (e) { SSCrm.toast(e.message, "error"); }
+}
+// Start an estimate AND signal to the estimate builder that the project's
+// windows should be pre-loaded as lines (handled by the estimate page via ?seed=windows).
+async function newEstimateFromWindows() {
+  try {
+    const { id: nid } = await SSCrm.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: id }) });
+    location.href = `/crm/estimate.html?id=${nid}&seed=windows`;
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newProposal() {
   try { const { id: nid } = await SSCrm.fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/proposal.html?id=" + nid; }
