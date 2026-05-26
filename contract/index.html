@@ -263,40 +263,52 @@ let pad = null;
 function wirePad() {
   const canvas = document.getElementById("sig-pad");
 
-  // Resize the canvas bitmap to match its CSS-rendered size × devicePixelRatio
-  // for crisp output. signature_pad's `fromData(toData())` round-trip survives
-  // the resize without losing strokes drawn so far.
-  function resize() {
-    const data = sp ? sp.toData() : null;
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width  = canvas.offsetWidth  * ratio;
-    canvas.height = canvas.offsetHeight * ratio;
-    canvas.getContext("2d").scale(ratio, ratio);
-    if (sp) {
-      sp.clear();          // wipes the now-stale bitmap
-      if (data && data.length) sp.fromData(data);  // re-render the strokes
-    }
-  }
-
-  // Library loads via <script defer> in <head>; in the (rare) case render()
-  // runs before defer resolves, retry on a microtask.
+  // Library loads via <script defer>; if render() runs first, retry.
   if (typeof SignaturePad === "undefined") {
     setTimeout(wirePad, 50);
     return;
   }
 
+  // Size the canvas BITMAP to match its CSS size × devicePixelRatio so retina
+  // strokes are crisp. Setting canvas.width clears + resets the context state,
+  // so we ALWAYS apply scale(ratio, ratio) right after as a single atomic op.
+  //
+  // Critical: guard against running on every spurious window-resize event.
+  // Re-applying scale() to a context that's already scaled COMPOUNDS the
+  // transform — next stroke renders way off-canvas, looking like it "vanished".
+  // We only resize when offsetWidth/offsetHeight actually changed.
+  let lastW = 0, lastH = 0;
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const cssW = canvas.offsetWidth;
+    const cssH = canvas.offsetHeight;
+    if (!cssW || !cssH) return;             // not laid out yet
+    if (cssW === lastW && cssH === lastH) return;  // no real change → skip
+    lastW = cssW; lastH = cssH;
+    const data = sp ? sp.toData() : null;
+    canvas.width  = cssW * ratio;
+    canvas.height = cssH * ratio;
+    canvas.getContext("2d").scale(ratio, ratio);
+    if (sp) {
+      sp.clear();
+      if (data && data.length) sp.fromData(data);
+    }
+  }
+
   const sp = new SignaturePad(canvas, {
-    backgroundColor: "rgba(255, 255, 255, 0)",   // transparent
+    backgroundColor: "rgba(255, 255, 255, 0)",
     penColor: "#14110D",
     minWidth: 1.2,
     maxWidth: 2.4,
-    throttle: 16,                                 // ~60fps
+    throttle: 16,
     minDistance: 1,
   });
 
-  resize();
-  window.addEventListener("resize", resize);
-  window.addEventListener("orientationchange", resize);
+  // Initial bitmap sizing. After this only orientation changes / explicit
+  // viewport-width changes should re-run it (guarded by the dimension diff).
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", resizeCanvas);
 
   pad = {
     clear:     () => sp.clear(),
