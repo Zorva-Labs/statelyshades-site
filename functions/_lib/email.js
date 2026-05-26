@@ -1,36 +1,31 @@
-// Purelymail SMTP transport for Cloudflare Pages Functions.
+// Resend HTTP transport for transactional mail.
 //
-// We can't call Purelymail's REST API anymore (their public /api/v0/sendMail
-// endpoint went 404 in May 2026), but their SMTP server still works. We use
-// Cloudflare's outbound TCP socket API (`cloudflare:sockets`) to speak
-// SMTP-AUTH-LOGIN with STARTTLS on port 587.
+// Why Resend: iCloud was rejecting Purelymail-relayed mail with 554 5.7.1
+// (HM08 = sender reputation rejection on a brand-new domain). Even with SPF +
+// DKIM + DMARC=reject all correctly set, iCloud's filters wouldn't trust a
+// 2-day-old domain on Purelymail's shared IP pool. Resend has established
+// IP reputation that iCloud and Gmail accept reliably. Their free tier is
+// 3,000/mo + 100/day which covers a single-operator service business easily.
+//
+// Inbound mail still goes through Purelymail (we poll IMAP from
+// _lib/email-sync.js for replies). Resend is outbound-only.
 //
 // Env vars (Cloudflare Pages secrets — set via `wrangler pages secret put`):
-//   PURELYMAIL_USER     — full mailbox address, e.g. "hello@statelyshades.com"
-//   PURELYMAIL_PASSWORD — mailbox password (same as webmail login)
-//   MAIL_FROM           — optional; defaults to "Stately Shades <hello@statelyshades.com>"
-//   MAIL_DEFAULT_REPLY  — optional; defaults to PURELYMAIL_USER
+//   RESEND_API_KEY     — re_xxx (send-only or full-access; we only need send)
+//   MAIL_FROM          — optional; defaults to "Stately Shades <hello@statelyshades.com>"
+//                        Must use an address on a domain verified in Resend.
+//   MAIL_DEFAULT_REPLY — optional; defaults to "hello@statelyshades.com"
 //
 // History:
-//   - Originally used Purelymail REST API (now dead).
-//   - Briefly tried Resend sandbox sender (works but costs $$ at scale).
-//   - Now SMTP direct to Purelymail (free, uses existing mailbox).
+//   - Originally used Purelymail REST API (went 404).
+//   - Then Purelymail SMTP via cloudflare:sockets (worked but iCloud rejected
+//     for sender reputation since the domain was 2 days old).
+//   - Now Resend HTTP API (POST /emails) with statelyshades.com verified on
+//     their side. Established IP reputation = deliverable to iCloud.
 
-import { connect } from "cloudflare:sockets";
-
-const SMTP_HOST = "smtp.purelymail.com";
-const SMTP_PORT = 587;
-// Customer-facing From (default). Uses the real hello@ mailbox so iCloud /
-// Gmail / Outlook see a sender that actually exists on the domain — important
-// for deliverability. iCloud was rejecting crm@ as "policy violation" since
-// that local-part isn't backed by a real mailbox / DKIM identity.
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Stately Shades <hello@statelyshades.com>";
-// Internal-admin From — used ONLY when the To matches PURELYMAIL_USER (i.e.
-// notifications to ourselves, like the new-lead alert). Using crm@ here
-// breaks the self-loop that Purelymail would otherwise file in Sent instead
-// of Inbox. External customers never see this address.
-const SELF_LOOP_FROM = "Stately Shades CRM <crm@statelyshades.com>";
-const CRLF = "\r\n";
+const DEFAULT_REPLY = "hello@statelyshades.com";
 
 // Best-effort mail send. Never throws. Returns { status, json, messageId } on
 // success or { skipped, error } on failure. messageId is the RFC 5322 header
@@ -49,61 +44,60 @@ export async function sendEmail(env, {
   to, cc, bcc, subject, html, text, replyTo, attachments,
   messageId, inReplyTo, references, from,
 }) {
-  if (!env.PURELYMAIL_USER || !env.PURELYMAIL_PASSWORD) {
-    console.warn("[email] PURELYMAIL_USER/PASSWORD missing — skipping send");
-    return { skipped: true, reason: "no_creds" };
+  if (!env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY missing — skipping send");
+    return { skipped: true, reason: "no_api_key" };
   }
   const toList  = Array.isArray(to)  ? to  : (to ? [to] : []);
   const ccList  = Array.isArray(cc)  ? cc  : (cc ? [cc] : []);
   const bccList = Array.isArray(bcc) ? bcc : (bcc ? [bcc] : []);
-  const reply = replyTo || env.MAIL_DEFAULT_REPLY || env.PURELYMAIL_USER;
-  // Pick the right From based on the audience:
-  //   - Explicit `from` arg always wins
-  //   - If ALL recipients are external customers → use the real customer-
-  //     facing From (env.MAIL_FROM or hello@) for max deliverability
-  //   - If ANY recipient is the auth'd mailbox (admin notification path) →
-  //     use the self-loop-breaking alias (env.MAIL_FROM_ALIAS or crm@)
-  //     because the destination MTA would otherwise file it in Sent rather
-  //     than Inbox.
-  const authUser = (env.PURELYMAIL_USER || "").toLowerCase();
-  const allRecipients = [...toList, ...ccList, ...bccList].map(extractAddr).map((s) => s.toLowerCase());
-  const sendingToSelf = !!authUser && allRecipients.includes(authUser);
-  const customerFrom  = env.MAIL_FROM       || DEFAULT_FROM;
-  const selfLoopFrom  = env.MAIL_FROM_ALIAS || SELF_LOOP_FROM;
-  const fromHeader = from || (sendingToSelf ? selfLoopFrom : customerFrom);
-  // SMTP envelope MAIL FROM uses the auth'd mailbox so Purelymail never rejects
-  // the submission ("550 sender not allowed"). The visible From: header can be
-  // anything on the same domain (e.g. crm@statelyshades.com) — this is how we
-  // break the self-loop when From and To would otherwise both be hello@.
-  const envelopeFromAddr = env.PURELYMAIL_USER;
+  if (toList.length === 0) return { skipped: true, reason: "no_recipients" };
+  const reply = replyTo || env.MAIL_DEFAULT_REPLY || DEFAULT_REPLY;
+  const fromHeader = from || env.MAIL_FROM || DEFAULT_FROM;
   const mid = messageId || makeMessageId();
 
-  // RCPT TO list includes To + Cc + Bcc (envelope, not headers — Bcc never in headers)
-  const envelopeRecipients = [...toList, ...ccList, ...bccList].map(extractAddr);
-  if (envelopeRecipients.length === 0) {
-    return { skipped: true, error: "no_recipients" };
+  // Resend wants headers via a structured "headers" object so we can preserve
+  // threading via In-Reply-To / References / Message-ID.
+  const headers = { "Message-ID": mid };
+  if (inReplyTo)  headers["In-Reply-To"] = inReplyTo;
+  if (references) headers["References"] = references;
+
+  const payload = {
+    from: fromHeader,
+    to:  toList.map(extractAddr),
+    subject,
+    html: html || undefined,
+    text: text || (html ? stripHtml(html) : undefined),
+    reply_to: reply,
+    headers,
+  };
+  if (ccList.length)  payload.cc  = ccList.map(extractAddr);
+  if (bccList.length) payload.bcc = bccList.map(extractAddr);
+  if (attachments && attachments.length) {
+    // Resend attachment schema: { filename, content (base64) | path }
+    payload.attachments = attachments;
   }
 
-  const message = buildMimeMessage({
-    from: fromHeader, to: toList, cc: ccList,
-    replyTo: reply, subject, html, text, attachments,
-    messageId: mid, inReplyTo, references,
-  });
-
   try {
-    const result = await smtpSend({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      user: env.PURELYMAIL_USER,
-      password: env.PURELYMAIL_PASSWORD,
-      fromAddr: envelopeFromAddr,                  // envelope MAIL FROM (auth user)
-      recipients: envelopeRecipients,
-      message,                                      // body contains the visible From: header
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
     });
-    return { status: 250, json: result, messageId: mid };
+    const raw = await res.text().catch(() => "");
+    let json;
+    try { json = JSON.parse(raw); } catch { json = { raw: raw.slice(0, 240) }; }
+    if (!res.ok) {
+      console.error("[email] Resend send failed:", res.status, raw.slice(0, 240));
+      return { skipped: true, status: res.status, error: json?.message || ("resend_http_" + res.status), json, messageId: mid };
+    }
+    return { status: res.status, json, messageId: mid, resendId: json?.id };
   } catch (e) {
-    console.error("[email] SMTP send failed:", e?.message || e);
-    return { skipped: true, error: e?.message || "smtp_failed", messageId: mid };
+    console.error("[email] fetch threw:", e?.message || e);
+    return { skipped: true, error: e?.message || "fetch_failed", messageId: mid };
   }
 }
 
@@ -114,221 +108,6 @@ export function makeMessageId(domain = "statelyshades.com") {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// SMTP client — minimal AUTH LOGIN + STARTTLS conversation
-// ────────────────────────────────────────────────────────────────────
-
-async function smtpSend({ host, port, user, password, fromAddr, recipients, message }) {
-  // Open as plaintext first; STARTTLS upgrades the connection mid-session.
-  const socket = connect(`${host}:${port}`, { secureTransport: "starttls", allowHalfOpen: false });
-
-  const writer = socket.writable.getWriter();
-  const reader = socket.readable.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  // Buffer for inbound bytes — SMTP responses can span multiple chunks
-  let inbuf = "";
-  async function readLine() {
-    while (true) {
-      const idx = inbuf.indexOf(CRLF);
-      if (idx !== -1) {
-        const line = inbuf.slice(0, idx);
-        inbuf = inbuf.slice(idx + 2);
-        return line;
-      }
-      const { value, done } = await reader.read();
-      if (done) throw new Error("SMTP socket closed unexpectedly");
-      inbuf += decoder.decode(value, { stream: true });
-    }
-  }
-  // Read a full SMTP reply (handles multi-line "250-ENHANCEDSTATUS / 250 OK")
-  async function readReply() {
-    const lines = [];
-    while (true) {
-      const line = await readLine();
-      lines.push(line);
-      // Continuation lines have a hyphen after the 3-digit code; the final
-      // line in a multi-line reply has a space.
-      if (line.length < 4 || line[3] === " ") break;
-    }
-    const code = parseInt(lines[lines.length - 1].slice(0, 3), 10);
-    return { code, lines, raw: lines.join("\n") };
-  }
-  async function send(cmd) { await writer.write(encoder.encode(cmd + CRLF)); }
-  function assertOk(reply, expectCode, step) {
-    if (reply.code !== expectCode) {
-      throw new Error(`SMTP ${step}: expected ${expectCode}, got ${reply.code}: ${reply.raw.slice(0, 200)}`);
-    }
-  }
-
-  try {
-    // 1) Greeting
-    assertOk(await readReply(), 220, "greeting");
-
-    // 2) EHLO (plaintext)
-    await send(`EHLO statelyshades.com`);
-    assertOk(await readReply(), 250, "EHLO-plain");
-
-    // 3) STARTTLS — server replies 220, then we upgrade the socket
-    await send("STARTTLS");
-    assertOk(await readReply(), 220, "STARTTLS");
-    writer.releaseLock();
-    reader.releaseLock();
-    const tlsSocket = socket.startTls();
-    return await smtpAuthAndSend({ socket: tlsSocket, user, password, fromAddr, recipients, message });
-  } catch (e) {
-    try { writer.releaseLock(); } catch (_) {}
-    try { reader.releaseLock(); } catch (_) {}
-    try { await socket.close(); } catch (_) {}
-    throw e;
-  }
-}
-
-// Post-STARTTLS leg: EHLO again, AUTH LOGIN, MAIL FROM, RCPT TO, DATA, QUIT
-async function smtpAuthAndSend({ socket, user, password, fromAddr, recipients, message }) {
-  const writer = socket.writable.getWriter();
-  const reader = socket.readable.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let inbuf = "";
-  async function readLine() {
-    while (true) {
-      const idx = inbuf.indexOf(CRLF);
-      if (idx !== -1) {
-        const line = inbuf.slice(0, idx);
-        inbuf = inbuf.slice(idx + 2);
-        return line;
-      }
-      const { value, done } = await reader.read();
-      if (done) throw new Error("SMTP TLS socket closed unexpectedly");
-      inbuf += decoder.decode(value, { stream: true });
-    }
-  }
-  async function readReply() {
-    const lines = [];
-    while (true) {
-      const line = await readLine();
-      lines.push(line);
-      if (line.length < 4 || line[3] === " ") break;
-    }
-    const code = parseInt(lines[lines.length - 1].slice(0, 3), 10);
-    return { code, lines, raw: lines.join("\n") };
-  }
-  async function send(cmd) { await writer.write(encoder.encode(cmd + CRLF)); }
-  function assertOk(reply, expectCode, step) {
-    if (reply.code !== expectCode) {
-      throw new Error(`SMTP ${step}: expected ${expectCode}, got ${reply.code}: ${reply.raw.slice(0, 200)}`);
-    }
-  }
-
-  try {
-    // EHLO over TLS so the server advertises AUTH LOGIN
-    await send(`EHLO statelyshades.com`);
-    assertOk(await readReply(), 250, "EHLO-tls");
-
-    // AUTH LOGIN — server asks for username (base64), then password (base64)
-    await send("AUTH LOGIN");
-    assertOk(await readReply(), 334, "AUTH-LOGIN-init");
-    await send(btoa(user));
-    assertOk(await readReply(), 334, "AUTH-LOGIN-user");
-    await send(btoa(password));
-    assertOk(await readReply(), 235, "AUTH-LOGIN-pass");
-
-    // MAIL FROM
-    await send(`MAIL FROM:<${fromAddr}>`);
-    assertOk(await readReply(), 250, "MAIL-FROM");
-
-    // RCPT TO (one per recipient)
-    for (const rcpt of recipients) {
-      await send(`RCPT TO:<${extractAddr(rcpt)}>`);
-      assertOk(await readReply(), 250, "RCPT-TO");
-    }
-
-    // DATA → 354 → message body → "."
-    await send("DATA");
-    assertOk(await readReply(), 354, "DATA-init");
-    // Dot-stuff: lines beginning with "." get prefixed with another "." per RFC 5321
-    const dotStuffed = message.replace(/\r\n\./g, "\r\n..");
-    await writer.write(encoder.encode(dotStuffed + CRLF + "." + CRLF));
-    assertOk(await readReply(), 250, "DATA-end");
-
-    // QUIT
-    await send("QUIT");
-    // 221 expected but some servers close before responding; ignore failures
-    try { await readReply(); } catch (_) {}
-
-    writer.releaseLock();
-    reader.releaseLock();
-    try { await socket.close(); } catch (_) {}
-    return { ok: true };
-  } catch (e) {
-    try { writer.releaseLock(); } catch (_) {}
-    try { reader.releaseLock(); } catch (_) {}
-    try { await socket.close(); } catch (_) {}
-    throw e;
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────
-// MIME message builder
-// ────────────────────────────────────────────────────────────────────
-
-function buildMimeMessage({ from, to, cc, replyTo, subject, html, text, attachments, messageId, inReplyTo, references }) {
-  const boundary = "ssbnd_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-  const date = new Date().toUTCString();
-  const mid = messageId || makeMessageId();
-  const toLine  = (Array.isArray(to) ? to : [to]).join(", ");
-  const ccLine  = cc && cc.length ? (Array.isArray(cc) ? cc : [cc]).join(", ") : "";
-
-  const hasHtml = !!html;
-  const hasText = !!(text || hasHtml);
-
-  const headers = [
-    `From: ${from}`,
-    `To: ${toLine}`,
-    ccLine ? `Cc: ${ccLine}` : "",
-    replyTo ? `Reply-To: ${replyTo}` : "",
-    `Subject: ${encodeMimeHeader(subject || "(no subject)")}`,
-    `Date: ${date}`,
-    `Message-ID: ${mid}`,
-    inReplyTo ? `In-Reply-To: ${inReplyTo}` : "",
-    references ? `References: ${references}` : (inReplyTo ? `References: ${inReplyTo}` : ""),
-    `MIME-Version: 1.0`,
-  ].filter(Boolean);
-
-  // Single-part (text-only or html-only) — keep the envelope simple
-  if (hasText && !hasHtml) {
-    headers.push(`Content-Type: text/plain; charset="utf-8"`);
-    headers.push(`Content-Transfer-Encoding: quoted-printable`);
-    return headers.join(CRLF) + CRLF + CRLF + qpEncode(text);
-  }
-  if (hasHtml && !hasText) {
-    headers.push(`Content-Type: text/html; charset="utf-8"`);
-    headers.push(`Content-Transfer-Encoding: quoted-printable`);
-    return headers.join(CRLF) + CRLF + CRLF + qpEncode(html);
-  }
-
-  // Multipart/alternative — both text + html
-  headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-  const parts = [
-    `--${boundary}`,
-    `Content-Type: text/plain; charset="utf-8"`,
-    `Content-Transfer-Encoding: quoted-printable`,
-    ``,
-    qpEncode(text || stripHtml(html)),
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset="utf-8"`,
-    `Content-Transfer-Encoding: quoted-printable`,
-    ``,
-    qpEncode(html),
-    ``,
-    `--${boundary}--`,
-  ];
-  return headers.join(CRLF) + CRLF + CRLF + parts.join(CRLF);
-}
-
-// ────────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────────
 
@@ -336,48 +115,6 @@ function buildMimeMessage({ from, to, cc, replyTo, subject, html, text, attachme
 function extractAddr(s) {
   const m = String(s || "").match(/<([^>]+)>/);
   return (m ? m[1] : s).trim();
-}
-
-// Quoted-printable encode for MIME body parts. RFC 2045 — only chars
-// outside printable ASCII (and =) get escaped. Line length capped at 76.
-function qpEncode(s) {
-  if (s == null) return "";
-  const str = String(s);
-  const out = [];
-  let lineLen = 0;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    const code = ch.charCodeAt(0);
-    let enc;
-    if (ch === "\r" || ch === "\n") {
-      out.push(ch);
-      lineLen = 0;
-      continue;
-    }
-    if (code === 0x3D /* = */ || code < 32 || code > 126) {
-      // Multi-byte UTF-8 → encode each byte separately
-      const bytes = new TextEncoder().encode(ch);
-      enc = "";
-      for (const b of bytes) enc += "=" + b.toString(16).toUpperCase().padStart(2, "0");
-    } else {
-      enc = ch;
-    }
-    if (lineLen + enc.length > 75) {
-      out.push("=" + CRLF); // soft line break
-      lineLen = 0;
-    }
-    out.push(enc);
-    lineLen += enc.length;
-  }
-  return out.join("");
-}
-
-// Encode non-ASCII subject headers as RFC 2047 encoded-word (if needed)
-function encodeMimeHeader(s) {
-  if (/^[\x20-\x7E]*$/.test(s)) return s; // pure ASCII — leave alone
-  // base64 UTF-8 encoded-word
-  const b64 = btoa(unescape(encodeURIComponent(s)));
-  return `=?UTF-8?B?${b64}?=`;
 }
 
 function stripHtml(html) {
