@@ -92,12 +92,27 @@ export async function createContractFromProposalTier(db, proposal, actor = { kin
 
 /**
  * Mark a project as fully booked (customer signed the contract).
- * Updates the project status, and adds an activity log entry.
+ * - Updates project.status to 'contracted'
+ * - If the project was spawned from a lead, bumps lead.status to 'won'
+ * - Logs activity on both
  */
 export async function markProjectBooked(db, projectId, contractId) {
+  // Look up the project to find any originating lead
+  const project = await db.prepare(`SELECT id, lead_id FROM projects WHERE id=?1`).bind(projectId).first();
+  if (!project) return;
+
   await db.prepare(`UPDATE projects SET status='contracted', updated_at=datetime('now') WHERE id=?1`).bind(projectId).run();
   await recordActivity(db, {
     entityType: "project", entityId: projectId, action: "booked",
     actorKind: "customer", details: { contract_id: contractId },
   });
+
+  // If this project came from a lead, mark the lead 'won' too
+  if (project.lead_id) {
+    await db.prepare(`UPDATE leads SET status='won', updated_at=datetime('now') WHERE id=?1`).bind(project.lead_id).run();
+    await recordActivity(db, {
+      entityType: "lead", entityId: project.lead_id, action: "won",
+      actorKind: "customer", details: { project_id: projectId, contract_id: contractId },
+    });
+  }
 }
