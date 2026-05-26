@@ -77,15 +77,25 @@ function render() {
         </ul>
       </div>` : ""}
   `;
+  // After the DOM is in place, size each tier-title textarea to its content
+  requestAnimationFrame(autoGrowAllTitles);
+}
+
+// Auto-grow the tier-title textarea so long titles ("The Smart-Home Package") wrap
+// to a second line instead of getting clipped at the right edge of the card.
+function autoGrow(el) {
+  el.style.height = "auto";
+  el.style.height = (el.scrollHeight) + "px";
+}
+function autoGrowAllTitles() {
+  document.querySelectorAll(".t-title").forEach(autoGrow);
 }
 
 function renderTier(t) {
-  return `<div class="card" data-tier-id="${t.id}" data-tier="${t.tier}" style="${state.proposal.selected_tier === t.tier ? "border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)" : ""}">
-    <div class="card-head">
-      <div>
-        <div class="muted" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">${SSCrm.esc(t.tier)}</div>
-        <input class="t-title" data-f="title" value="${SSCrm.esc(t.title || "")}" placeholder="Tier title" style="font-size:16px;font-weight:600;border:0;padding:6px 0;width:100%;margin-top:2px"/>
-      </div>
+  return `<div class="card" data-tier-id="${t.id}" data-tier="${t.tier}" style="${state.proposal.selected_tier === t.tier ? "border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)" : ""};min-width:0;overflow:hidden">
+    <div class="card-head" style="display:block">
+      <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);margin-bottom:4px">${SSCrm.esc(t.tier)}</div>
+      <textarea class="t-title" data-f="title" rows="1" placeholder="Tier title" style="font-size:15px;font-weight:600;border:0;padding:4px 0;width:100%;box-sizing:border-box;resize:none;font-family:inherit;line-height:1.25;color:var(--ink);overflow:hidden;background:transparent" oninput="autoGrow(this)">${SSCrm.esc(t.title || "")}</textarea>
     </div>
     <textarea class="t-desc" data-f="description" rows="2" placeholder="Brief description (optional)" style="width:100%;border:1px solid var(--line-soft);padding:6px;border-radius:var(--r-sm);font-size:12px;margin-bottom:10px">${SSCrm.esc(t.description || "")}</textarea>
     <table class="lines"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th><th></th></tr></thead>
