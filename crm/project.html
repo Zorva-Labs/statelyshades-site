@@ -265,8 +265,44 @@ async function newProposal() {
   catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newContract() {
-  try { const { id: nid } = await SSCrm.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/contract.html?id=" + nid; }
-  catch (e) { SSCrm.toast(e.message, "error"); }
+  // Ask which contract type
+  const type = await pickContractType();
+  if (!type) return;
+  try {
+    const { id: nid } = await SSCrm.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: id, contract_type: type }) });
+    location.href = "/crm/contract.html?id=" + nid;
+  } catch (e) { SSCrm.toast(e.message, "error"); }
+}
+
+function pickContractType() {
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `
+      <div class="modal" style="max-width:520px">
+        <div class="modal-head">What kind of contract?</div>
+        <div class="modal-body" style="display:grid;gap:10px">
+          <button class="btn secondary" data-t="custom_order" style="justify-content:flex-start;padding:14px;text-align:left;flex-direction:column;align-items:flex-start;gap:4px">
+            <strong style="font-size:14px">Custom Order</strong>
+            <span style="font-size:12px;color:var(--ink-soft);font-weight:400">We supply &amp; install custom-made treatments. 50% deposit. Manufacturer warranty + 90-day workmanship.</span>
+          </button>
+          <button class="btn secondary" data-t="install_only" style="justify-content:flex-start;padding:14px;text-align:left;flex-direction:column;align-items:flex-start;gap:4px">
+            <strong style="font-size:14px">Install Only · BYO Blinds</strong>
+            <span style="font-size:12px;color:var(--ink-soft);font-weight:400">Customer supplies blinds (Lowes, Home Depot, Costco, etc.). We install them. No deposit. Pay on completion. 90-day workmanship.</span>
+          </button>
+          <button class="btn secondary" data-t="repair" style="justify-content:flex-start;padding:14px;text-align:left;flex-direction:column;align-items:flex-start;gap:4px">
+            <strong style="font-size:14px">Repair / Service Call</strong>
+            <span style="font-size:12px;color:var(--ink-soft);font-weight:400">Repair an existing blind, shutter, or shade. Service-call fee + parts. Pay on completion. 90-day workmanship.</span>
+          </button>
+        </div>
+        <div class="modal-foot"><button class="btn ghost" data-no>Cancel</button></div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    bg.querySelectorAll("[data-t]").forEach((b) => { b.onclick = () => { bg.remove(); resolve(b.dataset.t); }; });
+    bg.querySelector("[data-no]").onclick = () => { bg.remove(); resolve(null); };
+    bg.addEventListener("click", (e) => { if (e.target === bg) { bg.remove(); resolve(null); } });
+  });
 }
 async function convertProposal(propId) {
   if (!(await SSCrm.confirmDialog("Create a contract from the accepted tier of this proposal?"))) return;

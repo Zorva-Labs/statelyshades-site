@@ -41,6 +41,7 @@ function render() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div style="display:flex;gap:10px;align-items:center">
         ${SSCrm.pill(k.status)}
+        <span class="pill" style="background:#F0FDFA;color:#0F766E;border-color:#CCFBF1">${contractTypeLabel(k.contract_type || "custom_order")}</span>
         <span class="muted" style="font-size:13px">${SSCrm.esc(k.project_name)} · <a href="/crm/contact.html?id=${k.contact_id}">${SSCrm.esc(k.contact_name)}</a></span>
       </div>
       <div style="display:flex;gap:8px">
@@ -52,9 +53,9 @@ function render() {
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Scope &amp; line items</h2></div>
+      <div class="card-head"><h2>Scope &amp; line items <span class="muted" style="font-size:11px;font-weight:400">· all dimensions in inches</span></h2></div>
       <table class="lines"><thead><tr>
-        <th style="width:40%">Description</th><th>Room</th><th class="num">Qty</th><th class="num">Unit $</th><th class="num">Total</th><th></th>
+        <th style="width:30%">Description</th><th>Room</th><th class="num">W&Prime;</th><th class="num">H&Prime;</th><th class="num">Qty</th><th class="num">Unit $</th><th class="num">Total</th><th></th>
       </tr></thead><tbody id="lines-body">${lines.length ? lines.map((l, i) => lineRow(l, i)).join("") : lineRow({}, 0)}</tbody></table>
       <div class="add"><button onclick="addLine()">+ Line item</button></div>
 
@@ -124,6 +125,8 @@ function lineRow(l, i) {
   return `<tr data-i="${i}">
     <td><input data-f="description" value="${SSCrm.esc(l.description || "")}"/></td>
     <td><input data-f="room" value="${SSCrm.esc(l.room || "")}"/></td>
+    <td><input class="num" data-f="width_in" value="${l.width_in ?? ""}" type="number" step="0.125" min="0"/></td>
+    <td><input class="num" data-f="height_in" value="${l.height_in ?? ""}" type="number" step="0.125" min="0"/></td>
     <td><input class="num" data-f="quantity" value="${l.quantity || 1}" type="number" step="1" min="0"/></td>
     <td><input class="num" data-f="unit" value="${l.unit_price_cents ? "$" + (l.unit_price_cents / 100).toFixed(2) : ""}"/></td>
     <td class="num money money-line">${SSCrm.fmtMoney(total)}</td>
@@ -133,12 +136,18 @@ function lineRow(l, i) {
 function addLine() { const t = document.getElementById("lines-body"); t.insertAdjacentHTML("beforeend", lineRow({}, t.children.length)); }
 
 async function save() {
-  const lines = [...document.querySelectorAll("#lines-body tr")].map((tr) => ({
-    description: tr.querySelector("[data-f=description]").value.trim(),
-    room: tr.querySelector("[data-f=room]").value.trim() || null,
-    quantity: Number(tr.querySelector("[data-f=quantity]").value || 1),
-    unit_price_cents: SSCrm.parseMoney(tr.querySelector("[data-f=unit]").value),
-  })).filter((l) => l.description);
+  const lines = [...document.querySelectorAll("#lines-body tr")].map((tr) => {
+    const w = tr.querySelector("[data-f=width_in]")?.value;
+    const h = tr.querySelector("[data-f=height_in]")?.value;
+    return {
+      description: tr.querySelector("[data-f=description]").value.trim(),
+      room: tr.querySelector("[data-f=room]").value.trim() || null,
+      width_in: w == null || w === "" ? null : Number(w),
+      height_in: h == null || h === "" ? null : Number(h),
+      quantity: Number(tr.querySelector("[data-f=quantity]").value || 1),
+      unit_price_cents: SSCrm.parseMoney(tr.querySelector("[data-f=unit]").value),
+    };
+  }).filter((l) => l.description);
   try {
     await SSCrm.fetchJSON("/api/contracts/" + id, { method: "PATCH", body: JSON.stringify({
       lines,
@@ -247,6 +256,15 @@ async function del() {
   if (!(await SSCrm.confirmDialog("Delete this contract? Cannot be undone."))) return;
   await SSCrm.fetchJSON("/api/contracts/" + id, { method: "DELETE" });
   location.href = "/crm/contracts.html";
+}
+
+function contractTypeLabel(t) {
+  return ({
+    custom_order: "Custom Order",
+    install_only: "Install Only · BYO",
+    repair: "Repair / Service Call",
+    service_call: "Service Call",
+  })[t] || t;
 }
 </script>
 </body>

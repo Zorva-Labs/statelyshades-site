@@ -32,9 +32,14 @@ export async function onRequestPatch(context) {
       const lt = Math.round(qty * unit);
       total += lt;
       await context.env.DB.prepare(
-        `INSERT INTO contract_lines (contract_id, description, room, quantity, unit_price_cents, line_total_cents, position)
-         VALUES (?1,?2,?3,?4,?5,?6,?7)`
-      ).bind(id, l.description, l.room || null, qty, unit, lt, i).run();
+        `INSERT INTO contract_lines (contract_id, description, room, width_in, height_in, quantity, unit_price_cents, line_total_cents, position)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)`
+      ).bind(
+        id, l.description, l.room || null,
+        l.width_in != null ? Number(l.width_in) : null,
+        l.height_in != null ? Number(l.height_in) : null,
+        qty, unit, lt, i,
+      ).run();
     }
     await context.env.DB.prepare(`UPDATE contracts SET total_cents=?1 WHERE id=?2`).bind(total, id).run();
   }

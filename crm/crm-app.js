@@ -19,8 +19,14 @@ const NAV = [
   { href: "/crm/activity.html", label: "Activity", icon: iconActivity() },
 ];
 
-// Show only the most important links by default — others go in More menu
-const PRIMARY_NAV = ["/crm/", "/crm/pipeline.html", "/crm/contacts.html", "/crm/projects.html", "/crm/calendar.html"];
+// Sidebar groups — all links visible (we have room in the vertical rail)
+const NAV_GROUPS = [
+  { label: null, items: ["/crm/", "/crm/pipeline.html"] },
+  { label: "People", items: ["/crm/leads.html", "/crm/contacts.html", "/crm/projects.html"] },
+  { label: "Sales", items: ["/crm/estimates.html", "/crm/proposals.html", "/crm/contracts.html"] },
+  { label: "Operations", items: ["/crm/calendar.html", "/crm/availability.html"] },
+  { label: "Setup", items: ["/crm/products.html", "/crm/templates.html", "/crm/activity.html"] },
+];
 
 const QUICK_ADD = [
   { label: "New job", href: "/crm/contacts.html?action=new-job", kbd: "J", icon: iconBriefcase() },
@@ -59,33 +65,37 @@ async function mount({ title = "", subtitle = "", actions = "", wide = false } =
   if (!me) return null;
   document.title = `${title} · Stately Shades CRM`;
   const path = location.pathname;
+  const navByHref = Object.fromEntries(NAV.map((n) => [n.href, n]));
+  const groupHtml = NAV_GROUPS.map((g) => `
+    ${g.label ? `<div class="tnav__section-label">${esc(g.label)}</div>` : ""}
+    ${g.items.map((href) => navByHref[href] ? navLink(navByHref[href], path) : "").join("")}
+  `).join("");
+
   document.body.innerHTML = `
     <nav class="tnav">
       <a href="/crm/" class="tnav__brand">
         <span class="tnav__brand-mono">S</span>
-        Stately
+        <span>Stately</span>
       </a>
-      <div class="tnav__links">${NAV.filter((n) => PRIMARY_NAV.includes(n.href)).map((n) => navLink(n, path)).join("")}
-        ${moreMenu(path)}
-      </div>
-      <div class="tnav__spacer"></div>
       <div class="tnav__search">
         ${iconSearch()}
         <input type="search" id="g-search" placeholder="Search…" autocomplete="off" />
         <span class="tnav__search-kbd">⌘K</span>
         <div class="tnav__results" id="g-results"></div>
       </div>
+      <div class="tnav__links">${groupHtml}</div>
+      <div class="tnav__spacer"></div>
       <div class="tnav__quickadd">
         <button class="tnav__quickadd-btn" id="quickadd-btn" aria-label="Quick add" title="New (N)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
         <div class="tnav__quickadd-menu" id="quickadd-menu">
           ${QUICK_ADD.map((q) => `<a class="tnav__quickadd-item" href="${q.href}">${q.icon}<span>${esc(q.label)}</span><span class="kbd">${q.kbd}</span></a>`).join("")}
         </div>
       </div>
       <div class="tnav__user">
-        <button class="tnav__user-btn" id="user-btn" aria-label="User menu" title="${esc(me.user.email)}">
-          ${esc(initials(me.user.email))}
+        <button class="tnav__user-btn" id="user-btn" data-init="${esc(initials(me.user.email))}" aria-label="User menu" title="${esc(me.user.email)}">
+          <span>${esc(me.user.display_name || me.user.email.split("@")[0])}</span>
         </button>
         <div class="tnav__user-menu" id="user-menu">
           <div class="tnav__user-info">

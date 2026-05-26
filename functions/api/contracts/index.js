@@ -2,7 +2,8 @@ import { requireAuth, json } from "../../_lib/auth.js";
 import { genToken, nextSequence, formatDocNumber } from "../../_lib/tokens.js";
 import { recordActivity } from "../../_lib/db.js";
 
-const DEFAULT_TERMS = `
+const TERMS_BY_TYPE = {
+  custom_order: `
 <h3>Materials &amp; Manufacture</h3>
 <p>All custom window treatments listed in this agreement are made-to-order. Manufacturer lead times typically run two to six weeks from order placement. We will keep you informed of any changes to the schedule.</p>
 
@@ -10,7 +11,7 @@ const DEFAULT_TERMS = `
 <p>A deposit of fifty percent (50%) of the total contract price is due at signing to release the order to our manufacturing partners. The balance is due at the completion of installation. We accept check, cash, ACH, Venmo, and Cash App. Card payments incur a 3% convenience fee.</p>
 
 <h3>Measurement &amp; Fit</h3>
-<p>Stately Shades will measure all windows on-site and is responsible for the fit of any product we manufacture from those measurements. For install-only service (customer-supplied products), the customer is responsible for the correctness of dimensions ordered.</p>
+<p>Stately Shades will measure all windows on-site and is responsible for the fit of any product we manufacture from those measurements. All windows are measured to the sixteenth of an inch and recorded in this agreement.</p>
 
 <h3>Cancellation</h3>
 <p>Custom orders are non-returnable once released to the manufacturer. The customer may cancel within 72 hours of signing without penalty. After 72 hours, the deposit is non-refundable to the extent it covers materials already ordered. Stately Shades reserves the right to cancel and refund the deposit if the project becomes unworkable.</p>
@@ -23,7 +24,48 @@ const DEFAULT_TERMS = `
 
 <h3>Photography</h3>
 <p>Stately Shades may photograph completed installations for portfolio and marketing use. Customers who prefer not to have their home photographed should note this here or notify us before install day.</p>
-`;
+`,
+
+  install_only: `
+<h3>Scope of Service</h3>
+<p>This is an <strong>install-only</strong> agreement. Stately Shades will install window treatments that the customer has purchased separately from another retailer (e.g. Lowes, Home Depot, Costco, Blinds.com, IKEA, Amazon, manufacturer-direct, or builder leftovers). Stately Shades does <em>not</em> supply or warrant the products themselves — only the labor and workmanship of the installation.</p>
+
+<h3>Customer-Supplied Products</h3>
+<p>The customer is responsible for ordering the correct quantity, dimensions, mount type, and finishes. Stately Shades will verify dimensions against the openings before drilling. If a product is the wrong size, the customer is responsible for the return / re-order; a service-call fee will apply if Stately Shades must return after the corrected product arrives.</p>
+
+<h3>Damage on Arrival</h3>
+<p>If a customer-supplied product is damaged or defective when unboxed, Stately Shades will document the damage and assist with the return claim, but is not responsible for replacement or refund. The retailer's return policy applies.</p>
+
+<h3>Payment</h3>
+<p>No deposit is required for install-only service. Payment in full is due upon completion of installation. We accept check, cash, ACH, Venmo, and Cash App. Card payments incur a 3% convenience fee.</p>
+
+<h3>Workmanship Warranty</h3>
+<p>Our installation work is warranted for <strong>ninety (90) days</strong> against defects in workmanship. If a bracket pulls out, a headrail loses its level, or a motor we programmed loses its limits within 90 days of install, we will return and correct the issue at no charge. This warranty does <em>not</em> cover the product itself, which is governed by its original manufacturer warranty (please retain the retailer's documentation).</p>
+
+<h3>Specialty Hardware</h3>
+<p>For installs requiring atypical hardware (toggle anchors in plaster, stud-finder verification, custom shims for out-of-square frames), Stately Shades will provide all standard hardware. Specialty hardware costing over $25 will be itemized separately.</p>
+
+<h3>Site Access &amp; Conditions</h3>
+<p>The customer is responsible for providing reasonable site access at the scheduled install time, having all product boxes on site and unopened, and a working environment safe for our installers. Postponements due to inaccessible sites, missing products, or unsafe conditions may incur a re-scheduling fee.</p>
+
+<h3>Cancellation</h3>
+<p>The customer may cancel up to 24 hours before the scheduled install window with no penalty. Same-day cancellations are subject to a service-call charge equal to one window install fee.</p>
+`,
+
+  repair: `
+<h3>Scope of Service</h3>
+<p>This is a <strong>repair</strong> agreement. Stately Shades will repair existing window treatments at the customer's premises as itemized in the scope above. We service any brand — Hunter Douglas, Norman, Somfy, Graber, Levolor, Bali, Lutron, Hampton Bay, builder-grade — and stock common parts on the truck.</p>
+
+<h3>Payment</h3>
+<p>Payment is due upon completion of the repair visit. The service-call fee covers the trip and the first 30 minutes of work; additional time and parts are itemized separately. We accept check, cash, ACH, Venmo, and Cash App.</p>
+
+<h3>Workmanship Warranty</h3>
+<p>Our repair work is warranted for <strong>ninety (90) days</strong>. If the repaired component fails within 90 days, we will return and re-repair at no charge. The warranty does not cover unrelated failures of the same product.</p>
+
+<h3>Limitation</h3>
+<p>If on inspection a repair is impractical or uneconomic (parts no longer manufactured, product structurally compromised, motor end-of-life), Stately Shades will quote replacement and apply the service-call fee toward any subsequent purchase.</p>
+`,
+};
 
 export async function onRequestGet(context) {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
@@ -66,21 +108,47 @@ export async function onRequestPost(context) {
     }
   }
 
-  const depositCents = body.deposit_cents != null ? parseInt(body.deposit_cents, 10) : Math.round(totalCents / 2);
+  const contractType = ["custom_order", "install_only", "repair", "service_call"].includes(body.contract_type) ? body.contract_type : "custom_order";
+
+  // Deposit rules differ by type
+  let depositCents;
+  if (body.deposit_cents != null) {
+    depositCents = parseInt(body.deposit_cents, 10);
+  } else if (contractType === "install_only" || contractType === "repair" || contractType === "service_call") {
+    depositCents = 0;  // no deposit for service work — paid on completion
+  } else {
+    depositCents = Math.round(totalCents / 2);  // 50% for custom orders
+  }
+
+  // Default intro by type
+  const defaultIntros = {
+    custom_order: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the supply and installation of custom window treatments at the project address listed.",
+    install_only: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the professional installation of window treatments supplied by the customer at the project address listed.",
+    repair: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the repair service detailed in the scope of work below.",
+    service_call: "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the service call detailed below.",
+  };
+
+  // Default install window by type
+  const defaultWindows = {
+    custom_order: "Weeks 4–6 from contract execution",
+    install_only: "Scheduled within 1–2 weeks of customer-supplied products arriving on site",
+    repair: "Single visit, typically within 1 week",
+    service_call: "Single visit, scheduled at signing",
+  };
 
   const r = await context.env.DB.prepare(
-    `INSERT INTO contracts (project_id, estimate_id, proposal_id, number, view_token, status, total_cents, deposit_cents,
+    `INSERT INTO contracts (project_id, estimate_id, proposal_id, number, view_token, status, contract_type, total_cents, deposit_cents,
        intro, scope_html, terms_html, estimated_install_window, author_user_id)
-     VALUES (?1,?2,?3,?4,?5,'draft',?6,?7,?8,?9,?10,?11,?12) RETURNING id`
+     VALUES (?1,?2,?3,?4,?5,'draft',?6,?7,?8,?9,?10,?11,?12,?13) RETURNING id`
   ).bind(
     body.project_id,
     body.estimate_id || null,
     body.proposal_id || null,
-    number, token, totalCents, depositCents,
-    body.intro || "This agreement is between Stately Shades (Gallatin, TN) and the customer below for the supply and installation of custom window treatments at the project address listed.",
+    number, token, contractType, totalCents, depositCents,
+    body.intro || defaultIntros[contractType],
     body.scope_html || "",
-    body.terms_html || DEFAULT_TERMS,
-    body.estimated_install_window || "Weeks 4–6 from contract execution",
+    body.terms_html || TERMS_BY_TYPE[contractType] || TERMS_BY_TYPE.custom_order,
+    body.estimated_install_window || defaultWindows[contractType],
     auth.id,
   ).first();
 
