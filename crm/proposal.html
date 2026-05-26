@@ -50,11 +50,19 @@ function render() {
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Customer intro</h2></div>
+      <div class="card-head"><h2>Customer intro &amp; contract</h2></div>
       <div class="form">
         <label><span>This text appears at the top of the proposal page</span>
           <textarea id="intro" rows="3">${SSCrm.esc(p.intro || "")}</textarea>
         </label>
+        <label><span>Contract attached when customer accepts</span>
+          <select id="contract-type">
+            <option value="custom_order"  ${(p.default_contract_type || "custom_order") === "custom_order" ? "selected" : ""}>Custom Order — we supply &amp; install (50% deposit, 2–6 wk lead)</option>
+            <option value="install_only"  ${p.default_contract_type === "install_only" ? "selected" : ""}>Install Only — customer-supplied product (no deposit, due on completion)</option>
+            <option value="repair"        ${p.default_contract_type === "repair" ? "selected" : ""}>Repair / Service Call (service-call fee + parts)</option>
+          </select>
+        </label>
+        <p style="font-size:11px;color:var(--ink-muted);margin:-4px 0 0">When the customer clicks "Accept" on the proposal page, this is the contract template that gets auto-created for them to sign.</p>
       </div>
     </div>
 
@@ -193,6 +201,7 @@ async function saveAll() {
   try {
     await SSCrm.fetchJSON("/api/proposals/" + id, { method: "PATCH", body: JSON.stringify({
       intro: document.getElementById("intro").value.trim(),
+      default_contract_type: document.getElementById("contract-type").value,
       tiers,
     })});
     SSCrm.toast("Saved", "success");

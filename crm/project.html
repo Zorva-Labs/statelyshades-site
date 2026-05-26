@@ -53,7 +53,7 @@ async function render() {
   } else if (estimates.length || proposals.length) {
     bigCta = { label: "Send a contract", action: `newContract()`, kind: "secondary" };
   } else {
-    bigCta = { label: "Start an estimate", action: `newEstimate()`, kind: "primary" };
+    bigCta = { label: "Start a proposal", action: `newProposal()`, kind: "primary" };
   }
 
   const initialTab = new URLSearchParams(location.hash.slice(1)).get("tab") || "overview";
@@ -90,7 +90,6 @@ async function render() {
       <nav class="job__tabs" id="tabs">
         ${tab("overview", "Overview")}
         ${tab("windows", "Windows", windows.length)}
-        ${tab("estimates", "Estimates", estimates.length)}
         ${tab("proposals", "Proposals", proposals.length)}
         ${tab("contracts", "Contracts", contracts.length)}
         ${tab("activity", "Activity")}
@@ -145,7 +144,7 @@ function switchTab(tab) {
             <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
             <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
-              ${totalWindows ? `<button class="btn secondary sm" onclick="newEstimateFromWindows()">+ Estimate from these windows</button>` : ""}
+              ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
             </div>
           </div>
 
@@ -154,8 +153,7 @@ function switchTab(tab) {
           <hr class="sep"/>
           <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:10px">Quick actions</h3>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="btn secondary sm" onclick="newEstimate()">+ Estimate</button>
-            <button class="btn secondary sm" onclick="newProposal()">+ Proposal</button>
+            <button class="btn primary sm" onclick="newProposal()">+ Proposal</button>
             <button class="btn secondary sm" onclick="newContract()">+ Contract</button>
             <button class="btn ghost sm" onclick="switchTab('windows')">Edit windows</button>
           </div>
@@ -181,7 +179,6 @@ function switchTab(tab) {
     body.innerHTML = renderWindowsTab(windows);
     wireWindows();
   }
-  else if (tab === "estimates") body.innerHTML = renderDocTab(estimates, "estimate", "EST", newEstimate);
   else if (tab === "proposals") body.innerHTML = renderDocTab(proposals, "proposal", "PROP", newProposal);
   else if (tab === "contracts") body.innerHTML = renderDocTab(contracts, "contract", "C", newContract);
   else if (tab === "activity") body.innerHTML = `<div id="activity-feed" class="muted">Loading…</div>`, loadActivity();
@@ -283,12 +280,12 @@ async function newEstimate() {
   try { const { id: nid } = await SSCrm.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/estimate.html?id=" + nid; }
   catch (e) { SSCrm.toast(e.message, "error"); }
 }
-// Start an estimate AND signal to the estimate builder that the project's
-// windows should be pre-loaded as lines (handled by the estimate page via ?seed=windows).
-async function newEstimateFromWindows() {
+// Start a proposal AND signal to the proposal builder that the project's
+// windows should be pre-loaded as lines (handled via ?seed=windows).
+async function newProposalFromWindows() {
   try {
-    const { id: nid } = await SSCrm.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: id }) });
-    location.href = `/crm/estimate.html?id=${nid}&seed=windows`;
+    const { id: nid } = await SSCrm.fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: id }) });
+    location.href = `/crm/proposal.html?id=${nid}&seed=windows`;
   } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newProposal() {

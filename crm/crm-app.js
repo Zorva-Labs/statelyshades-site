@@ -11,7 +11,7 @@ const NAV = [
   { href: "/crm/contacts.html", label: "Contacts", icon: iconUsers() },
   { href: "/crm/projects.html", label: "Jobs", icon: iconBriefcase() },
   { href: "/crm/calendar.html", label: "Calendar", icon: iconCal() },
-  { href: "/crm/estimates.html", label: "Estimates", icon: iconDoc() },
+  // Estimates removed — workflow is now Lead → Proposal → Contract → Booked.
   { href: "/crm/proposals.html", label: "Proposals", icon: iconDoc() },
   { href: "/crm/contracts.html", label: "Contracts", icon: iconDoc() },
   { href: "/crm/products.html", label: "Products", icon: iconBox() },
@@ -33,7 +33,6 @@ const QUICK_ADD = [
   { label: "New contact",      action: "quickAddContact",     kbd: "C", icon: iconUsers() },
   { label: "New job",          action: "quickAddJob",         kbd: "J", icon: iconBriefcase() },
   { label: "Book appointment", action: "quickAddAppointment", kbd: "A", icon: iconCal() },
-  { label: "New estimate",     action: "quickAddEstimate",    kbd: "E", icon: iconDoc() },
   { label: "New proposal",     action: "quickAddProposal",    kbd: "P", icon: iconDoc() },
   { label: "New contract",     action: "quickAddContract",    kbd: "K", icon: iconDoc() },
 ];

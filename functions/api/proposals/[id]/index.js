@@ -25,7 +25,7 @@ export async function onRequestPatch(context) {
   const body = await context.request.json().catch(() => ({}));
 
   // Update proposal-level fields
-  const allowed = ["status","intro","notes_internal","valid_until"];
+  const allowed = ["status","intro","notes_internal","valid_until","default_contract_type"];
   const fields = []; const binds = [];
   for (const k of allowed) {
     if (body[k] !== undefined) { fields.push(`${k}=?${binds.length+1}`); binds.push(body[k]); }
