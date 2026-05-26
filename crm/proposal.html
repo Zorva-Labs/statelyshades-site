@@ -58,7 +58,9 @@ function render() {
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px">
+    <!-- Tiers stacked vertically so each card has the full page width
+         for line items, dimensions, color, and pricing columns -->
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
       ${tiers.map(renderTier).join("")}
     </div>
 
@@ -99,12 +101,15 @@ function renderTier(t) {
     </div>
     <textarea class="t-desc" data-f="description" rows="2" placeholder="Brief description (optional)" style="width:100%;border:1px solid var(--line-soft);padding:6px;border-radius:var(--r-sm);font-size:12px;margin-bottom:10px">${SSCrm.esc(t.description || "")}</textarea>
     <table class="lines"><thead><tr>
-      <th>Item</th><th style="width:80px">Room</th>
-      <th class="num" style="width:60px" title="Width (in)">W″</th>
-      <th class="num" style="width:60px" title="Height (in)">H″</th>
-      <th class="num" style="width:48px">Qty</th>
-      <th class="num" style="width:80px">Unit</th>
-      <th class="num" style="width:90px">Total</th><th></th>
+      <th>Item</th>
+      <th style="width:90px">Color / Finish</th>
+      <th style="width:120px">Options</th>
+      <th style="width:90px">Room</th>
+      <th class="num" style="width:64px" title="Width (in)">W″</th>
+      <th class="num" style="width:64px" title="Height (in)">H″</th>
+      <th class="num" style="width:54px">Qty</th>
+      <th class="num" style="width:90px">Unit price</th>
+      <th class="num" style="width:100px">Total</th><th style="width:32px"></th>
     </tr></thead>
     <tbody class="tier-lines">${(t.lines || []).map(tierLineRow).join("") || tierLineRow({})}</tbody></table>
     <div class="add" style="display:flex;gap:8px"><button onclick="addFromCatalog(this)">+ Add from catalog</button><button onclick="addTierLine(this)">+ Custom line</button></div>
@@ -119,12 +124,14 @@ function tierLineRow(l) {
   const heightIn = l?.height_in ?? "";
   return `<tr>
     <td>
-      <input data-f="description" value="${SSCrm.esc(l?.description || "")}" placeholder="Line item"/>
+      <input data-f="description" value="${SSCrm.esc(l?.description || "")}" placeholder="Product / item"/>
       <input type="hidden" data-f="product_id" value="${productId}"/>
     </td>
+    <td><input data-f="color" value="${SSCrm.esc(l?.color || "")}" placeholder="White, walnut…"/></td>
+    <td><input data-f="options" value="${SSCrm.esc(l?.options || "")}" placeholder="Cordless, motorized…"/></td>
     <td><input data-f="room" value="${SSCrm.esc(l?.room || "")}" placeholder="Room"/></td>
-    <td><input class="num" data-f="width_in" value="${widthIn}" type="number" step="0.125" min="0" placeholder="—" title="Width (inches) for ordering"/></td>
-    <td><input class="num" data-f="height_in" value="${heightIn}" type="number" step="0.125" min="0" placeholder="—" title="Height (inches) for ordering"/></td>
+    <td><input class="num" data-f="width_in" value="${widthIn}" type="number" step="0.125" min="0" placeholder="—" title="Width (in)"/></td>
+    <td><input class="num" data-f="height_in" value="${heightIn}" type="number" step="0.125" min="0" placeholder="—" title="Height (in)"/></td>
     <td><input class="num" data-f="quantity" value="${l?.quantity || 1}" type="number" step="1" min="1" onchange="recalcTier(this)"/></td>
     <td><input class="num" data-f="unit" value="${l?.unit_price_cents ? "$" + (l.unit_price_cents/100).toFixed(2) : ""}" onchange="recalcTier(this)"/></td>
     <td class="num money tier-line-money">${SSCrm.fmtMoney((l?.quantity || 1) * (l?.unit_price_cents || 0))}</td>
@@ -172,6 +179,8 @@ async function saveAll() {
       const heightRaw = tr.querySelector("[data-f=height_in]")?.value || "";
       return {
         description: tr.querySelector("[data-f=description]").value.trim(),
+        color: tr.querySelector("[data-f=color]")?.value.trim() || null,
+        options: tr.querySelector("[data-f=options]")?.value.trim() || null,
         room: tr.querySelector("[data-f=room]")?.value.trim() || null,
         quantity: Math.max(1, Math.round(Number(tr.querySelector("[data-f=quantity]").value || 1))),
         unit_price_cents: SSCrm.parseMoney(tr.querySelector("[data-f=unit]").value),

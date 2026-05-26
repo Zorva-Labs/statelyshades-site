@@ -726,10 +726,14 @@ async function pickProduct() {
             </div>
             ${isPhysical ? `
               <div class="row">
+                <label><span>Color / Finish</span><input id="pp-color" placeholder="White, walnut, espresso…"/></label>
+                <label><span>Options</span><input id="pp-options" placeholder="Cordless, motorized, blackout…"/></label>
+              </div>
+              <div class="row">
                 <label><span>Width (in) — for ordering</span><input id="pp-w" type="number" min="0" step="0.125" placeholder="e.g. 36"/></label>
                 <label><span>Height (in) — for ordering</span><input id="pp-h" type="number" min="0" step="0.125" placeholder="e.g. 60"/></label>
               </div>
-              <p style="font-size:11px;color:var(--ink-muted);margin:-4px 0 0">Dimensions are saved to the line so you can order accurately — they don't change pricing.</p>
+              <p style="font-size:11px;color:var(--ink-muted);margin:-4px 0 0">All of these are editable on the line later — set defaults here.</p>
             ` : ""}
             <div id="pp-preview" style="background:var(--bg-soft);padding:12px 16px;border-radius:var(--r-sm);font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums">
               <div>Unit price: <strong>${fmtMoney(p.base_price_cents)}</strong></div>
@@ -796,8 +800,8 @@ async function pickProduct() {
         const total = qtyVal * unit;
         const wv = w ? Number(w.value || 0) : 0;
         const hv = h ? Number(h.value || 0) : 0;
-        // Description is just the product name. Dimensions live in their own
-        // editable columns on the line row so they're visible for ordering.
+        const colorInput = bg.querySelector("#pp-color");
+        const optionsInput = bg.querySelector("#pp-options");
         close({
           product_id: p.id,
           description: p.name,
@@ -805,6 +809,8 @@ async function pickProduct() {
           quantity: qtyVal,
           width_in: wv > 0 ? wv : null,
           height_in: hv > 0 ? hv : null,
+          color: colorInput?.value.trim() || null,
+          options: optionsInput?.value.trim() || null,
           unit_price_cents: unit,
           line_total_cents: total,
         });

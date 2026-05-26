@@ -56,13 +56,15 @@ export async function onRequestPatch(context) {
           const qty = Number(l.quantity || 1);
           const unit = parseInt(l.unit_price_cents || 0, 10);
           await context.env.DB.prepare(
-            `INSERT INTO proposal_tier_lines (tier_id, description, room, quantity, unit_price_cents, line_total_cents, position, product_id, width_in, height_in)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)`
+            `INSERT INTO proposal_tier_lines (tier_id, description, room, quantity, unit_price_cents, line_total_cents, position, product_id, width_in, height_in, color, options)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)`
           ).bind(
             t.id, l.description, l.room || null, qty, unit, Math.round(qty*unit), i,
             l.product_id || null,
             l.width_in != null ? Number(l.width_in) : null,
             l.height_in != null ? Number(l.height_in) : null,
+            l.color || null,
+            l.options || null,
           ).run();
         }
         await recomputeTierTotals(context.env.DB, t.id);
