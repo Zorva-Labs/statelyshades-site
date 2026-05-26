@@ -1,6 +1,7 @@
 // POST /api/contact — receives the consultation form, saves the lead to D1,
-// and emails the admin via the shared sendEmail() wrapper (currently SMTP
-// to Purelymail; see _lib/email.js for env vars).
+// and emails the admin via the shared sendEmail() wrapper (Resend HTTP API;
+// see _lib/email.js for env vars). DB save is the source of truth — a mail
+// failure logs but never blocks the customer response.
 
 import { sendEmail } from "../_lib/email.js";
 

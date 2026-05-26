@@ -57,13 +57,14 @@ export async function runImapSync(env, { mailbox = MAILBOX, maxPerRun = 50 } = {
         const fetched = await client.fetchRaw(uid);
         if (!fetched?.raw) { skipped++; continue; }
         const parsed = parseRfc822(fetched.raw);
-        // Skip messages we sent ourselves. Two patterns to catch:
+        // Skip messages we sent ourselves. Catches:
         // 1. From exactly matches the auth'd mailbox (hello@statelyshades.com)
-        // 2. From is on our own domain (e.g. crm@statelyshades.com — the alias
-        //    we use to break self-loops on the SMTP side). Outbound mail to
-        //    customers can never legitimately come back FROM our own domain,
-        //    so anything @statelyshades.com in the From is necessarily our
-        //    own sent-folder mail being re-ingested.
+        // 2. From is on our own domain (anything @statelyshades.com).
+        // Outbound mail to customers can never legitimately come back FROM
+        // our own domain, so any @statelyshades.com sender in the inbox is
+        // necessarily our own Sent folder being re-ingested. Resend's
+        // bounce-tracking address (anything @send.statelyshades.com) is
+        // caught by the same domain suffix match.
         const fromAddr = parsed.fromAddr?.toLowerCase() || "";
         const authUser = (env.PURELYMAIL_USER || "").toLowerCase();
         const authDomain = authUser.split("@")[1] || "statelyshades.com";
