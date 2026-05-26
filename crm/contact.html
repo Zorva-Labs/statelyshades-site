@@ -1,92 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contact · Stately Shades CRM</title>
-  <meta name="robots" content="noindex, nofollow" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/crm/admin.css" />
-  <link rel="icon" href="/assets/images/logo-v4.png" />
-</head>
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Contact · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
 <body>
-<div id="app"></div>
-<script src="/crm/admin.js"></script>
+<script src="/crm/crm-app.js"></script>
 <script>
+const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
+if (!id) location.href = "/crm/contacts.html";
 (async () => {
-  const id = new URLSearchParams(location.search).get("id");
-  if (!id) { location.href = "/crm/contacts.html"; return; }
-  const user = await SSAdmin.mount({ title: "Contact", actions: `<a class="btn-secondary" href="/crm/contacts.html">← All contacts</a>` });
+  const user = await SSCrm.mount({ title: "Contact", actions: `<a class="btn ghost" href="/crm/contacts.html">← Contacts</a>` });
   if (!user) return;
-  const { contact, projects, appointments } = await SSAdmin.fetchJSON("/api/contacts/" + id);
-  document.getElementById("page-title").innerHTML = SSAdmin.esc(contact.name);
-  const addr = [contact.address_street, contact.address_city, contact.address_state, contact.address_zip].filter(Boolean).join(", ");
-
+  const { contact: c, projects, appointments } = await SSCrm.fetchJSON("/api/contacts/" + id);
+  document.getElementById("page-title").textContent = c.name;
   document.getElementById("page").innerHTML = `
-    <div class="cols-2">
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
       <div>
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <h2>Projects</h2>
-            <button class="btn-primary" onclick="newProject(${contact.id})">+ New project</button>
-          </div>
-          ${projects.length ? `<div class="data-table"><table><thead><tr><th>Name</th><th>Status</th><th>Updated</th></tr></thead><tbody>${
-            projects.map((p) => `<tr onclick="location.href='/crm/project.html?id=${p.id}'"><td><strong>${SSAdmin.esc(p.name)}</strong>${p.description ? `<div class="muted">${SSAdmin.esc(p.description)}</div>` : ""}</td><td><span class="status" data-s="${SSAdmin.esc(p.status)}">${SSAdmin.esc(p.status)}</span></td><td class="muted">${SSAdmin.fmtDate(p.updated_at)}</td></tr>`).join("")
-          }</tbody></table></div>` : `<p style="color:var(--c-ink-soft);font-size:.9rem">No projects yet — create one to start an estimate, proposal, or contract.</p>`}
+        <div class="card">
+          <div class="card-head"><h2>Jobs</h2><button class="btn primary sm" onclick="newJob(${c.id})">+ New job</button></div>
+          ${projects.length ? `<div class="tbl"><table><thead><tr><th>Name</th><th>Status</th><th>Updated</th></tr></thead><tbody>${
+            projects.map((p) => `<tr class="clickable" onclick="location.href='/crm/project.html?id=${p.id}'">
+              <td><strong>${SSCrm.esc(p.name)}</strong>${p.description ? `<div class="muted" style="font-size:12px">${SSCrm.esc(p.description)}</div>` : ""}</td>
+              <td>${SSCrm.pill(p.status)}</td>
+              <td class="muted">${SSCrm.fmtDate(p.updated_at)}</td>
+            </tr>`).join("")}
+          </tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px">No jobs yet — create one to start an estimate.</p>`}
         </div>
-        <div class="panel">
-          <h2>Appointments</h2>
-          ${appointments.length ? `<div class="data-table"><table><thead><tr><th>When</th><th>Type</th><th>Status</th></tr></thead><tbody>${
-            appointments.map((a) => `<tr><td>${SSAdmin.esc(a.start_at.replace("T", " · ").slice(0, 16))}</td><td class="muted">${SSAdmin.esc(a.type)}</td><td><span class="status" data-s="${SSAdmin.esc(a.status)}">${SSAdmin.esc(a.status)}</span></td></tr>`).join("")
-          }</tbody></table></div>` : `<p style="color:var(--c-ink-soft);font-size:.9rem">No appointments yet.</p>`}
+        <div class="card" style="margin-top:14px">
+          <div class="card-head"><h2>Appointments</h2></div>
+          ${appointments.length ? `<div class="tbl"><table><thead><tr><th>When</th><th>Type</th><th>Status</th></tr></thead><tbody>${
+            appointments.map((a) => `<tr><td>${SSCrm.fmtDateTime(a.start_at)}</td><td class="muted">${SSCrm.esc(a.type)}</td><td>${SSCrm.pill(a.status)}</td></tr>`).join("")
+          }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px">No appointments yet.</p>`}
         </div>
       </div>
       <div>
-        <div class="panel">
-          <h2>Details</h2>
-          <div class="form-grid">
-            <label><span>Name</span><input id="c-name" value="${SSAdmin.esc(contact.name)}"/></label>
-            <label><span>Email</span><input id="c-email" type="email" value="${SSAdmin.esc(contact.email)}"/></label>
-            <label><span>Phone</span><input id="c-phone" type="tel" value="${SSAdmin.esc(contact.phone || '')}"/></label>
-            <label><span>Street</span><input id="c-street" value="${SSAdmin.esc(contact.address_street || '')}"/></label>
+        <div class="card">
+          <div class="card-head"><h2>Details</h2></div>
+          <div class="form">
+            <label><span>Name</span><input id="f-name" value="${SSCrm.esc(c.name)}"/></label>
+            <label><span>Email</span><input id="f-email" type="email" value="${SSCrm.esc(c.email)}"/></label>
+            <label><span>Phone</span><input id="f-phone" type="tel" value="${SSCrm.esc(c.phone || "")}"/></label>
+            <label><span>Street</span><input id="f-street" value="${SSCrm.esc(c.address_street || "")}"/></label>
             <div class="row-3">
-              <label><span>City</span><input id="c-city" value="${SSAdmin.esc(contact.address_city || '')}"/></label>
-              <label><span>State</span><input id="c-state" value="${SSAdmin.esc(contact.address_state || '')}" maxlength="2"/></label>
-              <label><span>ZIP</span><input id="c-zip" value="${SSAdmin.esc(contact.address_zip || '')}"/></label>
+              <label><span>City</span><input id="f-city" value="${SSCrm.esc(c.address_city || "")}"/></label>
+              <label><span>State</span><input id="f-state" value="${SSCrm.esc(c.address_state || "")}" maxlength="2"/></label>
+              <label><span>ZIP</span><input id="f-zip" value="${SSCrm.esc(c.address_zip || "")}"/></label>
             </div>
-            <label><span>Notes</span><textarea id="c-notes" rows="4">${SSAdmin.esc(contact.notes || '')}</textarea></label>
-          </div>
-          <div class="form-actions">
-            <button class="btn-primary" onclick="saveContact(${contact.id})">Save</button>
+            <label><span>Notes</span><textarea id="f-notes" rows="4">${SSCrm.esc(c.notes || "")}</textarea></label>
+            <div class="form-actions"><button class="btn primary" onclick="save(${c.id})">Save</button></div>
           </div>
         </div>
       </div>
     </div>
   `;
 })();
-
-async function saveContact(id) {
-  const body = {
-    name: document.getElementById("c-name").value.trim(),
-    email: document.getElementById("c-email").value.trim(),
-    phone: document.getElementById("c-phone").value.trim(),
-    address_street: document.getElementById("c-street").value.trim(),
-    address_city: document.getElementById("c-city").value.trim(),
-    address_state: document.getElementById("c-state").value.trim(),
-    address_zip: document.getElementById("c-zip").value.trim(),
-    notes: document.getElementById("c-notes").value.trim(),
-  };
-  try { await SSAdmin.fetchJSON("/api/contacts/" + id, { method: "PATCH", body: JSON.stringify(body) }); SSAdmin.toast("Saved", "success"); }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
+async function save(id) {
+  const body = {};
+  for (const f of ["name","email","phone","address_street","address_city","address_state","address_zip","notes"]) {
+    body[f] = document.getElementById("f-" + f.replace("address_", "")).value.trim();
+  }
+  try { await SSCrm.fetchJSON("/api/contacts/" + id, { method: "PATCH", body: JSON.stringify(body) }); SSCrm.toast("Saved", "success"); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
-
-async function newProject(contactId) {
-  const name = prompt("Project name? (e.g. 'Whole house', 'Kitchen + Baths')"); if (!name) return;
-  try {
-    const { id } = await SSAdmin.fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contactId, name }) });
-    location.href = "/crm/project.html?id=" + id;
-  } catch (e) { SSAdmin.toast(e.message, "error"); }
+async function newJob(contactId) {
+  const name = prompt("Job name? (e.g. 'Whole house', 'Kitchen + Baths')"); if (!name) return;
+  try { const { id } = await SSCrm.fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contactId, name }) }); location.href = "/crm/project.html?id=" + id; }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
-</script>
-</body>
-</html>
+</script></body></html>

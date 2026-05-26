@@ -1,26 +1,25 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Contracts · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/crm/admin.css" /></head><body><div id="app"></div>
-<script src="/crm/admin.js"></script><script>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Contracts · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
+<body>
+<script src="/crm/crm-app.js"></script>
+<script>
 (async () => {
-  const user = await SSAdmin.mount({ title: "Contracts" });
+  const user = await SSCrm.mount({ title: "Contracts", subtitle: "Every contract sent and booked", wide: true });
   if (!user) return;
-  const { contracts } = await SSAdmin.fetchJSON("/api/contracts");
-  document.getElementById("page").innerHTML = contracts.length
-    ? `<div class="data-table"><table>
-        <thead><tr><th>#</th><th>Project</th><th>Customer</th><th>Status</th><th>Total</th><th>Deposit</th><th>Created</th></tr></thead>
-        <tbody>${contracts.map((c) => `
-          <tr onclick="location.href='/crm/contract.html?id=${c.id}'">
-            <td><strong>${SSAdmin.esc(c.number)}</strong></td>
-            <td>${SSAdmin.esc(c.project_name)}</td>
-            <td>${SSAdmin.esc(c.contact_name)}<div class="muted">${SSAdmin.esc(c.contact_email)}</div></td>
-            <td><span class="status" data-s="${c.status}">${c.status.replace(/_/g, ' ')}</span></td>
-            <td class="num">${SSAdmin.fmtMoney(c.total_cents)}</td>
-            <td class="num">${c.deposit_paid ? "✓ " : ""}${SSAdmin.fmtMoney(c.deposit_cents)}</td>
-            <td class="muted">${SSAdmin.fmtDate(c.created_at)}</td>
-          </tr>`).join("")}</tbody></table></div>`
-    : `<div class="data-table"><div class="empty">No contracts yet. Open a project and click "+ Contract".</div></div>`;
+  const { contracts } = await SSCrm.fetchJSON("/api/contracts");
+  const page = document.getElementById("page");
+  if (!contracts.length) { page.innerHTML = `<div class="tbl"><div class="empty">No contracts yet.</div></div>`; return; }
+  page.innerHTML = `<div class="tbl"><table>
+    <thead><tr><th>#</th><th>Project / Customer</th><th>Status</th><th class="num">Total</th><th>Deposit</th><th>Created</th></tr></thead>
+    <tbody>${contracts.map((k) => `<tr class="clickable" onclick="location.href='/crm/contract.html?id=${k.id}'">
+      <td><strong>${SSCrm.esc(k.number)}</strong></td>
+      <td>${SSCrm.esc(k.project_name)}<div class="muted" style="font-size:12px">${SSCrm.esc(k.contact_name)}</div></td>
+      <td>${SSCrm.pill(k.status)}</td>
+      <td class="money">${SSCrm.fmtMoney(k.total_cents)}</td>
+      <td>${k.deposit_paid ? `<span class="pill" data-s="completed">Paid</span>` : `<span class="muted" style="font-size:12px">${SSCrm.fmtMoney(k.deposit_cents)} due</span>`}</td>
+      <td class="muted">${SSCrm.fmtDate(k.created_at)}</td>
+    </tr>`).join("")}</tbody></table></div>`;
 })();
 </script></body></html>

@@ -1,70 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Products · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/crm/admin.css" /></head>
-<body><div id="app"></div>
-<script src="/crm/admin.js"></script><script>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Products · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
+<body>
+<script src="/crm/crm-app.js"></script>
+<script>
 (async () => {
-  const user = await SSAdmin.mount({ title: "Products", subtitle: "Priced library used in estimates & contracts.",
-    actions: `<button class="btn-primary" onclick="addProduct()">+ Product</button>` });
+  const user = await SSCrm.mount({ title: "Products", subtitle: "Priced product catalog used in estimates &amp; proposals",
+    actions: `<button class="btn primary" onclick="newProd()">+ New product</button>`, wide: true });
   if (!user) return;
-  await render();
+  await load();
 })();
-
-async function render() {
-  const { products } = await SSAdmin.fetchJSON("/api/products");
+async function load() {
+  const { products } = await SSCrm.fetchJSON("/api/products");
   const grouped = {};
   for (const p of products) (grouped[p.category] ||= []).push(p);
-  document.getElementById("page").innerHTML = `
-    <div class="data-table"><table>
-      <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Unit</th><th class="num">Base</th><th class="num">$/sqft</th><th></th></tr></thead>
-      <tbody>${products.map((p) => `
-        <tr data-id="${p.id}">
-          <td class="muted">${SSAdmin.esc(p.sku || '')}</td>
-          <td>${SSAdmin.esc(p.name)}</td>
-          <td><span class="muted">${SSAdmin.esc(p.category)}</span></td>
-          <td class="muted">${SSAdmin.esc(p.unit)}</td>
-          <td class="num">${SSAdmin.fmtMoney(p.base_price_cents)}</td>
-          <td class="num">${p.price_per_sqft_cents ? SSAdmin.fmtMoney(p.price_per_sqft_cents) : '—'}</td>
-          <td><button class="btn-ghost" onclick="editProduct(${p.id})">edit</button> <button class="btn-ghost" style="color:#B85450" onclick="delProduct(${p.id})">delete</button></td>
-        </tr>`).join("")}
-      </tbody>
-    </table></div>
-  `;
+  const page = document.getElementById("page");
+  page.innerHTML = Object.keys(grouped).sort().map((cat) => `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><h2>${SSCrm.esc(cat)}</h2><span class="muted" style="font-size:12px">${grouped[cat].length} item${grouped[cat].length === 1 ? "" : "s"}</span></div>
+      <div class="tbl" style="border:0"><table>
+        <thead><tr><th>SKU</th><th>Name</th><th>Unit</th><th class="num">Base $</th><th class="num">Per sq ft</th><th></th></tr></thead>
+        <tbody>${grouped[cat].map((p) => `<tr data-id="${p.id}">
+          <td class="mono" style="font-size:12px;color:var(--ink-soft)">${SSCrm.esc(p.sku || "")}</td>
+          <td>${SSCrm.esc(p.name)}</td>
+          <td class="muted" style="font-size:12px">${SSCrm.esc(p.unit)}</td>
+          <td class="money">${SSCrm.fmtMoney(p.base_price_cents)}</td>
+          <td class="num muted">${p.price_per_sqft_cents ? SSCrm.fmtMoney(p.price_per_sqft_cents) : "—"}</td>
+          <td><button class="rm" onclick="delProd(${p.id})" title="Archive">×</button></td>
+        </tr>`).join("")}</tbody></table></div>
+    </div>
+  `).join("");
 }
-
-async function addProduct() {
-  const name = prompt("Name?"); if (!name) return;
-  const category = prompt("Category? (faux-wood, real-wood, cellular, sheer, plantation, drapery, motor, outdoor, install, repair, etc.)"); if (!category) return;
-  const base = prompt("Base price in dollars (e.g. 89)?"); if (base === null) return;
-  const sqft = prompt("$/sqft (optional, blank for fixed price)?") || 0;
-  const sku = prompt("SKU (optional)?") || null;
-  try {
-    await SSAdmin.fetchJSON("/api/products", { method: "POST", body: JSON.stringify({
-      name, category, sku, base_price_cents: Math.round(parseFloat(base) * 100), price_per_sqft_cents: Math.round(parseFloat(sqft || 0) * 100),
-    })});
-    SSAdmin.toast("Added", "success"); render();
-  } catch (e) { SSAdmin.toast(e.message, "error"); }
+async function newProd() {
+  const name = prompt("Product name?"); if (!name) return;
+  const cat = prompt("Category (faux-wood, real-wood, cellular, sheer, plantation, drapery, outdoor, install, repair, etc.)?", "faux-wood"); if (!cat) return;
+  const price = prompt("Base price in cents? (8900 = $89.00)", "0");
+  try { await SSCrm.fetchJSON("/api/products", { method: "POST", body: JSON.stringify({ name, category: cat, base_price_cents: parseInt(price || 0, 10) }) }); load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
-
-async function editProduct(id) {
-  const { products } = await SSAdmin.fetchJSON("/api/products");
-  const p = products.find((x) => x.id === id); if (!p) return;
-  const name = prompt("Name?", p.name); if (name === null) return;
-  const base = prompt("Base $?", (p.base_price_cents/100).toFixed(2)); if (base === null) return;
-  const sqft = prompt("$/sqft?", (p.price_per_sqft_cents/100).toFixed(2)); if (sqft === null) return;
-  try {
-    await SSAdmin.fetchJSON("/api/products/" + id, { method: "PATCH", body: JSON.stringify({
-      name, base_price_cents: Math.round(parseFloat(base)*100), price_per_sqft_cents: Math.round(parseFloat(sqft)*100),
-    })});
-    SSAdmin.toast("Updated", "success"); render();
-  } catch (e) { SSAdmin.toast(e.message, "error"); }
-}
-async function delProduct(id) {
-  if (!(await SSAdmin.confirmDialog("Soft-delete this product? (Historical estimates keep their data.)"))) return;
-  try { await SSAdmin.fetchJSON("/api/products/" + id, { method: "DELETE" }); SSAdmin.toast("Deleted", "success"); render(); }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
+async function delProd(id) {
+  if (!(await SSCrm.confirmDialog("Archive this product? It stays in old estimates but won't appear in new ones."))) return;
+  try { await SSCrm.fetchJSON("/api/products/" + id, { method: "DELETE" }); load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
 </script></body></html>

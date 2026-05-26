@@ -1,98 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Calendar · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/crm/admin.css" /></head>
-<body><div id="app"></div>
-<script src="/crm/admin.js"></script><script>
-let weekStart = mondayOf(new Date());
-
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Calendar · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
+<body>
+<script src="/crm/crm-app.js"></script>
+<script>
 (async () => {
-  const user = await SSAdmin.mount({ title: "Calendar", subtitle: "Upcoming appointments — week view.",
-    actions: `<button class="btn-secondary" onclick="prevWeek()">← Prev</button>
-              <button class="btn-secondary" onclick="thisWeek()">This week</button>
-              <button class="btn-secondary" onclick="nextWeek()">Next →</button>
-              <a class="btn-secondary" href="/crm/availability.html">Availability</a>
-              <button class="btn-primary" onclick="newAppt()">+ Appointment</button>` });
+  const user = await SSCrm.mount({ title: "Calendar", subtitle: "Upcoming consultations &amp; install visits",
+    actions: `<a class="btn secondary" href="/crm/availability.html">Edit availability →</a>
+              <button class="btn primary" onclick="newAppt()">+ Manual appointment</button>`, wide: true });
   if (!user) return;
-  await render();
+  await load();
 })();
-
-function mondayOf(d) { const x = new Date(d); const dow = x.getDay(); const diff = (dow === 0 ? -6 : 1 - dow); x.setDate(x.getDate() + diff); x.setHours(0,0,0,0); return x; }
-function fmtISO(d) { return d.toISOString().slice(0, 10); }
-function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
-function prevWeek() { weekStart = addDays(weekStart, -7); render(); }
-function nextWeek() { weekStart = addDays(weekStart, 7); render(); }
-function thisWeek() { weekStart = mondayOf(new Date()); render(); }
-
-async function render() {
-  const from = fmtISO(weekStart);
-  const to = fmtISO(addDays(weekStart, 6));
-  const { appointments } = await SSAdmin.fetchJSON(`/api/appointments?from=${from}&to=${to}`);
-
-  const days = [...Array(7)].map((_, i) => addDays(weekStart, i));
-  const HOURS_START = 8, HOURS_END = 19;
-  const hours = [...Array(HOURS_END - HOURS_START)].map((_, i) => i + HOURS_START);
-
-  document.getElementById("page-title").innerHTML = `Calendar · <em>${weekStart.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} – ${addDays(weekStart, 6).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</em>`;
-
-  let html = `<div class="cal-wrap"><div class="cal-grid">`;
-  html += `<div></div>`;
-  for (const d of days) html += `<div class="cal-day-head">${d.toLocaleDateString(undefined, { weekday: 'short' })}<strong>${d.getDate()}</strong></div>`;
-  for (const h of hours) {
-    html += `<div class="cal-time">${h % 12 || 12}${h < 12 ? 'a' : 'p'}</div>`;
-    for (const d of days) html += `<div class="cal-cell" data-d="${fmtISO(d)}" data-h="${h}"></div>`;
-  }
-  html += `</div></div>`;
-  document.getElementById("page").innerHTML = html;
-
-  // Layer events on top of cells
+async function load() {
+  const today = new Date().toISOString().slice(0, 10);
+  const to = new Date(Date.now() + 30 * 86400 * 1000).toISOString().slice(0, 10);
+  const { appointments } = await SSCrm.fetchJSON(`/api/appointments?from=${today}&to=${to}`);
+  // Group by date
+  const groups = {};
   for (const a of appointments) {
-    if (a.status === "cancelled") continue;
-    const d = a.start_at.slice(0, 10);
-    const h = parseInt(a.start_at.slice(11, 13), 10);
-    const m = parseInt(a.start_at.slice(14, 16), 10);
-    const cell = document.querySelector(`.cal-cell[data-d='${d}'][data-h='${h}']`);
-    if (!cell) continue;
-    const dur = a.duration_min || 60;
-    const ev = document.createElement("div");
-    ev.className = "cal-event";
-    ev.dataset.s = a.status;
-    ev.style.top = (m / 60 * 100) + "%";
-    ev.style.height = ((dur / 60) * 100) + "%";
-    ev.title = `${a.start_at.slice(11, 16)} — ${a.name} (${a.type})`;
-    ev.innerHTML = `<strong>${a.start_at.slice(11, 16)}</strong> ${SSAdmin.esc(a.name)}<br/>${SSAdmin.esc(a.type)}`;
-    ev.onclick = () => openAppt(a.id);
-    cell.appendChild(ev);
+    const d = (a.start_at || "").slice(0, 10);
+    (groups[d] ||= []).push(a);
   }
+  const dates = Object.keys(groups).sort();
+  const page = document.getElementById("page");
+  if (!dates.length) { page.innerHTML = `<div class="tbl"><div class="empty">No appointments scheduled in the next 30 days. <button class="btn primary sm" onclick="newAppt()" style="margin-left:8px">+ Add one</button></div></div>`; return; }
+  page.innerHTML = dates.map((d) => `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><h2>${prettyDate(d)}</h2><span class="muted" style="font-size:12px">${groups[d].length} appointment${groups[d].length === 1 ? "" : "s"}</span></div>
+      <div class="tbl" style="border:0"><table><tbody>${groups[d].map((a) => `
+        <tr class="clickable" onclick="editAppt(${a.id})">
+          <td style="width:90px;color:var(--accent);font-weight:600">${SSCrm.fmtTime(a.start_at)}</td>
+          <td><strong>${SSCrm.esc(a.name)}</strong><div class="muted" style="font-size:12px">${SSCrm.esc(a.type)} · ${a.duration_min || 60}m · ${SSCrm.esc(a.phone || "")}</div></td>
+          <td class="muted">${SSCrm.esc(a.site_address || "")}<div style="font-size:12px">${SSCrm.esc(a.rooms || "")}</div></td>
+          <td>${SSCrm.pill(a.status)}</td>
+          <td><button class="btn ghost sm" onclick="event.stopPropagation();cancelAppt(${a.id})">Cancel</button></td>
+        </tr>`).join("")}</tbody></table></div>
+    </div>
+  `).join("");
 }
-
-async function openAppt(id) {
-  const { appointment: a } = await SSAdmin.fetchJSON("/api/appointments/" + id);
-  const txt = `Appointment #${id}\n${a.start_at} → ${a.end_at}\n${a.name} · ${a.email} · ${a.phone || ''}\n${a.site_address || ''}\n${a.rooms ? 'Rooms: ' + a.rooms : ''}\n${a.notes ? 'Notes: ' + a.notes : ''}\n\nStatus: ${a.status}`;
-  if (confirm(txt + "\n\nMark as cancelled? OK = cancel, Cancel = leave")) {
-    await SSAdmin.fetchJSON("/api/appointments/" + id, { method: "PATCH", body: JSON.stringify({ status: "cancelled" }) });
-    render();
-  }
+function prettyDate(d) {
+  const date = new Date(d + "T12:00:00Z");
+  return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
-
 async function newAppt() {
   const name = prompt("Customer name?"); if (!name) return;
   const email = prompt("Email?"); if (!email) return;
   const phone = prompt("Phone?") || null;
-  const start = prompt("Start (YYYY-MM-DD HH:MM, 24h)?"); if (!start) return;
-  const startIso = start.replace(" ", "T") + ":00";
-  const endIso = computeEnd(startIso, 60);
-  try {
-    await SSAdmin.fetchJSON("/api/appointments", { method: "POST", body: JSON.stringify({
-      name, email, phone, start_at: startIso, end_at: endIso, duration_min: 60, type: "consultation", source: "admin", status: "confirmed",
-    })});
-    SSAdmin.toast("Booked", "success"); render();
-  } catch (e) { SSAdmin.toast(e.message, "error"); }
+  const dt = prompt("Start (YYYY-MM-DD HH:MM, 24h, Central time)\n\nExample: 2026-06-03 14:30"); if (!dt) return;
+  const startAt = dt.replace(" ", "T") + ":00";
+  const dur = parseInt(prompt("Duration in minutes?", "60") || "60", 10);
+  const endAt = endIso(startAt, dur);
+  try { const { id } = await SSCrm.fetchJSON("/api/appointments", { method: "POST", body: JSON.stringify({ name, email, phone, start_at: startAt, end_at: endAt, duration_min: dur, status: "confirmed", source: "admin" }) }); SSCrm.toast("Booked", "success"); load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
-function computeEnd(s, mins) {
-  const [d, t] = s.split("T"); const [h, m] = t.split(":").map((n) => parseInt(n, 10));
-  let tot = h * 60 + m + mins; return `${d}T${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}:00`;
+async function editAppt(id) {
+  const action = prompt("Action? Type one:\n• 'confirm' to confirm\n• 'cancel' to cancel\n• 'complete' to mark completed", "complete");
+  if (!action) return;
+  const map = { confirm: "confirmed", cancel: "cancelled", complete: "completed" };
+  if (!map[action]) return;
+  try { await SSCrm.fetchJSON("/api/appointments/" + id, { method: "PATCH", body: JSON.stringify({ status: map[action] }) }); SSCrm.toast("Updated", "success"); load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function cancelAppt(id) {
+  if (!(await SSCrm.confirmDialog("Cancel this appointment?"))) return;
+  try { await SSCrm.fetchJSON("/api/appointments/" + id, { method: "DELETE" }); SSCrm.toast("Cancelled", "success"); load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+function endIso(startIso, durMin) {
+  const [d, t] = startIso.split("T");
+  const [h, m] = t.split(":").map((n) => parseInt(n, 10));
+  let total = h * 60 + m + durMin;
+  return `${d}T${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}:00`;
 }
 </script></body></html>

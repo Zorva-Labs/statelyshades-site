@@ -1,159 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/crm/admin.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job · Stately Shades CRM</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="/crm/crm-app.css" />
+  <link rel="icon" href="/assets/images/logo-v4.png" />
 </head>
 <body>
-<div id="app"></div>
-<script src="/crm/admin.js"></script>
+<script src="/crm/crm-app.js"></script>
 <script>
-const id = new URLSearchParams(location.search).get("id");
+const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
 if (!id) location.href = "/crm/projects.html";
 
+let state = null; // { project, windows, estimates, proposals, contracts }
+
 (async () => {
-  const user = await SSAdmin.mount({ title: "Project", actions: `<a class="btn-secondary" href="/crm/projects.html">← All projects</a>` });
+  const user = await SSCrm.mount({
+    title: "Job",
+    actions: `<a class="btn ghost" href="/crm/projects.html">← All jobs</a>`,
+    wide: true,
+  });
   if (!user) return;
   await render();
 })();
 
 async function render() {
-  const data = await SSAdmin.fetchJSON("/api/projects/" + id);
-  const { project, windows, estimates, proposals, contracts } = data;
-  document.getElementById("page-title").innerHTML = SSAdmin.esc(project.name);
+  state = await SSCrm.fetchJSON("/api/projects/" + id);
+  const { project, windows, estimates, proposals, contracts } = state;
+  document.title = `${project.name} · Stately Shades CRM`;
+
+  // Find the "booked-the-job" state
+  const fullyExecuted = contracts.find((c) => c.status === "fully_executed");
+  const customerSigned = contracts.find((c) => c.status === "signed_by_customer");
+  const acceptedProposal = proposals.find((p) => p.status === "accepted");
+  const sentContract = contracts.find((c) => c.status === "sent");
+
+  // What's the next best action? Drives the big CTA on the right.
+  let bigCta = null;
+  if (fullyExecuted) {
+    bigCta = null; // Show celebration banner instead
+  } else if (customerSigned) {
+    bigCta = { label: "Counter-sign contract", href: `/crm/contract.html?id=${customerSigned.id}&action=countersign`, kind: "primary" };
+  } else if (sentContract) {
+    bigCta = { label: "Contract sent — awaiting signature", href: `/crm/contract.html?id=${sentContract.id}`, kind: "secondary" };
+  } else if (acceptedProposal) {
+    bigCta = { label: "Convert proposal → contract", action: `convertProposal(${acceptedProposal.id})`, kind: "primary" };
+  } else if (proposals.length && proposals.some((p) => p.status === "tier_selected")) {
+    const p = proposals.find((p) => p.status === "tier_selected");
+    bigCta = { label: `Customer picked ${p.selected_tier} — request acceptance`, href: `/crm/proposal.html?id=${p.id}`, kind: "primary" };
+  } else if (estimates.length || proposals.length) {
+    bigCta = { label: "Send a contract", action: `newContract()`, kind: "secondary" };
+  } else {
+    bigCta = { label: "Start an estimate", action: `newEstimate()`, kind: "primary" };
+  }
+
+  const initialTab = new URLSearchParams(location.hash.slice(1)).get("tab") || "overview";
 
   document.getElementById("page").innerHTML = `
-    <div class="cols-2">
-      <div>
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2>Windows <span class="muted" style="font-size:.8rem;font-weight:normal">${windows.length}</span></h2>
-            <button class="btn-ghost" onclick="addWindow()">+ Window</button>
-          </div>
-          <div id="windows-editor">${renderWindows(windows)}</div>
-          <div class="form-actions"><button class="btn-primary" onclick="saveWindows()">Save windows</button></div>
+    ${fullyExecuted ? `
+      <div class="banner banner--success">
+        <div class="banner__icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2>Estimates</h2>
-            <button class="btn-primary" onclick="newEstimate()">+ Estimate</button>
-          </div>
-          ${docList(estimates, "estimate", "EST")}
+        <div class="banner__body">
+          <strong>Job booked.</strong>
+          <span>Contract ${SSCrm.esc(fullyExecuted.number)} fully executed · ${SSCrm.fmtMoney(fullyExecuted.total_cents)}${fullyExecuted.deposit_paid ? " · Deposit received" : " · Deposit pending"}</span>
         </div>
+      </div>` : ""}
 
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2>Proposals</h2>
-            <button class="btn-primary" onclick="newProposal()">+ Proposal</button>
+    <div class="job">
+      <header class="job__head">
+        <div>
+          <div class="job__title">${SSCrm.esc(project.name)}</div>
+          <div class="job__customer">
+            <a href="/crm/contact.html?id=${project.contact_id}">${SSCrm.esc(project.contact_name)}</a>
+            · ${SSCrm.esc(project.contact_email)}
+            ${project.contact_phone ? ` · ${SSCrm.esc(project.contact_phone)}` : ""}
+            ${project.site_address ? ` · ${SSCrm.esc(project.site_address)}` : ""}
           </div>
-          ${docList(proposals, "proposal", "PROP")}
         </div>
+        <div class="job__status-actions">
+          ${SSCrm.pill(project.status)}
+          ${bigCta ? renderCta(bigCta) : ""}
+        </div>
+      </header>
 
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2>Contracts</h2>
-            <button class="btn-primary" onclick="newContract()">+ Contract</button>
+      <nav class="job__tabs" id="tabs">
+        ${tab("overview", "Overview")}
+        ${tab("windows", "Windows", windows.length)}
+        ${tab("estimates", "Estimates", estimates.length)}
+        ${tab("proposals", "Proposals", proposals.length)}
+        ${tab("contracts", "Contracts", contracts.length)}
+        ${tab("activity", "Activity")}
+      </nav>
+
+      <div class="job__body" id="tab-body"></div>
+    </div>
+  `;
+
+  switchTab(initialTab);
+  document.querySelectorAll(".job__tab").forEach((t) => {
+    t.addEventListener("click", () => switchTab(t.dataset.tab));
+  });
+}
+
+function tab(key, label, count) {
+  return `<button class="job__tab" data-tab="${key}">${SSCrm.esc(label)}${count != null ? `<span class="job__tab-count">${count}</span>` : ""}</button>`;
+}
+
+function renderCta(c) {
+  const cls = c.kind === "primary" ? "primary" : "secondary";
+  if (c.href) return `<a class="btn lg ${cls} job__big-cta" href="${c.href}">${SSCrm.esc(c.label)}</a>`;
+  return `<button class="btn lg ${cls} job__big-cta" onclick="${c.action}">${SSCrm.esc(c.label)}</button>`;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".job__tab").forEach((t) => t.classList.toggle("is-active", t.dataset.tab === tab));
+  location.hash = `tab=${tab}`;
+  const body = document.getElementById("tab-body");
+  const { project, windows, estimates, proposals, contracts } = state;
+
+  if (tab === "overview") {
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+        <div>
+          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:8px">Description</h3>
+          <p style="color:var(--ink);font-size:14px;line-height:1.6">${SSCrm.esc(project.description || "No description.")}</p>
+          <hr class="sep"/>
+          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:10px">Quick actions</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn secondary sm" onclick="newEstimate()">+ Estimate</button>
+            <button class="btn secondary sm" onclick="newProposal()">+ Proposal</button>
+            <button class="btn secondary sm" onclick="newContract()">+ Contract</button>
+            <button class="btn ghost sm" onclick="switchTab('windows')">Edit windows</button>
           </div>
-          ${docList(contracts, "contract", "C")}
         </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <h2>Project</h2>
-          <div class="form-grid">
-            <label><span>Name</span><input id="p-name" value="${SSAdmin.esc(project.name)}"/></label>
-            <label><span>Description</span><textarea id="p-desc" rows="3">${SSAdmin.esc(project.description || '')}</textarea></label>
-            <label><span>Site address</span><input id="p-addr" value="${SSAdmin.esc(project.site_address || '')}"/></label>
+        <div>
+          <h3 style="font-size:14px;color:var(--ink-soft);margin-bottom:10px">Job details</h3>
+          <div class="form">
+            <label><span>Name</span><input id="p-name" value="${SSCrm.esc(project.name)}"/></label>
             <label><span>Status</span>
               <select id="p-status">
-                ${["new","scheduled","quoted","proposed","contracted","installing","completed","lost"].map((s) => `<option ${s===project.status?"selected":""}>${s}</option>`).join("")}
+                ${SSCrm.PROJECT_STATUSES.map((s) => `<option value="${s.key}" ${s.key === project.status ? "selected" : ""}>${s.label}</option>`).join("")}
               </select>
             </label>
+            <label><span>Site address</span><input id="p-addr" value="${SSCrm.esc(project.site_address || "")}"/></label>
+            <label><span>Description</span><textarea id="p-desc" rows="3">${SSCrm.esc(project.description || "")}</textarea></label>
+            <div class="form-actions"><button class="btn primary" onclick="saveProject()">Save</button></div>
           </div>
-          <div class="form-actions">
-            <button class="btn-primary" onclick="saveProject()">Save</button>
-          </div>
-          <hr style="margin:18px 0;border:0;border-top:1px solid var(--c-line-soft)"/>
-          <p class="muted" style="font-size:.85rem"><strong>Customer:</strong><br/>
-            <a href="/crm/contact.html?id=${project.contact_id}">${SSAdmin.esc(project.contact_name)}</a><br/>
-            ${SSAdmin.esc(project.contact_email)}<br/>
-            ${SSAdmin.esc(project.contact_phone || '')}
-          </p>
         </div>
       </div>
+    `;
+  }
+  else if (tab === "windows") {
+    body.innerHTML = renderWindowsTab(windows);
+    wireWindows();
+  }
+  else if (tab === "estimates") body.innerHTML = renderDocTab(estimates, "estimate", "EST", newEstimate);
+  else if (tab === "proposals") body.innerHTML = renderDocTab(proposals, "proposal", "PROP", newProposal);
+  else if (tab === "contracts") body.innerHTML = renderDocTab(contracts, "contract", "C", newContract);
+  else if (tab === "activity") body.innerHTML = `<div id="activity-feed" class="muted">Loading…</div>`, loadActivity();
+}
+
+function renderDocTab(docs, kind, prefix, addFn) {
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="font-size:14px;color:var(--ink-soft)">${docs.length} ${kind}${docs.length === 1 ? "" : "s"}</h3>
+      <button class="btn primary sm" onclick="${addFn.name}()">+ New ${kind}</button>
     </div>
+    ${docs.length ? `<div class="tbl"><table>
+      <thead><tr><th>${prefix}-#</th><th>Status</th><th class="num">Total</th><th>Activity</th><th></th></tr></thead>
+      <tbody>${docs.map((d) => `
+        <tr class="clickable" onclick="location.href='/crm/${kind}.html?id=${d.id}'">
+          <td><strong>${SSCrm.esc(d.number || "")}</strong></td>
+          <td>${SSCrm.pill(d.status)}</td>
+          <td class="money">${SSCrm.fmtMoney(d.total_cents || d.selected_total_cents || 0)}</td>
+          <td class="muted" style="font-size:12px">${SSCrm.fmtDate(d.updated_at || d.created_at)}</td>
+          <td><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></td>
+        </tr>`).join("")}
+      </tbody></table></div>` : `<p class="muted" style="padding:30px;text-align:center">No ${kind}s yet.</p>`}
   `;
 }
 
-function renderWindows(ws) {
-  if (!ws.length) ws = [{}];
-  return `<table class="lines-table"><thead><tr>
-    <th style="width:25%">Room</th><th>Label</th><th>W″</th><th>H″</th><th>Mount</th><th>Depth″</th><th>Notes</th><th></th>
-  </tr></thead><tbody>${ws.map((w, i) => winRow(w, i)).join("")}</tbody></table>`;
+function renderWindowsTab(ws) {
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-size:14px;color:var(--ink-soft)">${ws.length} window${ws.length === 1 ? "" : "s"} measured</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost sm" onclick="addWindow()">+ Window</button>
+        <button class="btn primary sm" onclick="saveWindows()">Save</button>
+      </div>
+    </div>
+    <table class="lines"><thead><tr>
+      <th style="width:22%">Room</th><th>Label</th><th>W″</th><th>H″</th><th>Mount</th><th>Depth″</th><th>Notes</th><th></th>
+    </tr></thead><tbody id="ws-body">${ws.length ? ws.map((w, i) => winRow(w, i)).join("") : winRow({}, 0)}</tbody></table>
+  `;
 }
+
 function winRow(w, i) {
   return `<tr data-idx="${i}">
-    <td><input data-f="room" value="${SSAdmin.esc(w.room || '')}" placeholder="Living"/></td>
-    <td><input data-f="label" value="${SSAdmin.esc(w.label || '')}" placeholder="North"/></td>
-    <td><input class="num" data-f="width_in" value="${w.width_in ?? ''}" type="number" step="0.125"/></td>
-    <td><input class="num" data-f="height_in" value="${w.height_in ?? ''}" type="number" step="0.125"/></td>
-    <td><select data-f="mount"><option value="">—</option><option ${w.mount==='inside'?'selected':''}>inside</option><option ${w.mount==='outside'?'selected':''}>outside</option></select></td>
-    <td><input class="num" data-f="depth_in" value="${w.depth_in ?? ''}" type="number" step="0.125"/></td>
-    <td><input data-f="notes" value="${SSAdmin.esc(w.notes || '')}"/></td>
-    <td><button class="lt-remove" onclick="this.closest('tr').remove()" title="Remove">×</button></td>
+    <td><input data-f="room" value="${SSCrm.esc(w.room || "")}" placeholder="Living"/></td>
+    <td><input data-f="label" value="${SSCrm.esc(w.label || "")}" placeholder="North"/></td>
+    <td><input class="num" data-f="width_in" value="${w.width_in ?? ""}" type="number" step="0.125"/></td>
+    <td><input class="num" data-f="height_in" value="${w.height_in ?? ""}" type="number" step="0.125"/></td>
+    <td><select data-f="mount"><option value="">—</option><option ${w.mount === "inside" ? "selected" : ""}>inside</option><option ${w.mount === "outside" ? "selected" : ""}>outside</option></select></td>
+    <td><input class="num" data-f="depth_in" value="${w.depth_in ?? ""}" type="number" step="0.125"/></td>
+    <td><input data-f="notes" value="${SSCrm.esc(w.notes || "")}"/></td>
+    <td><button class="rm" onclick="this.closest('tr').remove()" title="Remove">×</button></td>
   </tr>`;
 }
+function wireWindows() {}
 function addWindow() {
-  const t = document.querySelector("#windows-editor tbody");
+  const t = document.getElementById("ws-body");
   t.insertAdjacentHTML("beforeend", winRow({}, t.children.length));
 }
 async function saveWindows() {
-  const rows = [...document.querySelectorAll("#windows-editor tbody tr")].map((tr) => {
+  const rows = [...document.querySelectorAll("#ws-body tr")].map((tr) => {
     const o = {};
     tr.querySelectorAll("[data-f]").forEach((el) => { const v = el.value.trim(); o[el.dataset.f] = v === "" ? null : v; });
     return o;
   }).filter((w) => w.room);
-  try { await SSAdmin.fetchJSON("/api/projects/" + id + "/windows", { method: "PUT", body: JSON.stringify({ windows: rows }) }); SSAdmin.toast("Windows saved", "success"); }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
-}
-async function saveProject() {
-  try {
-    await SSAdmin.fetchJSON("/api/projects/" + id, { method: "PATCH", body: JSON.stringify({
-      name: document.getElementById("p-name").value.trim(),
-      description: document.getElementById("p-desc").value.trim(),
-      site_address: document.getElementById("p-addr").value.trim(),
-      status: document.getElementById("p-status").value,
-    })});
-    SSAdmin.toast("Saved", "success");
-  } catch (e) { SSAdmin.toast(e.message, "error"); }
+  try { await SSCrm.fetchJSON(`/api/projects/${id}/windows`, { method: "PUT", body: JSON.stringify({ windows: rows }) }); SSCrm.toast("Windows saved", "success"); state = await SSCrm.fetchJSON("/api/projects/" + id); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
 
-function docList(rows, kind, prefix) {
-  if (!rows.length) return `<p style="color:var(--c-ink-soft);font-size:.9rem;margin-top:8px">No ${kind}s yet.</p>`;
-  return `<div class="data-table"><table><thead><tr><th>${prefix}-#</th><th>Status</th><th>Total</th><th>Created</th></tr></thead><tbody>${rows.map((r) => `
-    <tr onclick="location.href='/crm/${kind}.html?id=${r.id}'">
-      <td><strong>${SSAdmin.esc(r.number || '')}</strong></td>
-      <td><span class="status" data-s="${SSAdmin.esc(r.status)}">${SSAdmin.esc(r.status)}</span></td>
-      <td class="num">${SSAdmin.fmtMoney(r.total_cents || r.selected_total_cents || 0)}</td>
-      <td class="muted">${SSAdmin.fmtDate(r.created_at)}</td>
-    </tr>`).join("")}</tbody></table></div>`;
+async function saveProject() {
+  try {
+    await SSCrm.fetchJSON("/api/projects/" + id, { method: "PATCH", body: JSON.stringify({
+      name: document.getElementById("p-name").value.trim(),
+      status: document.getElementById("p-status").value,
+      site_address: document.getElementById("p-addr").value.trim(),
+      description: document.getElementById("p-desc").value.trim(),
+    })});
+    SSCrm.toast("Saved", "success");
+    await render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
+}
+
+async function loadActivity() {
+  try {
+    const { activity } = await SSCrm.fetchJSON(`/api/activity?entity_type=project&entity_id=${id}&limit=80`);
+    const feed = document.getElementById("activity-feed");
+    if (!activity.length) { feed.innerHTML = `<p style="text-align:center;color:var(--ink-soft);padding:40px">No activity yet.</p>`; return; }
+    feed.innerHTML = `<ul class="activity">${activity.map((a) => `
+      <li>
+        <span class="activity__icon" data-k="${SSCrm.esc(a.action)}">·</span>
+        <div class="activity__body">
+          <strong>${SSCrm.esc(a.action.replace(/-/g, " "))}</strong>
+          ${a.actor_name ? `· by ${SSCrm.esc(a.actor_name)}` : ""}
+          <div class="activity__time">${SSCrm.fmtDateTime(a.created_at)}</div>
+        </div>
+      </li>`).join("")}</ul>`;
+  } catch (e) { document.getElementById("activity-feed").innerHTML = `<p class="muted">${SSCrm.esc(e.message)}</p>`; }
 }
 
 async function newEstimate() {
-  try { const { id: nid } = await SSAdmin.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/estimate.html?id=" + nid; }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
+  try { const { id: nid } = await SSCrm.fetchJSON("/api/estimates", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/estimate.html?id=" + nid; }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newProposal() {
-  try { const { id: nid } = await SSAdmin.fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/proposal.html?id=" + nid; }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
+  try { const { id: nid } = await SSCrm.fetchJSON("/api/proposals", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/proposal.html?id=" + nid; }
+  catch (e) { SSCrm.toast(e.message, "error"); }
 }
 async function newContract() {
-  try { const { id: nid } = await SSAdmin.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: parseInt(id) }) }); location.href = "/crm/contract.html?id=" + nid; }
-  catch (e) { SSAdmin.toast(e.message, "error"); }
+  try { const { id: nid } = await SSCrm.fetchJSON("/api/contracts", { method: "POST", body: JSON.stringify({ project_id: id }) }); location.href = "/crm/contract.html?id=" + nid; }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function convertProposal(propId) {
+  if (!(await SSCrm.confirmDialog("Create a contract from the accepted tier of this proposal?"))) return;
+  try {
+    const { id: nid } = await SSCrm.fetchJSON(`/api/proposals/${propId}/convert`, { method: "POST" });
+    SSCrm.toast("Contract drafted from proposal", "success");
+    location.href = "/crm/contract.html?id=" + nid;
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 </script>
 </body>

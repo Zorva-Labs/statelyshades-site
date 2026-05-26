@@ -1,33 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projects · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/crm/admin.css" />
-</head>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jobs · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
 <body>
-<div id="app"></div>
-<script src="/crm/admin.js"></script>
+<script src="/crm/crm-app.js"></script>
 <script>
 (async () => {
-  const user = await SSAdmin.mount({ title: "Projects", subtitle: "All active and historical jobs." });
+  const user = await SSCrm.mount({ title: "Jobs", subtitle: "All active and historical projects",
+    actions: `<a class="btn secondary" href="/crm/pipeline.html">Board view →</a>`, wide: true });
   if (!user) return;
-  const { projects } = await SSAdmin.fetchJSON("/api/projects");
-  document.getElementById("page").innerHTML = projects.length
-    ? `<div class="data-table"><table>
-        <thead><tr><th>Project</th><th>Customer</th><th>Status</th><th>Updated</th></tr></thead>
-        <tbody>${projects.map((p) => `
-          <tr onclick="location.href='/crm/project.html?id=${p.id}'">
-            <td><strong>${SSAdmin.esc(p.name)}</strong></td>
-            <td>${SSAdmin.esc(p.contact_name)}<div class="muted">${SSAdmin.esc(p.contact_email)}</div></td>
-            <td><span class="status" data-s="${SSAdmin.esc(p.status)}">${SSAdmin.esc(p.status)}</span></td>
-            <td class="muted">${SSAdmin.fmtDate(p.updated_at)}</td>
-          </tr>`).join("")}
-        </tbody>
-      </table></div>`
-    : `<div class="data-table"><div class="empty">No projects yet. Open a contact and click "New project".</div></div>`;
+  const { projects } = await SSCrm.fetchJSON("/api/projects");
+  const page = document.getElementById("page");
+  if (!projects.length) { page.innerHTML = `<div class="tbl"><div class="empty">No jobs yet. Open a contact and click "New job".</div></div>`; return; }
+  page.innerHTML = `<div class="tbl"><table>
+    <thead><tr><th>Job</th><th>Customer</th><th>Status</th><th>Updated</th></tr></thead>
+    <tbody>${projects.map((p) => `<tr class="clickable" onclick="location.href='/crm/project.html?id=${p.id}'">
+      <td><strong>${SSCrm.esc(p.name)}</strong></td>
+      <td>${SSCrm.esc(p.contact_name)} <span class="muted" style="font-size:12px">· ${SSCrm.esc(p.contact_email)}</span></td>
+      <td>${SSCrm.pill(p.status)}</td>
+      <td class="muted">${SSCrm.fmtDate(p.updated_at)}</td>
+    </tr>`).join("")}</tbody></table></div>`;
 })();
-</script>
-</body>
-</html>
+</script></body></html>

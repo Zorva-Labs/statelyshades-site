@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Templates · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow"/>
+<link rel="stylesheet" href="/crm/crm-app.css"/></head>
+<body>
+<script src="/crm/crm-app.js"></script>
+<script>
+let templates = [];
+let editingId = null;
+(async () => {
+  const user = await SSCrm.mount({ title: "Email Templates", subtitle: "Reusable messages with {{merge}} fields",
+    actions: `<button class="btn primary" onclick="newTpl()">+ New template</button>`, wide: true });
+  if (!user) return;
+  await load();
+})();
+async function load() {
+  ({ templates } = await SSCrm.fetchJSON("/api/templates"));
+  const groups = {};
+  for (const t of templates) (groups[t.category] ||= []).push(t);
+  const page = document.getElementById("page");
+  page.innerHTML = `
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start">
+      <div class="card">
+        <div class="card-head"><h2>Templates</h2></div>
+        <div id="tpl-list">${Object.keys(groups).sort().map((cat) => `
+          <div style="margin-bottom:12px">
+            <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;font-weight:600">${SSCrm.esc(cat)}</div>
+            ${groups[cat].map((t) => `<a href="#" data-tid="${t.id}" onclick="event.preventDefault();selectTpl(${t.id})" style="display:block;padding:8px 12px;border-radius:var(--r-sm);font-size:13px;color:var(--ink);text-decoration:none">${SSCrm.esc(t.name)}</a>`).join("")}
+          </div>`).join("")}
+        </div>
+      </div>
+      <div class="card" id="editor">
+        <p class="muted" style="text-align:center;padding:40px">Select a template on the left to edit, or click "+ New template" above.</p>
+      </div>
+    </div>
+  `;
+  // Show merge field reference
+  page.insertAdjacentHTML("beforeend", `
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><h2>Merge fields you can use</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;font-size:12px">
+        <div><strong>{{contact.name}}</strong><div class="muted">Full name</div></div>
+        <div><strong>{{contact.first_name}}</strong><div class="muted">First name only</div></div>
+        <div><strong>{{contact.email}}</strong><div class="muted">Email</div></div>
+        <div><strong>{{project.name}}</strong><div class="muted">Job name</div></div>
+        <div><strong>{{estimate.number}}</strong><div class="muted">EST-2026-####</div></div>
+        <div><strong>{{estimate.total}}</strong><div class="muted">Formatted $</div></div>
+        <div><strong>{{estimate.view_url}}</strong><div class="muted">Customer link</div></div>
+        <div><strong>{{contract.number}}</strong><div class="muted">C-2026-####</div></div>
+        <div><strong>{{contract.deposit}}</strong><div class="muted">Deposit due</div></div>
+        <div><strong>{{appointment.pretty_date}}</strong><div class="muted">May 25 at 2:30 pm</div></div>
+        <div><strong>{{appointment.cancel_url}}</strong><div class="muted">Reschedule link</div></div>
+        <div><strong>{{proposal.view_url}}</strong><div class="muted">Customer link</div></div>
+      </div>
+    </div>
+  `);
+}
+function selectTpl(id) {
+  editingId = id;
+  document.querySelectorAll("[data-tid]").forEach((a) => a.style.background = (parseInt(a.dataset.tid) === id ? "var(--accent-soft)" : ""));
+  const t = templates.find((t) => t.id === id);
+  if (!t) return;
+  document.getElementById("editor").innerHTML = `
+    <div class="card-head"><h2>${SSCrm.esc(t.name)}</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn ghost sm" onclick="testRender()">Preview</button>
+        <button class="btn danger sm" onclick="delTpl(${t.id})">Delete</button>
+      </div>
+    </div>
+    <div class="form">
+      <div class="row">
+        <label><span>Name</span><input id="f-name" value="${SSCrm.esc(t.name)}"/></label>
+        <label><span>Category</span>
+          <select id="f-cat">
+            ${["general","lead","appointment","estimate","proposal","contract","install"].map((c) => `<option ${c === t.category ? "selected" : ""}>${c}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <label><span>Subject line</span><input id="f-subj" value="${SSCrm.esc(t.subject)}"/></label>
+      <label><span>Body (HTML allowed — use {{merge.fields}})</span>
+        <textarea id="f-body" rows="14" style="font-family:var(--font-mono);font-size:12px">${SSCrm.esc(t.body_html)}</textarea></label>
+      <div class="form-actions"><button class="btn primary" onclick="saveTpl(${t.id})">Save</button></div>
+    </div>
+  `;
+}
+async function newTpl() {
+  const name = prompt("Template name?"); if (!name) return;
+  const cat = prompt("Category (general, lead, appointment, estimate, proposal, contract, install)?", "general"); if (!cat) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+  try { await SSCrm.fetchJSON("/api/templates", { method: "POST", body: JSON.stringify({ slug, name, category: cat, subject: "Subject here", body_html: "<p>Hello {{contact.first_name}},</p><p>Body here…</p>" }) }); await load(); }
+  catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function saveTpl(id) {
+  try {
+    await SSCrm.fetchJSON("/api/templates/" + id, { method: "PATCH", body: JSON.stringify({
+      name: document.getElementById("f-name").value.trim(),
+      category: document.getElementById("f-cat").value,
+      subject: document.getElementById("f-subj").value.trim(),
+      body_html: document.getElementById("f-body").value,
+    })});
+    SSCrm.toast("Saved", "success"); await load();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
+}
+async function delTpl(id) {
+  if (!(await SSCrm.confirmDialog("Archive this template?"))) return;
+  await SSCrm.fetchJSON("/api/templates/" + id, { method: "DELETE" }); await load();
+}
+function testRender() {
+  const sample = { "contact.first_name": "Mary", "contact.name": "Mary Johnson", "contact.email": "mary@example.com", "project.name": "Kitchen + Master", "estimate.number": "EST-2026-0042", "estimate.total": "$3,890.00", "estimate.view_url": "https://statelyshades.com/estimate/?t=demo", "contract.number": "C-2026-0042", "contract.total": "$3,890.00", "contract.deposit": "$1,945.00", "contract.view_url": "https://statelyshades.com/contract/?t=demo", "proposal.view_url": "https://statelyshades.com/proposal/?t=demo", "appointment.pretty_date": "Tuesday, June 3 at 2:30 pm Central", "appointment.cancel_url": "https://statelyshades.com/book/?cancel=demo" };
+  const body = document.getElementById("f-body").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
+  const subj = document.getElementById("f-subj").value.replace(/\{\{([^}]+)\}\}/g, (_, k) => sample[k.trim()] || `[${k}]`);
+  const bg = document.createElement("div"); bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal" style="max-width:640px"><div class="modal-head">Preview</div><div class="modal-body"><div class="muted" style="font-size:12px">Subject</div><div style="font-weight:600;margin-bottom:14px">${SSCrm.esc(subj)}</div><hr class="sep"/><div>${body}</div></div><div class="modal-foot"><button class="btn primary" onclick="this.closest('.modal-bg').remove()">Close</button></div></div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+}
+</script></body></html>

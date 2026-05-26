@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline · Stately Shades CRM</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="/crm/crm-app.css" />
+  <link rel="icon" href="/assets/images/logo-v4.png" />
+</head>
+<body>
+<script src="/crm/crm-app.js"></script>
+<script>
+const COL_COLORS = {
+  new: "#94A3B8",
+  scheduled: "#6366F1",
+  measured: "#06B6D4",
+  quoted: "#F59E0B",
+  proposed: "#8B5CF6",
+  contracted: "#2563EB",
+  installing: "#14B8A6",
+  completed: "#10B981",
+  lost: "#94A3B8",
+};
+
+(async () => {
+  const user = await SSCrm.mount({
+    title: "Pipeline",
+    subtitle: "Drag a card to move a job through stages",
+    actions: `<a class="btn secondary" href="/crm/projects.html">Table view →</a>`,
+    wide: true,
+  });
+  if (!user) return;
+
+  const { projects } = await SSCrm.fetchJSON("/api/projects");
+  // Group projects by status (only keep statuses we have a column for)
+  const byStatus = Object.fromEntries(SSCrm.PROJECT_STATUSES.map((s) => [s.key, []]));
+  for (const p of projects) {
+    if (byStatus[p.status]) byStatus[p.status].push(p);
+    else byStatus.new.push(p);
+  }
+
+  document.getElementById("page").innerHTML = `
+    <div class="kanban">${SSCrm.PROJECT_STATUSES.map((s) => `
+      <div class="kanban__col" data-status="${s.key}" style="--col-color:${COL_COLORS[s.key] || "var(--ink-muted)"}">
+        <div class="kanban__col-head">
+          <strong>${SSCrm.esc(s.label)}</strong>
+          <span class="count">${byStatus[s.key].length}</span>
+        </div>
+        <div class="kanban__col-body">${byStatus[s.key].map(renderCard).join("")}</div>
+      </div>`).join("")}
+    </div>
+  `;
+
+  wireDragDrop();
+})();
+
+function renderCard(p) {
+  return `<div class="kanban__card" draggable="true" data-id="${p.id}">
+    <div class="kanban__card-title"><a href="/crm/project.html?id=${p.id}" style="color:inherit;text-decoration:none">${SSCrm.esc(p.name)}</a></div>
+    <div class="kanban__card-meta">${SSCrm.esc(p.contact_name)}</div>
+    <div class="kanban__card-foot">
+      <span class="kanban__card-date">${SSCrm.fmtDate(p.updated_at)}</span>
+    </div>
+  </div>`;
+}
+
+function wireDragDrop() {
+  let draggedId = null;
+  let draggedFrom = null;
+
+  document.querySelectorAll(".kanban__card").forEach((card) => {
+    card.addEventListener("dragstart", (e) => {
+      draggedId = card.dataset.id;
+      draggedFrom = card.closest(".kanban__col").dataset.status;
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", card.dataset.id);
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      document.querySelectorAll(".drop-target").forEach((c) => c.classList.remove("drop-target"));
+    });
+  });
+
+  document.querySelectorAll(".kanban__col").forEach((col) => {
+    col.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      col.classList.add("drop-target");
+    });
+    col.addEventListener("dragleave", (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove("drop-target");
+    });
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      col.classList.remove("drop-target");
+      const newStatus = col.dataset.status;
+      if (!draggedId || newStatus === draggedFrom) return;
+
+      const card = document.querySelector(`.kanban__card[data-id="${draggedId}"]`);
+      if (!card) return;
+
+      // Optimistic UI move
+      col.querySelector(".kanban__col-body").appendChild(card);
+      const fromCol = document.querySelector(`.kanban__col[data-status="${draggedFrom}"]`);
+      bumpCount(col, +1); bumpCount(fromCol, -1);
+
+      try {
+        await SSCrm.fetchJSON(`/api/projects/${draggedId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: newStatus }),
+        });
+        SSCrm.toast(`Moved to ${newStatus}`, "success");
+      } catch (err) {
+        SSCrm.toast("Failed: " + err.message, "error");
+        // Roll back
+        fromCol.querySelector(".kanban__col-body").appendChild(card);
+        bumpCount(col, -1); bumpCount(fromCol, +1);
+      }
+    });
+  });
+}
+
+function bumpCount(col, delta) {
+  const el = col.querySelector(".count");
+  el.textContent = (parseInt(el.textContent, 10) || 0) + delta;
+}
+</script>
+</body>
+</html>
