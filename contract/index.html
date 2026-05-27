@@ -62,7 +62,17 @@
     .sched-confirm:hover { background: var(--color-espresso-2); }
     .sched-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    @media print { body { background: #fff; } .sign-btn, .sign-bar button, .sched-box { display: none; } }
+    @media print {
+      @page { size: letter; margin: 0.6in; }
+      body { background: #fff; color: #14110D; }
+      .sign-btn, .sign-bar, .sign-bar button, .sched-box, .no-print { display: none !important; }
+      .doc { max-width: none; padding: 0; }
+      .signed-box { background: transparent !important; color: #14110D !important; border: 2px solid #14110D; padding: 18pt; text-align: left; }
+      .signed-box h2 { color: #14110D !important; font-size: 14pt; margin: 0 0 6pt; }
+      .signed-box p { color: #14110D !important; font-size: 10pt; opacity: 1; }
+      h1, h2, h3 { color: #14110D !important; page-break-after: avoid; }
+      .doc-intro, .doc-mast small { color: #56493C !important; }
+    }
   </style>
 </head>
 <body>
@@ -120,12 +130,14 @@ function render(k, lines) {
       <div class="signed-box">
         <h2>Job is booked.</h2>
         <p>Signed on ${formatDt(k.signed_by_customer_at)}. ${k.deposit_cents > 0 ? `Deposit due: <strong style="color:var(--color-champagne)">${money(k.deposit_cents)}</strong>` : "Payment due on completion."}</p>
+        <button onclick="window.print()" class="no-print" style="margin-top:18px;padding:12px 22px;background:var(--color-champagne);color:var(--color-ink);border:0;font:inherit;font-family:var(--font-mono);font-size:0.78rem;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;font-weight:600">🖨 Print / Save PDF</button>
       </div>
       <div id="install-scheduler"></div>
     ` : isSigned ? `
       <div class="signed-box" style="background:var(--color-brass);color:var(--color-ink)">
         <h2 style="color:var(--color-ink)">Thank you — signed!</h2>
-        <p style="color:var(--color-ink);opacity:0.8">We've received your signature. We'll counter-sign and release your order shortly.</p>
+        <p style="color:var(--color-ink);opacity:0.8">We've received your signature. The contract is fully executed — we'll release your order shortly.</p>
+        <button onclick="window.print()" class="no-print" style="margin-top:18px;padding:12px 22px;background:var(--color-ink);color:var(--color-bg);border:0;font:inherit;font-family:var(--font-mono);font-size:0.78rem;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer">🖨 Print / Save PDF</button>
       </div>
     ` : `
       <div class="sign-box">

@@ -14,7 +14,12 @@ export async function onRequestPost(context) {
   ).bind(id).first();
   if (!k) return json({ error: "Not found" }, 404);
   if (k.status !== "signed_by_customer") return json({ error: `Contract must be customer-signed first (currently: ${k.status})` }, 400);
-  if (!body.signature_image || !body.signer_name) return json({ error: "Need signer_name + signature_image" }, 400);
+  // signature_image is optional now — auto-countersign mode (legacy contracts
+  // signed before /api/public/contract/[token] gained the auto-jump-to-
+  // fully_executed behavior) flips a contract booked without requiring the
+  // admin to hand-draw a signature. signer_name defaults to "Stately Shades".
+  const signerName = (body.signer_name || "Stately Shades").trim();
+  const signatureImage = body.signature_image || null;
   await context.env.DB.prepare(
     `UPDATE contracts SET status='fully_executed',
        counter_signed_at=datetime('now'),
@@ -23,7 +28,7 @@ export async function onRequestPost(context) {
        counter_signature_image=?3,
        updated_at=datetime('now')
      WHERE id=?4`
-  ).bind(auth.id, body.signer_name, body.signature_image, id).run();
+  ).bind(auth.id, signerName, signatureImage, id).run();
   await recordActivity(context.env.DB, {
     entityType: "contract", entityId: id, action: "counter-signed",
     actorKind: "admin", actorId: auth.id, actorName: auth.email,

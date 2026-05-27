@@ -3,6 +3,41 @@
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Contract · Stately Shades CRM</title><meta name="robots" content="noindex, nofollow" />
 <link rel="stylesheet" href="/crm/crm-app.css" />
+<style>
+  /* Print stylesheet — admins hit "Print / Save PDF" to download a clean
+     copy of the contract. Strips the CRM chrome and renders just the
+     legal document: header, line items, scope, terms, signatures. The
+     browser's print dialog "Save as PDF" produces a permanent PDF copy. */
+  @media print {
+    @page { size: letter; margin: 0.6in; }
+    body { background: #fff !important; color: #14110D !important; font-size: 11pt; line-height: 1.5; }
+    .tnav, .page-head, .no-print, .banner, button, .actions, .card-head .btn, .pill[data-s] { display: none !important; }
+    .app, .app--wide { max-width: none !important; margin-left: 0 !important; padding: 0 !important; }
+    .card { border: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 0 14pt !important; background: transparent !important; page-break-inside: avoid; }
+    .card-head { border-bottom: 1px solid #999 !important; padding: 0 0 4pt !important; margin-bottom: 8pt !important; }
+    .card-head h2 { font-size: 13pt !important; font-weight: 600 !important; color: #14110D !important; margin: 0 !important; }
+    table.lines { width: 100%; border-collapse: collapse; font-size: 10pt; }
+    table.lines th, table.lines td { padding: 4pt 6pt; border-bottom: 1px solid #ddd; text-align: left; }
+    table.lines th { background: #F7F2EA; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; }
+    table.lines .num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.lines input, table.lines select, table.lines button.rm, .add, button { display: none !important; }
+    table.lines input[readonly], table.lines td input { border: 0 !important; background: transparent !important; padding: 0 !important; color: #14110D !important; }
+    /* Inline inputs in the line items table — render their value as plain text */
+    table.lines td input[type="text"], table.lines td input[type="number"] { background: transparent; border: 0; padding: 0; color: inherit; width: 100%; }
+    .totals { margin-top: 10pt; padding-top: 8pt; border-top: 2px solid #14110D; font-size: 11pt; }
+    .totals .r { display: flex; justify-content: space-between; padding: 2pt 0; }
+    .form textarea { display: block; width: 100%; border: 0 !important; background: transparent !important; padding: 0 !important; color: #14110D !important; font-family: inherit !important; font-size: 11pt !important; resize: none !important; }
+    .form label > span:first-child { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: #56493C; display: block; margin: 8pt 0 2pt; }
+    .form input[type="text"] { border: 0 !important; padding: 0 !important; background: transparent !important; color: #14110D !important; font: inherit !important; }
+    /* Signature blocks — make them prominent */
+    img[alt$="signature"] { border: 1px solid #999 !important; max-width: 280px !important; }
+    /* Hide form-actions row that holds Save buttons */
+    .form-actions { display: none !important; }
+  }
+  /* Hide print-only helpers on screen */
+  .print-only { display: none; }
+  @media print { .print-only { display: block !important; } }
+</style>
 </head>
 <body>
 <script src="/crm/crm-app.js"></script>
@@ -25,7 +60,13 @@ function render() {
   document.getElementById("page-title").textContent = `${k.number} · ${SSCrm.fmtMoney(k.total_cents)}`;
   const customerUrl = `${location.origin}/contract/?t=${k.view_token}`;
   const canSend = k.status === "draft";
-  const canCountersign = k.status === "signed_by_customer";
+  // Contracts now auto-counter-sign at the moment the customer signs — see
+  // POST /api/public/contract/[token] which sets status='fully_executed' +
+  // counter_signed_at + counter_signer_name='Stately Shades' in one shot.
+  // The legacy manual countersign UI is intentionally not surfaced here; a
+  // pre-existing contract still stuck in 'signed_by_customer' shows a small
+  // hint and a one-click "Mark as booked" button below to clear it.
+  const stuckSignedByCustomer = k.status === "signed_by_customer";
   const isBooked = k.status === "fully_executed";
 
   document.getElementById("page").innerHTML = `
@@ -34,11 +75,20 @@ function render() {
         <div class="banner__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div class="banner__body">
           <strong>Job booked!</strong>
-          <span>Counter-signed ${SSCrm.fmtDateTime(k.counter_signed_at)}. ${k.deposit_paid ? "Deposit received." : `Deposit pending: ${SSCrm.fmtMoney(k.deposit_cents)}`}</span>
+          <span>Auto-countersigned ${SSCrm.fmtDateTime(k.counter_signed_at)}. ${k.deposit_paid ? "Deposit received." : `Deposit pending: ${SSCrm.fmtMoney(k.deposit_cents)}`}</span>
         </div>
       </div>` : ""}
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    ${stuckSignedByCustomer ? `
+      <div class="banner" style="background:#FEF3C7;border-left:3px solid #9D7A3E;color:#14110D">
+        <div class="banner__body">
+          <strong>Legacy contract pending counter-sign.</strong>
+          <span>This contract was signed before auto-countersign was wired up. Click below to mark it as booked.</span>
+          <button class="btn primary sm" style="margin-top:8px" onclick="markBooked()">Mark as booked &amp; book the job</button>
+        </div>
+      </div>` : ""}
+
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div style="display:flex;gap:10px;align-items:center">
         ${SSCrm.pill(k.status)}
         <span class="pill" style="background:#F0FDFA;color:#0F766E;border-color:#CCFBF1">${contractTypeLabel(k.contract_type || "custom_order")}</span>
@@ -46,7 +96,7 @@ function render() {
       </div>
       <div style="display:flex;gap:8px">
         ${canSend ? `<button class="btn primary" onclick="sendContract()">Send to customer</button>` : ""}
-        ${canCountersign ? `<button class="btn success" id="countersign-btn" onclick="countersignFlow()">Counter-sign &amp; book the job</button>` : ""}
+        <button class="btn secondary" onclick="printContract()">🖨 Print / Save PDF</button>
         ${k.status !== "draft" ? `<a class="btn secondary" href="${customerUrl}" target="_blank">Customer link ↗</a>` : ""}
         ${!isBooked ? `<button class="btn danger" onclick="del()">Delete</button>` : ""}
       </div>
@@ -180,76 +230,30 @@ async function sendContract() {
   catch (e) { SSCrm.toast(e.message, "error"); }
 }
 
-// Counter-sign UI — open modal with signature pad
-async function countersignFlow() {
-  const me = await SSCrm.fetchJSON("/api/auth/me");
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.innerHTML = `
-    <div class="modal" style="max-width:520px">
-      <div class="modal-head">Counter-sign &amp; book the job</div>
-      <div class="modal-body">
-        <div class="form">
-          <label><span>Your name (as it should appear on the contract)</span>
-            <input id="cs-name" value="${SSCrm.esc(me.user.display_name || me.user.email.split("@")[0])}"/></label>
-          <label><span>Draw your signature</span>
-            <div class="sig">
-              <canvas id="sig-pad" width="500" height="160"></canvas>
-              <div class="sig__bar">
-                <span>Draw above with mouse, finger, or stylus</span>
-                <button type="button" id="sig-clear">Clear</button>
-              </div>
-            </div>
-          </label>
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn ghost" id="cs-cancel">Cancel</button>
-        <button class="btn success" id="cs-confirm">Counter-sign &amp; book</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(bg);
-  const pad = wireSigPad(document.getElementById("sig-pad"));
-  document.getElementById("sig-clear").onclick = () => pad.clear();
-  document.getElementById("cs-cancel").onclick = () => bg.remove();
-  document.getElementById("cs-confirm").onclick = async () => {
-    const name = document.getElementById("cs-name").value.trim();
-    if (!name) { SSCrm.toast("Type your name", "error"); return; }
-    if (pad.isEmpty()) { SSCrm.toast("Draw your signature", "error"); return; }
-    try {
-      await SSCrm.fetchJSON(`/api/contracts/${id}/countersign`, { method: "POST", body: JSON.stringify({ signer_name: name, signature_image: pad.toDataURL() }) });
-      bg.remove();
-      SSCrm.toast("Job booked — contract fully executed!", "success");
-      state = await SSCrm.fetchJSON("/api/contracts/" + id);
-      render();
-    } catch (e) { SSCrm.toast(e.message, "error"); }
-  };
+// Legacy fallback: a contract stuck in 'signed_by_customer' (signed before
+// auto-countersign was wired). One click flips it to fully_executed without
+// requiring a hand-drawn signature — the system stamps Stately Shades as
+// the counter-signer with the current timestamp.
+async function markBooked() {
+  if (!(await SSCrm.confirmDialog("Mark this contract as booked? (Auto-countersign as Stately Shades.)"))) return;
+  try {
+    await SSCrm.fetchJSON(`/api/contracts/${id}/countersign`, {
+      method: "POST",
+      body: JSON.stringify({ signer_name: "Stately Shades", auto: true }),
+    });
+    SSCrm.toast("Booked!", "success");
+    state = await SSCrm.fetchJSON("/api/contracts/" + id);
+    render();
+  } catch (e) { SSCrm.toast(e.message, "error"); }
 }
 
-function wireSigPad(canvas) {
-  const ctx = canvas.getContext("2d");
-  ctx.strokeStyle = "#0F172A"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
-  let drawing = false, hasStroke = false;
-  const pos = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left;
-    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top;
-    return [x * scaleX, y * scaleY];
-  };
-  const start = (e) => { e.preventDefault(); drawing = true; hasStroke = true; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); };
-  const move = (e) => { if (!drawing) return; e.preventDefault(); const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
-  const end = () => { drawing = false; };
-  canvas.addEventListener("mousedown", start); canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-  canvas.addEventListener("touchstart", start); canvas.addEventListener("touchmove", move); canvas.addEventListener("touchend", end);
-  return {
-    clear: () => { ctx.clearRect(0, 0, canvas.width, canvas.height); hasStroke = false; },
-    isEmpty: () => !hasStroke,
-    toDataURL: () => canvas.toDataURL("image/png"),
-  };
+// Open a clean print view of the contract — uses browser print → "Save as
+// PDF" so admins / customers can download a permanent copy without any
+// server-side PDF rendering. The print stylesheet (@media print, see <style>
+// block above) hides admin chrome and shows just the legal document.
+function printContract() {
+  // Slight delay so any open dropdowns close before the print dialog opens
+  setTimeout(() => window.print(), 50);
 }
 
 async function del() {
