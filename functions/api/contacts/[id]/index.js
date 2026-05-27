@@ -3,11 +3,56 @@ import { requireAuth, json } from "../../../_lib/auth.js";
 export async function onRequestGet(context) {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
   const id = parseInt(context.params.id, 10);
-  const c = await context.env.DB.prepare(`SELECT * FROM contacts WHERE id = ?1`).bind(id).first();
+  const { DB } = context.env;
+  const c = await DB.prepare(`SELECT * FROM contacts WHERE id = ?1`).bind(id).first();
   if (!c) return json({ error: "Not found" }, 404);
-  const projects = (await context.env.DB.prepare(`SELECT * FROM projects WHERE contact_id = ?1 ORDER BY created_at DESC`).bind(id).all()).results || [];
-  const appointments = (await context.env.DB.prepare(`SELECT * FROM appointments WHERE contact_id = ?1 ORDER BY start_at DESC LIMIT 50`).bind(id).all()).results || [];
-  return json({ contact: c, projects, appointments });
+
+  // Projects with their associated revenue + interest so the contact page can
+  // sort them sensibly and show a lifetime-value summary. signed_total is
+  // the sum of fully-executed or customer-signed contracts (their real spend);
+  // proposed_total is the highest-tier total when no contract exists yet.
+  const projects = (await DB.prepare(
+    `SELECT p.*,
+            l.interest AS lead_interest,
+            l.created_at AS lead_created_at,
+            (SELECT SUM(total_cents) FROM contracts WHERE project_id=p.id AND status IN ('fully_executed','signed_by_customer')) AS signed_total,
+            (SELECT MAX(pt.total_cents)
+               FROM proposal_tiers pt
+               JOIN proposals pr ON pr.id = pt.proposal_id
+              WHERE pr.project_id = p.id) AS proposed_total
+       FROM projects p
+       LEFT JOIN leads l ON l.id = p.lead_id
+      WHERE p.contact_id = ?1
+      ORDER BY datetime(p.updated_at) DESC, p.id DESC`
+  ).bind(id).all()).results || [];
+
+  // Lifetime stats — sum of every signed contract total. This is the number
+  // the user wants to see when they open a contact's record.
+  const stats = await DB.prepare(
+    `SELECT
+       COUNT(DISTINCT p.id) AS project_count,
+       COUNT(DISTINCT CASE WHEN k.status IN ('fully_executed','signed_by_customer') THEN k.id END) AS booked_count,
+       COALESCE(SUM(CASE WHEN k.status IN ('fully_executed','signed_by_customer') THEN k.total_cents ELSE 0 END), 0) AS lifetime_value_cents
+       FROM projects p
+       LEFT JOIN contracts k ON k.project_id = p.id
+      WHERE p.contact_id = ?1`
+  ).bind(id).first();
+
+  const appointments = (await DB.prepare(
+    `SELECT * FROM appointments WHERE contact_id = ?1 ORDER BY start_at DESC LIMIT 50`
+  ).bind(id).all()).results || [];
+
+  // All admin lead notes across every lead this contact has ever had —
+  // useful when the contact has had multiple inquiries over time.
+  const leadNotes = (await DB.prepare(
+    `SELECT ln.id, ln.body, ln.author, ln.created_at, ln.lead_id
+       FROM lead_notes ln
+       JOIN leads l ON l.id = ln.lead_id
+      WHERE l.contact_id = ?1
+      ORDER BY datetime(ln.created_at) DESC`
+  ).bind(id).all()).results || [];
+
+  return json({ contact: c, projects, appointments, lead_notes: leadNotes, stats });
 }
 
 export async function onRequestPatch(context) {

@@ -40,12 +40,19 @@ export async function onRequestGet(context) {
   // came from a website inquiry. The lead row stays in D1 even after the
   // job is booked — the Job page is now the surface where it shows up.
   let lead = null;
+  let leadNotes = [];
   if (project.lead_id) {
     lead = await context.env.DB.prepare(
       `SELECT id, name, email, phone, interest, message, source_page, utm_source, utm_medium,
               utm_campaign, referrer, created_at, status
          FROM leads WHERE id = ?1`
     ).bind(project.lead_id).first();
+    // Admin's hand-typed notes on the lead carry through to the job —
+    // the job page surfaces them so nothing the admin captured before
+    // contract signing gets lost when the record transitions.
+    leadNotes = (await context.env.DB.prepare(
+      `SELECT id, body, author, created_at FROM lead_notes WHERE lead_id = ?1 ORDER BY datetime(created_at) DESC`
+    ).bind(project.lead_id).all()).results || [];
   }
 
   // Quick email counts — full thread is on the Messages tab.
@@ -57,7 +64,7 @@ export async function onRequestGet(context) {
        FROM email_messages WHERE project_id = ?1`
   ).bind(id).first();
 
-  return json({ project, windows, estimates, proposals, contracts, appointments, lead, email_count: emailCount });
+  return json({ project, windows, estimates, proposals, contracts, appointments, lead, lead_notes: leadNotes, email_count: emailCount });
 }
 
 export async function onRequestPatch(context) {

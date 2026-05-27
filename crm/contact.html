@@ -33,23 +33,57 @@ function render() {
   const c = state.contact;
   const projects = state.projects || [];
   const appointments = state.appointments || [];
+  const leadNotes = state.lead_notes || [];
+  const stats = state.stats || { project_count: 0, booked_count: 0, lifetime_value_cents: 0 };
   document.getElementById("page-title").textContent = c.name;
 
   document.getElementById("page").innerHTML = `
     <div class="contact-grid">
       <div>
+        <!-- Lifetime summary — jobs count, bookings count, total $ spent -->
+        ${stats.project_count > 0 ? `
+          <div class="card" style="margin-bottom:14px">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+              <div>
+                <div style="font-size:26px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${stats.project_count}</div>
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em">Job${stats.project_count === 1 ? "" : "s"} total</div>
+              </div>
+              <div>
+                <div style="font-size:26px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${stats.booked_count}</div>
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em">Booked</div>
+              </div>
+              <div>
+                <div style="font-size:26px;font-weight:700;color:var(--money);font-variant-numeric:tabular-nums">${SSCrm.fmtMoney(stats.lifetime_value_cents)}</div>
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em">Lifetime value</div>
+              </div>
+            </div>
+          </div>
+        ` : ""}
+
         <div class="card">
           <div class="card-head">
-            <h2>Jobs</h2>
+            <h2>Jobs <span class="muted" style="font-size:11px;font-weight:400">${stats.project_count > 1 ? "· past + active" : ""}</span></h2>
             <button class="btn primary sm" onclick="newJob(${c.id})">+ New job</button>
           </div>
-          ${projects.length ? `<div class="tbl"><table><thead><tr><th>Name</th><th style="width:130px">Status</th><th style="width:120px">Updated</th></tr></thead><tbody>${
-            projects.map((p) => `<tr class="clickable" onclick="location.href='/crm/project.html?id=${p.id}'">
-              <td><strong>${SSCrm.esc(p.name)}</strong>${p.description ? `<div class="muted" style="font-size:12px;margin-top:2px">${SSCrm.esc(p.description)}</div>` : ""}</td>
-              <td>${SSCrm.pill(p.status)}</td>
-              <td class="muted">${SSCrm.fmtDate(p.updated_at)}</td>
-            </tr>`).join("")
-          }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No jobs yet — create one to start a proposal.</p>`}
+          ${projects.length ? `<div class="tbl"><table>
+            <thead><tr>
+              <th>Name</th>
+              <th style="width:120px">Status</th>
+              <th class="num" style="width:110px">Value</th>
+              <th style="width:110px">Updated</th>
+            </tr></thead>
+            <tbody>${projects.map((p) => {
+              const value = p.signed_total || p.proposed_total || null;
+              return `<tr class="clickable" onclick="location.href='/crm/project.html?id=${p.id}'">
+                <td>
+                  <strong>${SSCrm.esc(p.name)}</strong>
+                  ${p.lead_interest ? `<div class="muted" style="font-size:12px;margin-top:2px">${SSCrm.esc(p.lead_interest)}</div>` : (p.description ? `<div class="muted" style="font-size:12px;margin-top:2px">${SSCrm.esc(p.description)}</div>` : "")}
+                </td>
+                <td>${SSCrm.pill(p.status)}</td>
+                <td class="num ${p.signed_total ? "money" : "muted"}">${value ? SSCrm.fmtMoney(value) : "—"}</td>
+                <td class="muted">${SSCrm.fmtDate(p.updated_at)}</td>
+              </tr>`;
+            }).join("")}</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No jobs yet — create one to start a proposal.</p>`}
         </div>
 
         <div class="card" style="margin-top:14px">
@@ -58,6 +92,19 @@ function render() {
             appointments.map((a) => `<tr><td>${SSCrm.fmtDateTime(a.start_at)}</td><td class="muted">${SSCrm.esc(a.type)}</td><td>${SSCrm.pill(a.status)}</td></tr>`).join("")
           }</tbody></table></div>` : `<p class="muted" style="text-align:center;padding:20px;font-size:13px">No appointments yet.</p>`}
         </div>
+
+        ${leadNotes.length ? `
+          <div class="card" style="margin-top:14px">
+            <div class="card-head"><h2>Notes from lead stage <span class="muted" style="font-size:12px;font-weight:400">${leadNotes.length}</span></h2></div>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px">
+              ${leadNotes.map((n) => `
+                <li style="padding:10px 14px;background:var(--bg-soft);border-radius:var(--r-sm)">
+                  <div style="font-size:13px;color:var(--ink);white-space:pre-wrap">${SSCrm.esc(n.body)}</div>
+                  <div class="muted" style="font-size:11px;margin-top:4px">${SSCrm.esc(n.author || "—")} · ${SSCrm.fmtDateTime(n.created_at)} · <a href="/crm/lead.html?id=${n.lead_id}">Lead #${n.lead_id}</a></div>
+                </li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
 
         <div class="card" style="margin-top:14px">
           <div class="card-head"><h2>Messages</h2></div>

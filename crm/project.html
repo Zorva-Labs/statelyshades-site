@@ -158,7 +158,7 @@ function switchTab(tab) {
 // separate Lead screen so the job page is the single place to see the whole
 // customer history at a glance.
 function renderOverview(s) {
-  const { project, windows, contracts, appointments, lead, email_count } = s;
+  const { project, windows, contracts, appointments, lead, lead_notes, email_count } = s;
   const e = SSCrm.esc;
   const fmtMoney = SSCrm.fmtMoney;
   const fmtDate = SSCrm.fmtDate;
@@ -209,6 +209,18 @@ function renderOverview(s) {
           ${lead?.message ? `
             <div style="margin-top:14px;padding:12px 14px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--ink);white-space:pre-wrap">${e(lead.message)}</div>
             <p class="muted" style="font-size:11px;margin:6px 0 0">Original message from the lead form</p>
+          ` : ""}
+          ${lead_notes && lead_notes.length ? `
+            <div style="margin-top:14px">
+              <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 6px">Admin notes from the lead stage</p>
+              <ul class="activity" style="list-style:none;padding:0;margin:0">
+                ${lead_notes.map((n) => `
+                  <li style="padding:8px 12px;background:var(--bg-soft);border-radius:var(--r-sm);margin-bottom:6px">
+                    <div style="font-size:13px;color:var(--ink);white-space:pre-wrap">${e(n.body)}</div>
+                    <div class="muted" style="font-size:11px;margin-top:4px">${e(n.author || "—")} · ${SSCrm.fmtDateTime(n.created_at)}</div>
+                  </li>`).join("")}
+              </ul>
+            </div>
           ` : ""}
         </div>
 
