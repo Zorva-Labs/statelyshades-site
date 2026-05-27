@@ -32,7 +32,18 @@ export async function onRequestGet(context) {
     binds.push(leadId, leadId);
     where.push(`(lead_id=?${binds.length - 1} OR project_id IN (SELECT id FROM projects WHERE lead_id=?${binds.length}))`);
   }
-  if (contactId != null) { binds.push(contactId); where.push(`contact_id=?${binds.length}`); }
+  if (contactId != null) {
+    // Same idea as the project/lead filters above: a contact's messages
+    // include anything stamped with this contact_id PLUS messages on any
+    // of their leads or projects (lead/project rows may exist before the
+    // contact_id was wired up on email_messages). This makes the Contact
+    // page show the full conversation history without depending on perfect
+    // denormalization.
+    binds.push(contactId, contactId, contactId);
+    where.push(`(contact_id=?${binds.length - 2}
+                 OR project_id IN (SELECT id FROM projects WHERE contact_id=?${binds.length - 1})
+                 OR lead_id    IN (SELECT id FROM leads    WHERE contact_id=?${binds.length}))`);
+  }
   if (threadKey)         { binds.push(threadKey); where.push(`thread_key=?${binds.length}`); }
 
   // Refuse open-ended queries — too easy to dump the inbox via the public-ish
@@ -105,17 +116,24 @@ export async function onRequestPost(context) {
   // Denormalize the entity links: if the caller passed project_id (typical
   // for Compose from the Job page) AND that project came from a lead, also
   // stamp the row with lead_id. Same in reverse — if lead_id is passed and
-  // the lead has a project, stamp project_id. This keeps the GET timeline
-  // queries cheap regardless of which side filters.
+  // the lead has a project, stamp project_id. Likewise contact_id falls out
+  // of either side. Keeps the GET timeline queries cheap regardless of which
+  // entity side filters.
   let rowLeadId    = body.lead_id    || null;
   let rowProjectId = body.project_id || null;
-  if (rowProjectId && !rowLeadId) {
-    const proj = await DB.prepare(`SELECT lead_id FROM projects WHERE id=?1`).bind(rowProjectId).first().catch(() => null);
-    if (proj?.lead_id) rowLeadId = proj.lead_id;
+  let rowContactId = body.contact_id || null;
+  if (rowProjectId && (!rowLeadId || !rowContactId)) {
+    const proj = await DB.prepare(`SELECT lead_id, contact_id FROM projects WHERE id=?1`).bind(rowProjectId).first().catch(() => null);
+    if (proj?.lead_id    && !rowLeadId)    rowLeadId    = proj.lead_id;
+    if (proj?.contact_id && !rowContactId) rowContactId = proj.contact_id;
   }
-  if (rowLeadId && !rowProjectId) {
-    const proj = await DB.prepare(`SELECT id FROM projects WHERE lead_id=?1 ORDER BY id DESC LIMIT 1`).bind(rowLeadId).first().catch(() => null);
-    if (proj?.id) rowProjectId = proj.id;
+  if (rowLeadId && (!rowProjectId || !rowContactId)) {
+    const lead = await DB.prepare(`SELECT contact_id FROM leads WHERE id=?1`).bind(rowLeadId).first().catch(() => null);
+    if (lead?.contact_id && !rowContactId) rowContactId = lead.contact_id;
+    if (!rowProjectId) {
+      const proj = await DB.prepare(`SELECT id FROM projects WHERE lead_id=?1 ORDER BY id DESC LIMIT 1`).bind(rowLeadId).first().catch(() => null);
+      if (proj?.id) rowProjectId = proj.id;
+    }
   }
 
   // Insert "queued" row first — guarantees we have a CRM record even if SMTP fails.
@@ -132,7 +150,7 @@ export async function onRequestPost(context) {
         ?14, ?15, ?16,
         ?17, ?18, ?19) RETURNING id`
   ).bind(
-    body.contact_id || null, rowLeadId, rowProjectId,
+    rowContactId, rowLeadId, rowProjectId,
     messageId, inReplyTo, references, threadKey,
     "Stately Shades", context.env.PURELYMAIL_USER || "hello@statelyshades.com",
     JSON.stringify(to),
