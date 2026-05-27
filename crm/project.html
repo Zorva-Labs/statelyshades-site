@@ -630,7 +630,11 @@ async function saveProject() {
 
 async function loadActivity() {
   try {
-    const { activity } = await SSCrm.fetchJSON(`/api/activity?entity_type=project&entity_id=${id}&limit=80`);
+    // ?project_id= triggers the unified feed — pulls activity for the
+    // project itself + its originating lead + every proposal/contract/
+    // appointment/email_message tied to it. The legacy entity_type/entity_id
+    // strict-match was only returning rows where entity_type='project'.
+    const { activity } = await SSCrm.fetchJSON(`/api/activity?project_id=${id}&limit=120`);
     const feed = document.getElementById("activity-feed");
     if (!activity.length) { feed.innerHTML = `<p style="text-align:center;color:var(--ink-soft);padding:40px">No activity yet.</p>`; return; }
     feed.innerHTML = `<ul class="activity">${activity.map((a) => `
