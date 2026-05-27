@@ -35,10 +35,40 @@ export async function onRequestPost(context) {
   if (!k) return json({ error: "Not found" }, 404);
   if (k.status !== "fully_executed") return json({ error: "Contract must be signed before scheduling install." }, 400);
 
-  // Slot conflict check
   const startAt = body.start_at;
   const dur = parseInt(body.duration_min || 240, 10);  // installs default to 4 hours
   const endAt = computeEndIso(startAt, dur);
+
+  // ── Install scheduling rules ──────────────────────────────────────────
+  // Mirror what the install-slots feed enforces, so a malicious client
+  // can't bypass UI restrictions by POSTing directly.
+  //
+  // 1. Custom-order contracts need 4-week manufacturer lead time from the
+  //    customer-signature date.
+  if (k.contract_type === "custom_order" && k.signed_by_customer_at) {
+    const signedDate = k.signed_by_customer_at.slice(0, 10);
+    const minDate = new Date(signedDate + "T00:00:00Z");
+    minDate.setUTCDate(minDate.getUTCDate() + 28);
+    const minIso = minDate.toISOString().slice(0, 10);
+    if (startAt.slice(0, 10) < minIso) {
+      return json({ error: `Custom orders need a 4-week lead time. Earliest install date is ${minIso}.` }, 400);
+    }
+  }
+  // 2. Time of day must be 10:00 or 16:00 Central.
+  const hhmm = startAt.slice(11, 16);
+  if (hhmm !== "10:00" && hhmm !== "16:00") {
+    return json({ error: "Install slots are 10:00 AM or 4:00 PM only." }, 400);
+  }
+  // 3. Max 2 installs per day total.
+  const dayCount = await context.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM appointments
+              WHERE type='install' AND status IN ('pending','confirmed')
+                AND substr(start_at, 1, 10) = ?1`)
+    .bind(startAt.slice(0, 10)).first();
+  if ((dayCount?.n || 0) >= 2) {
+    return json({ error: "That day already has two installs scheduled — please pick another." }, 409);
+  }
+  // 4. Specific slot must be free.
   const conflict = await context.env.DB
     .prepare(`SELECT id FROM appointments WHERE status IN ('pending','confirmed') AND start_at < ?1 AND end_at > ?2`)
     .bind(endAt, startAt).first();

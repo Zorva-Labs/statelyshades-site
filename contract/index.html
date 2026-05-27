@@ -182,7 +182,10 @@ async function loadInstallScheduler() {
     </div>
   `;
   try {
-    const slotsData = await fetch("/api/public/slots").then((r) => r.json());
+    // Install scheduling uses its own slot feed (10am / 4pm only, max 2/day,
+    // 4-week manufacturer lead time for custom-order contracts) — NOT the
+    // general /api/public/slots used for free consultations.
+    const slotsData = await fetch("/api/public/install-slots/" + token).then((r) => r.json());
     renderSlots(slotsData);
   } catch (e) {
     document.getElementById("sched-slots").innerHTML = `<p style="color:#B85450">Couldn't load times — please call 629-298-8241.</p>`;
@@ -190,15 +193,26 @@ async function loadInstallScheduler() {
 }
 
 function renderSlots(slotsData) {
-  const dates = Object.keys(slotsData.slots || {}).sort().slice(0, 7); // show first week of availability
+  const dates = Object.keys(slotsData.slots || {}).sort().slice(0, 14); // show first 2 weeks of available days
+  const leadNote = slotsData.needs_lead_time
+    ? `<p style="font-size:0.88rem;color:var(--color-ink-soft);margin:0 0 16px;line-height:1.55">
+         Custom orders need <strong>${slotsData.lead_time_days} days</strong> for manufacture, so the earliest install date is
+         <strong>${prettyDate(slotsData.earliest)}</strong>. We only install in two slots a day —
+         <strong>10am</strong> or <strong>4pm</strong> — and book a maximum of two installs daily.
+       </p>`
+    : `<p style="font-size:0.88rem;color:var(--color-ink-soft);margin:0 0 16px;line-height:1.55">
+         Installs run in two slots a day — <strong>10am</strong> or <strong>4pm</strong> — with a max of two installs daily.
+       </p>`;
+
   if (!dates.length) {
-    document.getElementById("sched-slots").innerHTML = `<p style="color:var(--color-ink-soft)">No times available. Please call <a href="tel:+16292988241">629-298-8241</a> to schedule.</p>`;
+    document.getElementById("sched-slots").innerHTML = leadNote +
+      `<p style="color:var(--color-ink-soft)">No open install times in the next 4 weeks. Please call <a href="tel:+16292988241">629-298-8241</a> to schedule.</p>`;
     return;
   }
-  document.getElementById("sched-slots").innerHTML = dates.map((d) => `
+  document.getElementById("sched-slots").innerHTML = leadNote + dates.map((d) => `
     <div class="sched-day">
       <h3>${prettyDate(d)}</h3>
-      <div class="sched-slots">${slotsData.slots[d].map((s) => `<button class="sched-slot" data-start="${s.start}" onclick="pickSlot(this)">${prettyTime(s.start)}</button>`).join("")}</div>
+      <div class="sched-slots">${slotsData.slots[d].map((s) => `<button class="sched-slot" data-start="${s.start}" onclick="pickSlot(this)">${s.label || prettyTime(s.start)}</button>`).join("")}</div>
     </div>
   `).join("");
 }
