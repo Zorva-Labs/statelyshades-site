@@ -193,16 +193,16 @@ def render_front(with_bleed=True):
 
     return img
 
-# ── BACK (espresso side — contact + services menu) ──────────────────────
+# ── BACK (cream side — contact + services menu, all in espresso) ────────
 def render_back(with_bleed=True):
     W, H = (BLEED_W, BLEED_H) if with_bleed else (TRIM_W, TRIM_H)
     import numpy as np
-    # Diagonal warm-gradient: top-left INK_2 lifted toward INK at bottom-right
-    yy, xx = np.indices((H, W))
-    t = (1.0 - (xx + yy) / (W + H)) * 0.55
-    r = INK[0] + (INK_2[0] - INK[0]) * t
-    g = INK[1] + (INK_2[1] - INK[1]) * t
-    b = INK[2] + (INK_2[2] - INK[2]) * t
+    # Same warm cream-tone gradient as the front for visual continuity
+    yy, _ = np.indices((H, W))
+    t = (yy / H) * 0.35
+    r = CREAM[0] + (CREAM_2[0] - CREAM[0]) * t
+    g = CREAM[1] + (CREAM_2[1] - CREAM[1]) * t
+    b = CREAM[2] + (CREAM_2[2] - CREAM[2]) * t
     img = Image.fromarray(np.stack([r, g, b], axis=-1).astype("uint8"))
 
     draw = ImageDraw.Draw(img)
@@ -211,87 +211,65 @@ def render_back(with_bleed=True):
 
     # 55/45 column split with a thin brass divider
     split_x = ox + int(TRIM_W * 0.55)
-    div = Image.new("RGBA", (1, TRIM_H - 100), (BRASS[0], BRASS[1], BRASS[2], 140))
+    div = Image.new("RGBA", (1, TRIM_H - 100), (BRASS[0], BRASS[1], BRASS[2], 180))
     img.paste(div, (split_x, oy + 50), div)
     # Brass diamond at divider midpoint
     dx, dy = split_x, oy + TRIM_H // 2
     ds = 6
     draw.polygon([(dx, dy - ds), (dx + ds, dy), (dx, dy + ds), (dx - ds, dy)],
-                 fill=BRASS_HOT)
+                 fill=BRASS)
 
-    # ─────────────────── LEFT: name + role + brass rule + contact stack
+    # ─────────────────── LEFT: name + brass rule + contact stack
     L = ox + 56
-    top = oy + 76
+    top = oy + 86
 
     # Name — display serif, large for hold-in-hand readability
     name_font = F(CG_MED, 64)           # ~18pt
-    draw_tracked(draw, (L, top), "MICHAEL BLAIR", name_font, CHAMPAGNE,
+    draw_tracked(draw, (L, top), "MICHAEL BLAIR", name_font, INK,
                  tracking_em=0.05, anchor="lt")
     name_asc, _ = name_font.getmetrics()
     name_baseline = top + name_asc
 
-    # Role — italic display
-    role_font = F(CG_MIT, 30)           # ~9pt
-    role_text = "Sales & Installation"
-    role_y = name_baseline + 6
-    draw.text((L, role_y), role_text, font=role_font, fill=BRASS_HOT, anchor="lt")
-    role_asc, _ = role_font.getmetrics()
-    role_baseline = role_y + role_asc
-
-    # Brass rule under role
-    rule_y = role_baseline + 22
+    # Brass rule directly under name (no role line now)
+    rule_y = name_baseline + 22
     draw.rectangle([(L, rule_y), (L + 90, rule_y + 2)], fill=BRASS)
 
     # Phone — the most-pressed key, given display weight
     phone_font = F(CG_MED, 46)          # ~13pt — biggest contact item
     phone_y = rule_y + 26
-    draw.text((L, phone_y), "629.298.8241", font=phone_font, fill=CHAMPAGNE, anchor="lt")
+    draw.text((L, phone_y), "629.298.8241", font=phone_font, fill=INK, anchor="lt")
     p_asc, _ = phone_font.getmetrics()
     phone_baseline = phone_y + p_asc
 
-    # Email — mono caps, slightly muted champagne
+    # Email — mono caps in espresso
     detail_font = F(MONO, 22)           # ~6.5pt
-    softer = tuple(int(c * 0.92) for c in CHAMPAGNE)
     email_y = phone_baseline + 18
     draw_tracked(draw, (L, email_y), "HELLO@STATELYSHADES.COM",
-                 detail_font, softer, tracking_em=0.08, anchor="lt")
+                 detail_font, INK, tracking_em=0.08, anchor="lt")
     e_asc, _ = detail_font.getmetrics()
 
     # Web — directly under email
     web_y = email_y + e_asc + 8
     draw_tracked(draw, (L, web_y), "STATELYSHADES.COM",
-                 detail_font, softer, tracking_em=0.08, anchor="lt")
+                 detail_font, INK, tracking_em=0.08, anchor="lt")
 
-    # Location stamp anchored at bottom-left
-    loc_font = F(MONO, 18)              # ~5.5pt
-    loc_y = oy + TRIM_H - 60
-    draw_tracked(draw, (L, loc_y), "GALLATIN · TENNESSEE",
-                 loc_font, BRASS, tracking_em=0.30, anchor="lt")
-
-    # ─────────────────── RIGHT: SS monogram + services menu
+    # ─────────────────── RIGHT: SS monogram + services menu (all in espresso)
     R_L = split_x + 50
     R_R = ox + TRIM_W - 50
     rcx = (R_L + R_R) // 2
 
-    # Small champagne monogram
+    # Small espresso monogram, vertically centered with the contact stack on the left
     sm_mono_size = 110
-    smb = draw_monogram(draw, rcx, oy + 100, sm_mono_size, CHAMPAGNE)
+    smb = draw_monogram(draw, rcx, oy + 130, sm_mono_size, INK)
     smb_bottom = smb[3]
 
-    # "WHAT WE INSTALL" header
-    head_font = F(MONO, 16)             # ~4.7pt
-    head_y = smb_bottom + 26
-    draw_tracked(draw, (rcx, head_y), "WHAT WE INSTALL",
-                 head_font, BRASS_HOT, tracking_em=0.34, anchor="mt")
-    head_asc, _ = head_font.getmetrics()
-
-    # Tiny rule under header
-    sm_rule_y = head_y + head_asc + 10
-    sm_rule_w = 32
+    # Brass rule directly under the monogram — the "line in the logo" preserved
+    sm_rule_y = smb_bottom + 22
+    sm_rule_w = 56
     draw.rectangle([(rcx - sm_rule_w // 2, sm_rule_y),
-                    (rcx + sm_rule_w // 2, sm_rule_y + 1)], fill=BRASS)
+                    (rcx + sm_rule_w // 2, sm_rule_y + 2)], fill=BRASS)
 
-    # Services list — italic display, stacked, centered
+    # Services list — italic display, stacked, centered, in espresso
     svc_list = [
         "Plantation Shutters",
         "Motorized Shades",
@@ -299,12 +277,12 @@ def render_back(with_bleed=True):
         "Repair & Install-Only",
     ]
     svc_font2 = F(CG_IT, 26)            # ~7.5pt
-    svc_start_y = sm_rule_y + 18
+    svc_start_y = sm_rule_y + 22
     line_gap = 12
     svc_asc, _ = svc_font2.getmetrics()
     cy_cursor = svc_start_y
     for line in svc_list:
-        draw.text((rcx, cy_cursor), line, font=svc_font2, fill=CHAMPAGNE, anchor="mt")
+        draw.text((rcx, cy_cursor), line, font=svc_font2, fill=INK, anchor="mt")
         cy_cursor += svc_asc + line_gap
 
     return img
