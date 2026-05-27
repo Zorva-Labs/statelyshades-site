@@ -33,22 +33,48 @@ async function load() {
       <th class="num" style="width:100px">Jobs</th>
       <th class="num" style="width:120px">Lifetime $</th>
       <th style="width:110px">Last activity</th>
+      <th style="width:34px"></th>
     </tr></thead>
     <tbody>${contacts.map((c) => {
       const jobs   = c.project_count || 0;
       const booked = c.booked_count  || 0;
       const ltv    = c.lifetime_value_cents || 0;
       const last   = c.last_project_at || c.updated_at || c.created_at;
-      return `<tr class="clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">
-        <td><strong>${SSCrm.esc(c.name)}</strong></td>
-        <td>${SSCrm.esc(c.email)}</td>
-        <td class="muted">${SSCrm.esc(c.phone || "")}</td>
-        <td class="muted">${SSCrm.esc(c.address_city || "")}${c.address_state ? `, ${SSCrm.esc(c.address_state)}` : ""}</td>
-        <td class="num">${jobs}${booked > 0 ? ` <span class="muted" style="font-size:10px">(${booked} booked)</span>` : ""}</td>
-        <td class="num ${ltv > 0 ? "money" : "muted"}">${ltv > 0 ? SSCrm.fmtMoney(ltv) : "—"}</td>
-        <td class="muted">${SSCrm.fmtDate(last)}</td>
+      return `<tr data-id="${c.id}" data-name="${SSCrm.esc(c.name)}">
+        <td class="clickable" onclick="location.href='/crm/contact.html?id=${c.id}'"><strong>${SSCrm.esc(c.name)}</strong></td>
+        <td class="clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${SSCrm.esc(c.email)}</td>
+        <td class="muted clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${SSCrm.esc(c.phone || "")}</td>
+        <td class="muted clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${SSCrm.esc(c.address_city || "")}${c.address_state ? `, ${SSCrm.esc(c.address_state)}` : ""}</td>
+        <td class="num clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${jobs}${booked > 0 ? ` <span class="muted" style="font-size:10px">(${booked} booked)</span>` : ""}</td>
+        <td class="num ${ltv > 0 ? "money" : "muted"} clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${ltv > 0 ? SSCrm.fmtMoney(ltv) : "—"}</td>
+        <td class="muted clickable" onclick="location.href='/crm/contact.html?id=${c.id}'">${SSCrm.fmtDate(last)}</td>
+        <td style="padding:0;text-align:center"><button class="row-del" title="Delete contact" onclick="quickDelete(${c.id}, '${SSCrm.esc(c.name).replace(/'/g, "\\'")}', this)" style="background:transparent;border:0;cursor:pointer;color:var(--ink-muted);font-size:16px;padding:8px 10px;line-height:1">×</button></td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
+}
+
+// Quick delete from the list — if the contact has any linked data the API
+// returns 409 and we route the admin to the contact page (Danger Zone) for
+// the full purge confirmation flow. Bare contacts (no jobs/leads/etc.)
+// disappear with a single click.
+async function quickDelete(id, name, btn) {
+  if (!confirm(`Delete contact "${name}"?\n\n(If they have any jobs / leads / emails, you'll be sent to the contact page to confirm a full purge.)`)) return;
+  btn.disabled = true;
+  try {
+    await SSCrm.fetchJSON(`/api/contacts/${id}`, { method: "DELETE" });
+    btn.closest("tr").remove();
+    SSCrm.toast(`Deleted ${name}`, "success");
+  } catch (e) {
+    btn.disabled = false;
+    // 409 = has linked records → bounce them to the contact page for the
+    // full Danger-Zone purge confirmation.
+    if (/linked records/i.test(e.message || "")) {
+      SSCrm.toast(`${name} has linked records — opening their page to purge`, "info");
+      setTimeout(() => { location.href = "/crm/contact.html?id=" + id; }, 700);
+    } else {
+      SSCrm.toast(e.message || "Delete failed", "error");
+    }
+  }
 }
 async function newContact() {
   const name = prompt("Full name?"); if (!name) return;

@@ -129,6 +129,15 @@ function render() {
             <div class="form-actions"><button class="btn primary" onclick="save(${c.id})">Save</button></div>
           </div>
         </div>
+
+        <!-- Destructive contact removal — separated from the everyday Details
+             card so it's hard to mis-click. Confirmation modal surfaces the
+             count of every linked record before the request fires. -->
+        <div class="card" style="margin-top:14px;border-color:#FEE2E2;background:#FEF2F2">
+          <div class="card-head"><h3 style="color:#991B1B">Danger zone</h3></div>
+          <p class="muted" style="font-size:12px;line-height:1.5;margin:0 0 10px;color:#991B1B">Remove this contact and everything tied to them — every job, lead, email, appointment, contract. Cannot be undone.</p>
+          <button class="btn danger" style="width:100%" onclick="purgeContact()">🗑 Delete &amp; purge this contact</button>
+        </div>
       </div>
     </div>
   `;
@@ -172,5 +181,66 @@ async function newJob(contactId) {
   const name = prompt("Job name? (e.g. 'Whole house', 'Kitchen + Baths')"); if (!name) return;
   try { const { id } = await SSCrm.fetchJSON("/api/projects", { method: "POST", body: JSON.stringify({ contact_id: contactId, name }) }); location.href = "/crm/project.html?id=" + id; }
   catch (e) { SSCrm.toast(e.message, "error"); }
+}
+
+// Two-step purge — same pattern as the project Danger Zone. Modal shows the
+// count of every record tied to this contact and requires typing the contact's
+// name to enable the delete button.
+async function purgeContact() {
+  const c = state.contact;
+  const projects = state.projects || [];
+  const appointments = state.appointments || [];
+  const leadNotes = state.lead_notes || [];
+
+  // Pre-flight: ask the API for a definitive count
+  const counts = { Jobs: projects.length, Appointments: appointments.length, "Lead notes": leadNotes.length };
+
+  const items = Object.entries(counts).filter(([, n]) => n > 0).map(([k, n]) =>
+    `<li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:13px"><span>${SSCrm.esc(k)}</span><strong>${n}</strong></li>`
+  ).join("");
+
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-head" style="background:#FEF2F2;color:#991B1B;border-bottom:1px solid #FEE2E2">🗑 Delete &amp; purge "${SSCrm.esc(c.name)}"</div>
+      <div class="modal-body">
+        <p style="margin:0 0 14px;font-size:14px;line-height:1.55">This permanently removes the contact AND every related record (every job, lead, email, appointment, contract). <strong>Cannot be undone.</strong></p>
+        ${items ? `<ul style="list-style:none;padding:0;margin:0 0 16px;border-top:1px solid var(--line-soft)">${items}</ul>` : `<p class="muted" style="font-size:13px;font-style:italic;margin:0 0 16px">No linked records — just the contact row itself.</p>`}
+        <p style="font-size:13px;margin:14px 0 6px">Type <code style="background:var(--bg-soft);padding:2px 6px;border-radius:3px;font-family:var(--font-mono,monospace);font-size:12px">${SSCrm.esc(c.name)}</code> to confirm:</p>
+        <input id="purge-confirm" autocomplete="off"
+               style="width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font:inherit;font-size:14px"
+               placeholder="${SSCrm.esc(c.name)}"/>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="px-cancel">Cancel</button>
+        <button class="btn danger" id="px-confirm" disabled>Permanently delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  const input = bg.querySelector("#purge-confirm");
+  const btn   = bg.querySelector("#px-confirm");
+  input.focus();
+  input.addEventListener("input", () => { btn.disabled = input.value.trim() !== c.name; });
+  bg.querySelector("#px-cancel").onclick = () => bg.remove();
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+  btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = "Deleting…";
+    try {
+      const res = await SSCrm.fetchJSON(`/api/contacts/${c.id}?purge=1`, { method: "DELETE" });
+      bg.remove();
+      const s = res.summary || {};
+      const parts = [];
+      if (s.projects)     parts.push(`${s.projects} job${s.projects === 1 ? "" : "s"}`);
+      if (s.leads)        parts.push(`${s.leads} lead${s.leads === 1 ? "" : "s"}`);
+      if (s.appointments) parts.push(`${s.appointments} appt${s.appointments === 1 ? "" : "s"}`);
+      if (s.emails)       parts.push(`${s.emails} email${s.emails === 1 ? "" : "s"}`);
+      SSCrm.toast(`Purged — wiped ${parts.length ? parts.join(" · ") : "just the contact"}`, "success");
+      setTimeout(() => { location.href = "/crm/contacts.html"; }, 600);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Permanently delete";
+      SSCrm.toast(e.message || "Delete failed", "error");
+    }
+  };
 }
 </script></body></html>

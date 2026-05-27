@@ -4,6 +4,7 @@
 // failure logs but never blocks the customer response.
 
 import { sendEmail } from "../_lib/email.js";
+import { upsertContact } from "../_lib/db.js";
 
 const TO_ADDRESS = "hello@statelyshades.com";
 
@@ -110,14 +111,30 @@ https://statelyshades.com/crm/
       const utm_term = urlObj.searchParams.get("utm_term");
       const utm_content = urlObj.searchParams.get("utm_content");
 
+      // Upsert a contact FIRST so we can stamp lead.contact_id at insert
+      // time. Every lead now appears in the contacts list the moment it's
+      // captured — if the email matches an existing contact (repeat
+      // customer, second inquiry, etc.) we re-use that row instead of
+      // creating a duplicate.
+      let contactId = null;
+      try {
+        contactId = await upsertContact(env.DB, {
+          name, email, phone,
+          address: { street: addressStreet, city: addressCity, state: addressState, zip: addressZip },
+        });
+      } catch (e) {
+        // Don't block lead capture on contact upsert — just log and continue
+        console.error("[contact.js] upsertContact failed (continuing):", e?.message || e);
+      }
+
       await env.DB.prepare(
         `INSERT INTO leads
           (name, phone, email,
            address_street, address_city, address_state, address_zip, location,
            interest, message,
            source_page, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
-           referrer, user_agent, ip_hash)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`
+           referrer, user_agent, ip_hash, contact_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`
       )
         .bind(
           name, phone, email,
@@ -125,7 +142,7 @@ https://statelyshades.com/crm/
           interest || null, message || null,
           source,
           utm_source, utm_medium, utm_campaign, utm_term, utm_content,
-          ref, ua, ipHash
+          ref, ua, ipHash, contactId
         )
         .run();
       dbOk = true;
