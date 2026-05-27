@@ -8,7 +8,19 @@ export async function onRequestGet(context) {
               FROM projects p JOIN contacts c ON c.id=p.contact_id WHERE p.id=?1`)
     .bind(id).first();
   if (!project) return json({ error: "Not found" }, 404);
-  const windows = (await context.env.DB.prepare(`SELECT * FROM windows WHERE project_id=?1 ORDER BY position, id`).bind(id).all()).results || [];
+  // Join product info so the print worksheet + windows tab can show product
+  // name + retail price without a second round-trip.
+  const windows = (await context.env.DB.prepare(
+    `SELECT w.*,
+            pr.name           AS product_name,
+            pr.sku            AS product_sku,
+            pr.base_price_cents AS product_price_cents,
+            pr.category       AS product_category
+       FROM windows w
+       LEFT JOIN products pr ON pr.id = w.product_id
+      WHERE w.project_id = ?1
+      ORDER BY w.position, w.id`
+  ).bind(id).all()).results || [];
   const estimates = (await context.env.DB.prepare(`SELECT id, number, status, total_cents, valid_until, created_at FROM estimates WHERE project_id=?1 ORDER BY created_at DESC`).bind(id).all()).results || [];
   const proposals = (await context.env.DB.prepare(`SELECT id, number, status, selected_tier, selected_total_cents, created_at FROM proposals WHERE project_id=?1 ORDER BY created_at DESC`).bind(id).all()).results || [];
   const contracts = (await context.env.DB.prepare(`SELECT id, number, status, total_cents, deposit_cents, deposit_paid, contract_type, view_token, signed_by_customer_at, counter_signed_at, sent_at, created_at FROM contracts WHERE project_id=?1 ORDER BY created_at DESC`).bind(id).all()).results || [];
