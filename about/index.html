@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us · Family-Owned Window Treatments in Gallatin, TN · Stately Shades</title>
+  <meta name="description" content="Stately Shades is a family-owned and operated window treatment company in Gallatin, Tennessee — serving a 90-mile radius around Middle Tennessee with custom blinds, plantation shutters, motorized shades, and professional installation. Meet the Blair family." />
+  <link rel="canonical" href="https://statelyshades.com/about/" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="About Stately Shades · Family-Owned Window Treatments · Gallatin, TN" />
+  <meta property="og:description" content="A family business doing custom blinds, plantation shutters, and motorized shades across Middle Tennessee. Meet the team behind every install." />
+  <meta property="og:url" content="https://statelyshades.com/about/" />
+  <meta property="og:image" content="https://statelyshades.com/assets/images/team/ss04.webp" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg" />
+  <link rel="icon" type="image/png" href="/assets/images/logo-v4.png" />
+  <link rel="apple-touch-icon" href="/assets/images/logo-v4.png" />
+
+  <!-- Preload the hero image for fast LCP -->
+  <link rel="preload" as="image" href="/assets/images/team/ss04.webp" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css?v=cta-202605" />
+
+  <!-- Schema.org: AboutPage + LocalBusiness + Person × 3 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": "https://statelyshades.com/about/#aboutpage",
+        "url": "https://statelyshades.com/about/",
+        "name": "About Stately Shades",
+        "description": "Family-owned window treatment company in Gallatin, TN serving Middle Tennessee.",
+        "mainEntity": { "@id": "https://statelyshades.com/#localbusiness" }
+      },
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://statelyshades.com/#localbusiness",
+        "name": "Stately Shades",
+        "url": "https://statelyshades.com/",
+        "logo": "https://statelyshades.com/assets/images/logo-v4.png",
+        "image": "https://statelyshades.com/assets/images/team/ss04.webp",
+        "telephone": "+1-629-298-8241",
+        "email": "hello@statelyshades.com",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Gallatin",
+          "addressRegion": "TN",
+          "postalCode": "37066",
+          "addressCountry": "US"
+        },
+        "areaServed": "Middle Tennessee (90-mile radius from Gallatin, TN)",
+        "founder": [
+          { "@type": "Person", "name": "Michael Blair", "jobTitle": "Sales & Installation" },
+          { "@type": "Person", "name": "Christian Blair", "jobTitle": "Team Lead" },
+          { "@type": "Person", "name": "Michelle Blair", "jobTitle": "Interior Design & Styling" }
+        ],
+        "employee": [
+          { "@type": "Person", "name": "Michael Blair", "jobTitle": "Sales & Installation", "image": "https://statelyshades.com/assets/images/team/ss01.webp" },
+          { "@type": "Person", "name": "Christian Blair", "jobTitle": "Team Lead", "image": "https://statelyshades.com/assets/images/team/ss02.webp" },
+          { "@type": "Person", "name": "Michelle Blair", "jobTitle": "Interior Designer & Stylist", "image": "https://statelyshades.com/assets/images/team/ss03.webp" }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    /* About-page-specific layout — extends the global styles.css. Hero uses the
+       truck photo as a full-width visual with the headline overlaid. Team grid
+       responsive 3-col → 1-col on narrow. Trust list + service-area band reuse
+       site colors. Print-friendly. */
+    .about-hero {
+      position: relative;
+      min-height: clamp(360px, 50vh, 560px);
+      overflow: hidden;
+      background: var(--color-bg-2);
+    }
+    .about-hero__img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center 35%;
+    }
+    .about-hero__overlay {
+      position: relative;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(80px, 12vw, 140px) clamp(20px, 4vw, 40px) clamp(40px, 6vw, 80px);
+      color: var(--color-bg);
+      background: linear-gradient(180deg, transparent 0%, rgba(20,17,13,0.65) 60%);
+      min-height: clamp(360px, 50vh, 560px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .about-hero h1 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 14px;
+      color: #fff;
+      max-width: 16ch;
+    }
+    .about-hero h1 em { color: var(--color-brass-hot); font-style: italic; }
+    .about-hero p {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+      color: rgba(255,255,255,0.88);
+      max-width: 50ch;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .about-hero .eyebrow {
+      color: var(--color-brass-hot);
+      margin-bottom: 14px;
+    }
+
+    .about-story {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: clamp(60px, 10vw, 110px) clamp(20px, 4vw, 40px);
+    }
+    .about-story h2 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      line-height: 1.1;
+      margin: 0 0 26px;
+      color: var(--color-ink);
+    }
+    .about-story h2 em { color: var(--color-brass); font-style: italic; }
+    .about-story p {
+      font-size: 1.08rem;
+      line-height: 1.7;
+      color: var(--color-ink-soft);
+      margin: 0 0 18px;
+    }
+    .about-story p strong { color: var(--color-ink); font-weight: 500; }
+
+    /* Team grid */
+    .team-band { background: var(--color-bg-2); padding: clamp(60px, 10vw, 110px) 0; border-top: 1px solid var(--color-line); border-bottom: 1px solid var(--color-line); }
+    .team-band__inner { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .team-band__head { text-align: center; margin-bottom: 50px; }
+    .team-band__head h2 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      margin: 12px 0 0;
+      color: var(--color-ink);
+    }
+    .team-band__head h2 em { color: var(--color-brass); font-style: italic; }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(20px, 3vw, 40px);
+    }
+    @media (max-width: 860px) { .team-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; } }
+    .team-card {
+      background: #fff;
+      border: 1px solid var(--color-line);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow var(--dur, 0.2s) var(--ease, ease);
+    }
+    .team-card:hover { box-shadow: 0 20px 50px -22px rgba(20,17,13,0.25); }
+    .team-card__img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+      background: var(--color-bg-3);
+    }
+    .team-card__body { padding: 22px 24px 26px; }
+    .team-card__role {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--color-brass);
+      margin: 0 0 6px;
+    }
+    .team-card__name {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 1.5rem;
+      line-height: 1.1;
+      margin: 0 0 12px;
+      color: var(--color-ink);
+    }
+    .team-card__bio {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--color-ink-soft);
+      margin: 0;
+    }
+
+    /* Who we work with */
+    .trusted { padding: clamp(60px, 10vw, 110px) 0; }
+    .trusted__inner { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(28px, 5vw, 64px); align-items: center; }
+    @media (max-width: 860px) { .trusted__inner { grid-template-columns: 1fr; } }
+    .trusted h2 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(1.9rem, 3.6vw, 2.6rem);
+      line-height: 1.1;
+      margin: 12px 0 0;
+      color: var(--color-ink);
+    }
+    .trusted h2 em { color: var(--color-brass); font-style: italic; }
+    .trusted__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 22px;
+    }
+    @media (max-width: 560px) { .trusted__list { grid-template-columns: 1fr; } }
+    .trusted__list li {
+      padding: 14px 18px;
+      background: var(--color-bg-2);
+      border-left: 3px solid var(--color-brass);
+      font-size: 0.98rem;
+      line-height: 1.45;
+      color: var(--color-ink);
+    }
+    .trusted__list li strong { display: block; font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin-bottom: 2px; color: var(--color-ink); }
+    .trusted__list li span { color: var(--color-ink-soft); font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       NAV — kept identical to the homepage so the brand reads consistent
+       ============================================================ -->
+  <header class="nav" id="nav">
+    <div class="container nav__inner">
+      <a class="nav__brand" href="/" aria-label="Stately Shades home">
+        <span class="nav__monogram" aria-hidden="true">S<span>S</span></span>
+        <span class="nav__lockup">
+          <span class="nav__wordmark">STATELY SHADES</span>
+          <span class="nav__rule" aria-hidden="true"></span>
+          <span class="nav__tagline">Blinds, Shutters &amp; Shades</span>
+        </span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="/#products">Products</a>
+        <a href="/#services">Services</a>
+        <a href="/about/" aria-current="page">About</a>
+        <a href="/blog/">Journal</a>
+        <a href="/#service-area">Service Area</a>
+        <a href="/#contact" class="nav__cta"><span>Free Consultation</span></a>
+      </nav>
+      <button class="nav__toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============================================================
+         HERO — truck photo + family-business positioning
+         ============================================================ -->
+    <section class="about-hero">
+      <img class="about-hero__img" src="/assets/images/team/ss04.webp"
+           alt="The Stately Shades work truck on a job site in Gallatin, Tennessee — family-owned custom window treatments serving Middle Tennessee" />
+      <div class="about-hero__overlay">
+        <span class="eyebrow eyebrow--light">A Family Business · Gallatin, TN</span>
+        <h1>We make windows feel <em>like home.</em></h1>
+        <p>Stately Shades is a family-owned, family-run custom window treatment company serving Gallatin, Nashville, and a 90-mile radius across Middle Tennessee — built on tight measurements, honest pricing, and the kind of communication you don't usually get from a contractor.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         STORY — long-form prose with SEO keywords woven naturally
+         ============================================================ -->
+    <article class="about-story">
+      <h2>Years of windows, one <em>family.</em></h2>
+      <p>
+        We're the <strong>Blair family</strong>, and Stately Shades is what we built when we got tired of seeing beautiful homes saddled with builder-grade blinds, broken cords, and lopsided shades that never quite fit. So we started a business that does the opposite — <strong>custom plantation shutters, motorized shades, cellular blinds, woven wood, sheer vanes, and Hunter Douglas window treatments</strong> measured to a sixteenth of an inch and installed cleanly the first time.
+      </p>
+      <p>
+        We're based in <strong>Gallatin, Tennessee</strong>, and we cover everything inside a roughly <strong>90-mile radius</strong> — Nashville, Hendersonville, Franklin, Brentwood, Mt. Juliet, Lebanon, Murfreesboro, Springfield, Clarksville, Cookeville, Spring Hill, Bowling Green KY, and every town in between. No travel charge. No consultation fee. We bring the showroom to your living room.
+      </p>
+      <p>
+        Working with us looks like this: a relaxed in-home consult, a written quote before we leave, no high-pressure pitch. <strong>Reasonable pricing</strong>, transparent options at three different price points, and a real human you can text when you have a question. Same person who quoted the job is the person who installs it.
+      </p>
+      <p>
+        We've spent <strong>years</strong> doing this work, and the relationships we've built reflect it — we're the go-to window treatment installer for <strong>real estate agents</strong> staging listings, <strong>general contractors</strong> finishing builds, <strong>interior designers</strong> sourcing for clients, and <strong>apartment complex managers</strong> outfitting whole properties at once. When professionals need it done right and on schedule, they call us.
+      </p>
+    </article>
+
+    <!-- ============================================================
+         TEAM — the three people who actually show up at your house
+         ============================================================ -->
+    <section class="team-band">
+      <div class="team-band__inner">
+        <header class="team-band__head" data-reveal>
+          <span class="eyebrow">The Family Behind The Business</span>
+          <h2>Meet the people who'll be in your <em>home.</em></h2>
+        </header>
+
+        <div class="team-grid">
+          <article class="team-card">
+            <img class="team-card__img" src="/assets/images/team/ss01.webp"
+                 alt="Michael Blair, Sales and Installation at Stately Shades — Gallatin, TN custom window treatments"
+                 loading="lazy" width="600" height="600" />
+            <div class="team-card__body">
+              <p class="team-card__role">Sales &amp; Installation</p>
+              <h3 class="team-card__name">Michael Blair</h3>
+              <p class="team-card__bio">
+                Michael runs every consultation and most installs himself. The reason every quote comes back tight and every install ends right: same hands measuring as installing, every time. Plantation shutters, motorized shades, Hunter Douglas, you name it.
+              </p>
+            </div>
+          </article>
+
+          <article class="team-card">
+            <img class="team-card__img" src="/assets/images/team/ss02.webp"
+                 alt="Christian Blair, Team Lead at Stately Shades — overseeing window treatment installs across Middle Tennessee"
+                 loading="lazy" width="600" height="600" />
+            <div class="team-card__body">
+              <p class="team-card__role">Team Lead</p>
+              <h3 class="team-card__name">Christian Blair</h3>
+              <p class="team-card__bio">
+                Christian leads the install team and keeps every job moving. Scheduling, site coordination, quality check before we leave — if it's on the calendar, he's the reason it stays on the calendar. The professional communication our customers always mention starts with him.
+              </p>
+            </div>
+          </article>
+
+          <article class="team-card">
+            <img class="team-card__img" src="/assets/images/team/ss03.webp"
+                 alt="Michelle Blair, Interior Designer and Stylist at Stately Shades — custom drapery and window treatment styling for Nashville-area homes"
+                 loading="lazy" width="600" height="600" />
+            <div class="team-card__body">
+              <p class="team-card__role">Interior Design &amp; Styling</p>
+              <h3 class="team-card__name">Michelle Blair</h3>
+              <p class="team-card__bio">
+                Michelle is the design eye on every project. She helps you pair fabric, color, and stack design to the architecture — whether that's modern minimal sheers in a new build or layered drapery in a historic home. When a room finally feels finished, Michelle is usually the reason.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         WHO WE WORK WITH — trust signal for B2B + repeat-business audience
+         ============================================================ -->
+    <section class="trusted">
+      <div class="trusted__inner" data-reveal>
+        <div>
+          <span class="eyebrow">Trusted By Professionals</span>
+          <h2>The window treatment installer real-estate pros, builders, and property managers <em>call first.</em></h2>
+          <p style="margin-top:16px;line-height:1.65;color:var(--color-ink-soft);font-size:1rem">
+            We work directly with realtors prepping listings, GCs finishing builds, designers sourcing for clients, and multi-unit property managers needing consistent treatments across dozens of units. Professional volume pricing, scheduled rollouts, single point of contact.
+          </p>
+        </div>
+        <ul class="trusted__list">
+          <li>
+            <strong>Real Estate Agents</strong>
+            <span>Fresh treatments for listings — measured, ordered, and installed on a closing timeline.</span>
+          </li>
+          <li>
+            <strong>General Contractors</strong>
+            <span>Punch-list windows finished cleanly so you can hand the keys over on time.</span>
+          </li>
+          <li>
+            <strong>Interior Designers</strong>
+            <span>Trade-friendly. We measure, source, and install while you focus on the room.</span>
+          </li>
+          <li>
+            <strong>Apartment Complexes</strong>
+            <span>Same product across every unit, scheduled by building, billed straight to operations.</span>
+          </li>
+          <li>
+            <strong>Home Builders</strong>
+            <span>Standard packages or custom upgrades — quoted before walk-throughs start.</span>
+          </li>
+          <li>
+            <strong>Property Managers</strong>
+            <span>Turnover-friendly replacements + repair service when a tenant breaks a cord.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         CTA — closer band, dark variant
+         ============================================================ -->
+    <aside class="cta-strip cta-strip--dark">
+      <div class="cta-strip__inner">
+        <div>
+          <span class="cta-strip__eyebrow">We'd love to meet you</span>
+          <h3>Let's bring the samples by — <em>this week.</em></h3>
+          <p>Free in-home consultation across Middle Tennessee. No travel charge. No pressure.</p>
+        </div>
+        <div class="cta-strip__actions">
+          <a class="btn btn--primary" href="/#contact">Schedule a Visit <span class="arrow"></span></a>
+          <a class="btn btn--ghost" href="tel:+16292988241">629-298-8241</a>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ============================================================
+       FOOTER — kept consistent with homepage
+       ============================================================ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="nav__wordmark">STATELY SHADES</span>
+        <p>Custom blinds, plantation shutters &amp; motorized shades.<br/>Family-owned in Gallatin, Tennessee.</p>
+      </div>
+      <ul class="footer__links">
+        <li><a href="/#products">Products</a></li>
+        <li><a href="/#services">Services</a></li>
+        <li><a href="/about/">About</a></li>
+        <li><a href="/blog/">Journal</a></li>
+        <li><a href="/#service-area">Service Area</a></li>
+        <li><a href="/#contact">Free Consultation</a></li>
+      </ul>
+      <div class="footer__contact">
+        <p><a href="tel:+16292988241">629-298-8241</a></p>
+        <p><a href="mailto:hello@statelyshades.com">hello@statelyshades.com</a></p>
+        <p>Gallatin, Tennessee</p>
+      </div>
+    </div>
+    <div class="footer__rule"></div>
+    <div class="container footer__legal">
+      <p>© <span id="y"></span> Stately Shades · All rights reserved · Family-owned in Gallatin, TN</p>
+      <p><a href="https://zorvalabs.com" target="_blank" rel="noopener">Website Design by Zorva Labs</a></p>
+    </div>
+  </footer>
+
+  <script>document.getElementById("y").textContent = new Date().getFullYear();</script>
+  <script src="/script.js?v=cta-202605" defer></script>
+</body>
+</html>
