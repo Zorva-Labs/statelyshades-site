@@ -405,14 +405,34 @@ async function saveWindows() {
 // Includes empty "installer notes" + "verified" checkboxes per window
 // so the installer can mark up the paper on-site.
 // ============================================================
-function printWorksheet() {
-  const { project, windows, appointments } = state;
+async function printWorksheet() {
+  const { project, appointments } = state;
+  // Pull from the editor first if it's mounted (Windows tab) — that way
+  // any notes / dimensions / products the admin typed but hasn't clicked
+  // Save on yet still make it onto the printout. Auto-save them too so the
+  // DB matches what was printed.
+  let windows = state.windows || [];
+  if (window.WindowsEditor?.host && document.getElementById("rooms-host")) {
+    const live = WindowsEditor.collect();
+    if (live.length) {
+      windows = live;
+      try {
+        await SSCrm.fetchJSON(`/api/projects/${id}/windows`, { method: "PUT", body: JSON.stringify({ windows: live }) });
+        // Re-fetch so subsequent renders see fresh DB ids + the just-saved data
+        state = await SSCrm.fetchJSON("/api/projects/" + id);
+        windows = state.windows;
+      } catch (e) {
+        // If save fails we still print the in-memory edits; nothing is lost
+        console.warn("[print] auto-save before print failed, printing live data anyway:", e?.message);
+      }
+    }
+  }
   if (!windows.length) { SSCrm.toast("No windows to print yet", "error"); return; }
 
   const installAppt = (appointments || []).find((a) => a.type === "install" && (a.status === "pending" || a.status === "confirmed"));
   const installDate = installAppt ? SSCrm.fmtDateTime(installAppt.start_at) : null;
 
-  // Group by room, preserve clockwise order (already sorted by position)
+  // Group by room, preserve clockwise order
   const byRoom = {};
   const roomOrder = [];
   for (const w of windows) {
@@ -420,9 +440,6 @@ function printWorksheet() {
     if (!byRoom[key]) { byRoom[key] = []; roomOrder.push(key); }
     byRoom[key].push(w);
   }
-  // WindowsEditor sortClockwise expects the wall/position ordering; the API
-  // already returns them sorted by position, but re-sort inside each room
-  // to be safe (in case admin re-ordered without saving).
   for (const key of roomOrder) byRoom[key] = WindowsEditor.sortClockwise(byRoom[key]);
 
   const fmtInch = (n) => n == null || n === "" ? "—" : (Math.round(n * 8) / 8).toString().replace(/\.0$/, "") + "″";
@@ -451,6 +468,14 @@ function printWorksheet() {
           <td class="check"><span class="checkbox"></span></td>
         </tr>`;
     }).join("");
+
+    // Pull every window's notes into a callout under the table — easier for
+    // the installer to read at a glance than scanning the Notes column.
+    const windowNotes = ws.filter((w) => w.notes && w.notes.trim()).map((w, i) => {
+      const letter = String.fromCharCode(65 + (ws.indexOf(w) % 26));
+      return `<li><span class="note-letter">${letter}</span><span>${esc(w.notes)}</span></li>`;
+    }).join("");
+
     return `
       <section class="room-block">
         <h2>${esc(room)} <span class="count">${ws.length} window${ws.length === 1 ? "" : "s"}</span></h2>
@@ -473,12 +498,26 @@ function printWorksheet() {
             <tbody>${rows}</tbody>
           </table>
         </div>
+        ${windowNotes ? `
+          <div class="window-notes">
+            <strong>Notes from the consult</strong>
+            <ul>${windowNotes}</ul>
+          </div>
+        ` : ""}
         <div class="installer-notes">
-          <strong>Installer notes:</strong>
+          <strong>Installer notes (on-site):</strong>
           <div class="lines"></div>
         </div>
       </section>`;
   }).join("");
+
+  // Project-level description (admin's free-form notes about the whole job)
+  // — shows above the room blocks so installer reads it first.
+  const projectNotesBlock = project.description && project.description.trim()
+    ? `<div class="project-notes">
+         <strong>Job notes</strong>
+         <p>${esc(project.description)}</p>
+       </div>` : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8" />
@@ -512,6 +551,19 @@ function printWorksheet() {
   table.windows th.check, table.windows td.check { width: 30px; text-align: center; }
   .checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #14110D; border-radius: 2px; }
 
+  /* Consolidated per-room notes — already-typed notes from the consult */
+  .window-notes { margin-top: 12px; background: #FFFBEB; border-left: 3px solid #C9A158; padding: 10px 14px; border-radius: 0 3px 3px 0; }
+  .window-notes strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #9D7A3E; margin-bottom: 6px; }
+  .window-notes ul { list-style: none; padding: 0; margin: 0; }
+  .window-notes li { display: flex; gap: 8px; padding: 3px 0; font-size: 11px; line-height: 1.45; color: #14110D; }
+  .window-notes .note-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; background: #FEF3C7; color: #9D7A3E; border-radius: 2px; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700; }
+
+  /* Project-level notes — admin's overall instructions for the install */
+  .project-notes { background: #EFE8DB; border-left: 3px solid #14110D; padding: 12px 16px; margin: 0 0 22px; border-radius: 0 3px 3px 0; }
+  .project-notes strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #56493C; margin-bottom: 4px; }
+  .project-notes p { margin: 0; font-size: 12px; line-height: 1.5; color: #14110D; white-space: pre-wrap; }
+
+  /* Blank ruled lines for the installer to add notes on-site */
   .installer-notes { margin-top: 12px; }
   .installer-notes strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #56493C; margin-bottom: 4px; }
   .installer-notes .lines { height: 36px; background: repeating-linear-gradient(transparent, transparent 17px, #D9CFBB 17px, #D9CFBB 18px); border: 1px solid #D9CFBB; border-radius: 2px; }
@@ -546,6 +598,7 @@ function printWorksheet() {
   <h1>${windows.length} window${windows.length === 1 ? "" : "s"} · ${roomOrder.length} room${roomOrder.length === 1 ? "" : "s"}</h1>
   <p class="subtitle">Clockwise letters A, B, C… start at the back-left corner of each room as you face it from the entry. Match the letters on the floor plan to the table rows. Tick the ✓ column as each window is installed.</p>
 
+  ${projectNotesBlock}
   ${roomBlocks}
 
   <footer>
