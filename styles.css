@@ -254,6 +254,76 @@ p { margin: 0; }
 
 .btn--block { width: 100%; padding: 20px; }
 
+/* ------------------------------------------------------------------
+   Inline CTA strip — drop-in between sections for "ready when you are"
+   moments. Two visual variants:
+     .cta-strip            — cream background, brass border, ink text
+     .cta-strip--dark      — espresso bg, champagne accents, inverse text
+   Always flexes copy left + buttons right on wide screens; stacks centered
+   on narrow. Honors data-reveal animation.
+-------------------------------------------------------------------- */
+.cta-strip {
+  padding: clamp(36px, 5vw, 56px) 0;
+  background: var(--color-bg-2);
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+}
+.cta-strip__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: clamp(20px, 4vw, 40px);
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .cta-strip__inner { grid-template-columns: 1fr; text-align: center; }
+}
+.cta-strip__eyebrow {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+  margin-bottom: 10px;
+}
+.cta-strip h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 1.1;
+  margin: 0 0 8px;
+  color: var(--color-ink);
+}
+.cta-strip h3 em { color: var(--color-brass); font-style: italic; }
+.cta-strip p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-ink-soft);
+}
+.cta-strip__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .cta-strip__actions { justify-content: center; }
+}
+
+.cta-strip--dark {
+  background: var(--color-espresso);
+  border-color: rgba(247,242,234,.08);
+}
+.cta-strip--dark h3 { color: var(--color-bg); }
+.cta-strip--dark h3 em { color: var(--color-brass-hot); }
+.cta-strip--dark p { color: rgba(247,242,234,.7); }
+.cta-strip--dark .cta-strip__eyebrow { color: var(--color-brass-hot); }
+.cta-strip--dark .btn--ghost { color: var(--color-bg); border-color: rgba(247,242,234,.3); }
+.cta-strip--dark .btn--ghost:hover { background: rgba(247,242,234,.08); }
+
 /* Arrow ornament inside CTAs */
 .btn .arrow {
   display: inline-block;
