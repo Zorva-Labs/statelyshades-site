@@ -29,7 +29,7 @@ let state = null; // { project, windows, estimates, proposals, contracts }
 
 async function render() {
   state = await SSCrm.fetchJSON("/api/projects/" + id);
-  const { project, windows, estimates, proposals, contracts } = state;
+  const { project, windows, estimates, proposals, contracts, appointments, lead, email_count } = state;
   document.title = `${project.name} · Stately Shades CRM`;
 
   // Find the "booked-the-job" state
@@ -124,62 +124,7 @@ function switchTab(tab) {
   const { project, windows, estimates, proposals, contracts } = state;
 
   if (tab === "overview") {
-    // Compact Windows summary — Tave-style at-a-glance count + room breakdown
-    const roomCounts = {};
-    for (const w of windows) {
-      const key = w.room || "(unassigned)";
-      roomCounts[key] = (roomCounts[key] || 0) + 1;
-    }
-    const totalWindows = windows.length;
-    const roomSummary = totalWindows
-      ? Object.entries(roomCounts).map(([r, n]) => `<span style="display:inline-block;background:var(--bg-soft);padding:4px 10px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink)">${SSCrm.esc(r)} <strong>${n}</strong></span>`).join("")
-      : `<p class="muted" style="font-size:13px;margin:6px 0 0;font-style:italic">No windows tracked yet — measure them on the consultation visit and add them here.</p>`;
-
-    // Responsive 2-col: Windows summary + Job details on the left (stacked),
-    // Quick actions on the right rail. Collapses to single column on narrow screens.
-    body.innerHTML = `
-      <div class="lead-grid">
-        <div class="lead-grid__main" style="display:flex;flex-direction:column;gap:14px">
-          <div class="card">
-            <div class="card-head">
-              <h3>Windows on this job</h3>
-              <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${totalWindows}</span>
-            </div>
-            <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
-            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn primary sm" onclick="switchTab('windows')">${totalWindows ? "Edit windows" : "+ Add windows"}</button>
-              ${totalWindows ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-head"><h3>Job details</h3></div>
-            <div class="form">
-              <label><span>Name</span><input id="p-name" value="${SSCrm.esc(project.name)}"/></label>
-              <label><span>Status</span>
-                <select id="p-status">
-                  ${SSCrm.PROJECT_STATUSES.map((s) => `<option value="${s.key}" ${s.key === project.status ? "selected" : ""}>${s.label}</option>`).join("")}
-                </select>
-              </label>
-              <label><span>Site address</span><input id="p-addr" value="${SSCrm.esc(project.site_address || "")}"/></label>
-              <label><span>Description</span><textarea id="p-desc" rows="3">${SSCrm.esc(project.description || "")}</textarea></label>
-              <div class="form-actions"><button class="btn primary" onclick="saveProject()">Save</button></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="lead-grid__side">
-          <div class="card">
-            <div class="card-head"><h3>Quick actions</h3></div>
-            <div style="display:grid;gap:8px">
-              <button class="btn primary" onclick="newProposal()">+ Proposal</button>
-              <button class="btn secondary" onclick="newContract()">+ Contract</button>
-              <button class="btn ghost" onclick="switchTab('windows')">Edit windows</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    body.innerHTML = renderOverview(state);
   }
   else if (tab === "windows") {
     body.innerHTML = renderWindowsTab(windows);
@@ -207,6 +152,186 @@ function switchTab(tab) {
   else if (tab === "proposals") body.innerHTML = renderDocTab(proposals, "proposal", "PROP", newProposal);
   else if (tab === "contracts") body.innerHTML = renderDocTab(contracts, "contract", "C", newContract);
   else if (tab === "activity") body.innerHTML = `<div id="activity-feed" class="muted">Loading…</div>`, loadActivity();
+}
+
+// Consolidated Overview tab — surfaces everything that used to live on the
+// separate Lead screen so the job page is the single place to see the whole
+// customer history at a glance.
+function renderOverview(s) {
+  const { project, windows, contracts, appointments, lead, email_count } = s;
+  const e = SSCrm.esc;
+  const fmtMoney = SSCrm.fmtMoney;
+  const fmtDate = SSCrm.fmtDate;
+  const fmtDateTime = SSCrm.fmtDateTime;
+
+  // Windows summary
+  const roomCounts = {};
+  for (const w of windows) {
+    const key = w.room || "(unassigned)";
+    roomCounts[key] = (roomCounts[key] || 0) + 1;
+  }
+  const roomSummary = windows.length
+    ? Object.entries(roomCounts).map(([r, n]) =>
+        `<span style="display:inline-block;background:var(--bg-soft);padding:4px 10px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink)">${e(r)} <strong>${n}</strong></span>`
+      ).join("")
+    : `<p class="muted" style="font-size:13px;margin:6px 0 0;font-style:italic">No windows tracked yet — measure them on the consultation visit and add them here.</p>`;
+
+  // Pick the most relevant contract to highlight
+  const signedContract = contracts.find((c) => c.status === "fully_executed") ||
+                         contracts.find((c) => c.status === "signed_by_customer");
+  const draftContract  = contracts.find((c) => c.status === "draft" || c.status === "sent");
+
+  // Sort appointments: upcoming first (asc), then past (desc). Only show 4.
+  const now = new Date().toISOString();
+  const upcoming = appointments.filter((a) => a.start_at >= now).sort((a, b) => a.start_at.localeCompare(b.start_at)).slice(0, 3);
+  const recentPast = appointments.filter((a) => a.start_at <  now).slice(0, 2);
+  const apptList = [...upcoming, ...recentPast];
+
+  return `
+    <div class="lead-grid">
+      <div class="lead-grid__main" style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Customer + origin — pulled from the linked lead row -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Customer</h3>
+            <a class="btn ghost sm" href="/crm/contact.html?id=${project.contact_id}">Open contact →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:140px 1fr;gap:8px 14px;font-size:13px;color:var(--ink-soft)">
+            <div class="muted">Name</div><div><strong style="color:var(--ink)">${e(project.contact_name)}</strong></div>
+            <div class="muted">Email</div><div><a href="mailto:${e(project.contact_email)}">${e(project.contact_email)}</a></div>
+            ${project.contact_phone ? `<div class="muted">Phone</div><div><a href="tel:${e(project.contact_phone)}">${e(project.contact_phone)}</a> · <a href="sms:${e(project.contact_phone)}">Text</a></div>` : ""}
+            ${project.site_address ? `<div class="muted">Site</div><div><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.site_address)}" target="_blank" rel="noopener">${e(project.site_address)} ↗</a></div>` : ""}
+            ${lead?.interest ? `<div class="muted">Interest</div><div>${e(lead.interest)}</div>` : ""}
+            ${lead?.created_at ? `<div class="muted">First contact</div><div>${fmtDateTime(lead.created_at)}${lead.source_page ? ` <span class="muted">· via ${e(lead.source_page)}</span>` : ""}</div>` : ""}
+            ${lead?.utm_source ? `<div class="muted">Attribution</div><div class="muted" style="font-size:12px">${e(lead.utm_source)}${lead.utm_campaign ? ` / ${e(lead.utm_campaign)}` : ""}</div>` : ""}
+          </div>
+          ${lead?.message ? `
+            <div style="margin-top:14px;padding:12px 14px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--ink);white-space:pre-wrap">${e(lead.message)}</div>
+            <p class="muted" style="font-size:11px;margin:6px 0 0">Original message from the lead form</p>
+          ` : ""}
+        </div>
+
+        <!-- Appointments + messages summary -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Touchpoints</h3>
+            <a class="btn ghost sm" href="#tab=messages" onclick="event.preventDefault();switchTab('messages')">Messages →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div style="text-align:center;padding:12px;background:var(--bg-soft);border-radius:var(--r-sm)">
+              <div style="font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${email_count?.sent || 0}</div>
+              <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em">Emails sent</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--bg-soft);border-radius:var(--r-sm)">
+              <div style="font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${email_count?.received || 0}</div>
+              <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em">Replies received</div>
+            </div>
+          </div>
+          ${apptList.length ? `
+            <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin:0 0 8px">Appointments</h4>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${apptList.map((a) => {
+                const isPast = a.start_at < now;
+                const typeLabel = ({ consultation: "Consult", measure: "Measure", install: "Install", service: "Service" }[a.type] || a.type);
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:${isPast ? "var(--bg-soft)" : "var(--accent-soft)"};border-radius:var(--r-sm);font-size:13px${isPast ? ";opacity:0.7" : ""}">
+                  <div>
+                    <strong style="color:var(--ink)">${typeLabel}</strong>
+                    <span class="muted" style="margin-left:8px">${fmtDateTime(a.start_at)}</span>
+                  </div>
+                  <span class="muted" style="font-size:11px">${e(a.status)}</span>
+                </div>`;
+              }).join("")}
+            </div>
+          ` : `<p class="muted" style="font-size:13px;font-style:italic;margin:0">No appointments scheduled yet.</p>`}
+        </div>
+
+        <!-- Windows summary -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Windows on this job</h3>
+            <span style="font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">${windows.length}</span>
+          </div>
+          <div style="margin-top:4px;line-height:1.8">${roomSummary}</div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary sm" onclick="switchTab('windows')">${windows.length ? "Edit windows" : "+ Add windows"}</button>
+            ${windows.length ? `<button class="btn secondary sm" onclick="newProposalFromWindows()">+ Proposal from these windows</button>` : ""}
+          </div>
+        </div>
+
+        <!-- Signed contract block (the source-of-truth document for this job) -->
+        ${signedContract ? `
+          <div class="card" style="border-left:3px solid var(--money,#10B981)">
+            <div class="card-head">
+              <h3>Signed contract</h3>
+              <span class="pill" data-s="${e(signedContract.status)}">${e(signedContract.status.replace(/_/g, " "))}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:140px 1fr;gap:8px 14px;font-size:13px;color:var(--ink-soft);margin-top:8px">
+              <div class="muted">Number</div><div><strong style="color:var(--ink)">${e(signedContract.number)}</strong></div>
+              <div class="muted">Type</div><div>${e(signedContract.contract_type || "custom_order").replace(/_/g, " ")}</div>
+              <div class="muted">Total</div><div class="money" style="font-size:15px">${fmtMoney(signedContract.total_cents)}</div>
+              ${signedContract.deposit_cents ? `<div class="muted">Deposit</div><div>${fmtMoney(signedContract.deposit_cents)} ${signedContract.deposit_paid ? "<span class=\"muted\">· received</span>" : "<span class=\"muted\">· pending</span>"}</div>` : ""}
+              ${signedContract.signed_by_customer_at ? `<div class="muted">Customer signed</div><div>${fmtDateTime(signedContract.signed_by_customer_at)}</div>` : ""}
+              ${signedContract.counter_signed_at ? `<div class="muted">Counter-signed</div><div>${fmtDateTime(signedContract.counter_signed_at)}</div>` : ""}
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn primary sm" href="/crm/contract.html?id=${signedContract.id}">Open contract →</a>
+              ${signedContract.view_token ? `<a class="btn secondary sm" href="/contract/?t=${signedContract.view_token}" target="_blank">Customer view ↗</a>` : ""}
+            </div>
+          </div>
+        ` : draftContract ? `
+          <div class="card">
+            <div class="card-head">
+              <h3>Contract in progress</h3>
+              <span class="pill" data-s="${e(draftContract.status)}">${e(draftContract.status)}</span>
+            </div>
+            <p class="muted" style="font-size:13px;margin:8px 0 12px">Contract ${e(draftContract.number)} for ${fmtMoney(draftContract.total_cents)} — ${draftContract.status === "sent" ? "awaiting customer signature" : "still in draft"}.</p>
+            <a class="btn primary sm" href="/crm/contract.html?id=${draftContract.id}">Open contract →</a>
+          </div>
+        ` : ""}
+
+        <!-- Job details form (editable) -->
+        <div class="card">
+          <div class="card-head"><h3>Job details</h3></div>
+          <div class="form">
+            <label><span>Name</span><input id="p-name" value="${e(project.name)}"/></label>
+            <label><span>Status</span>
+              <select id="p-status">
+                ${SSCrm.PROJECT_STATUSES.map((s) => `<option value="${s.key}" ${s.key === project.status ? "selected" : ""}>${s.label}</option>`).join("")}
+              </select>
+            </label>
+            <label><span>Site address</span><input id="p-addr" value="${e(project.site_address || "")}"/></label>
+            <label><span>Description</span><textarea id="p-desc" rows="3">${e(project.description || "")}</textarea></label>
+            <div class="form-actions"><button class="btn primary" onclick="saveProject()">Save</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lead-grid__side">
+        <div class="card">
+          <div class="card-head"><h3>Quick actions</h3></div>
+          <div style="display:grid;gap:8px">
+            <button class="btn primary" onclick="newProposal()">+ Proposal</button>
+            <button class="btn secondary" onclick="newContract()">+ Contract</button>
+            ${project.contact_email ? `<button class="btn secondary" onclick="composeFromOverview()">✉️ Send email</button>` : ""}
+            <button class="btn ghost" onclick="switchTab('windows')">Edit windows</button>
+            ${project.contact_phone ? `<a class="btn ghost" href="tel:${e(project.contact_phone)}">📞 Call</a>` : ""}
+            ${project.contact_phone ? `<a class="btn ghost" href="sms:${e(project.contact_phone)}">💬 Text</a>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Compose helper called from the Overview Quick-actions panel
+async function composeFromOverview() {
+  const { project } = state;
+  const res = await SSCrm.composeEmail({
+    contact: { id: project.contact_id, name: project.contact_name, email: project.contact_email, phone: project.contact_phone, address_street: project.site_address || "" },
+    project,
+  });
+  if (res?.ok) render();
 }
 
 function renderDocTab(docs, kind, prefix, addFn) {

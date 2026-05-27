@@ -24,6 +24,16 @@ export async function onRequestGet(context) {
   if (status && ALLOWED_STATUSES.has(status)) {
     where.push(`status = ?${binds.length + 1}`);
     binds.push(status);
+  } else {
+    // Default view hides terminal "now a job" statuses — once a contract is
+    // signed the lead becomes a Job and lives on /crm/project.html. The lead
+    // row stays in D1 for history/attribution but is filtered out of the
+    // active Leads list and Pipeline kanban by default. Caller can opt-in
+    // to see them via ?status=booked or ?include_archived=1.
+    const includeArchived = url.searchParams.get("include_archived") === "1";
+    if (!includeArchived) {
+      where.push(`status NOT IN ('booked', 'installed')`);
+    }
   }
   if (search) {
     const like = `%${search}%`;
