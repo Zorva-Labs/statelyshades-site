@@ -84,9 +84,86 @@ export async function onRequestPatch(context) {
   return json({ ok: true });
 }
 
+// DELETE /api/projects/[id]?purge=1
+//
+// Default behaviour wipes the project + everything FK-cascade auto-cleans
+// (windows, estimates, proposals + their tiers/lines/comments, contracts +
+// their lines). Appointments and email_messages have ON DELETE SET NULL, so
+// without ?purge they'd stay around as orphans pointing to nothing.
+//
+// With ?purge=1 we do a "nuke everything related" sweep — appointments,
+// email_messages, activity_log entries for the project + descendant
+// proposals/contracts, AND the originating lead (with its lead_notes) when
+// no other project references it. The contact row is preserved (they may
+// have other jobs / be a future repeat customer); the response surfaces a
+// counts summary so the UI can show what was actually deleted.
 export async function onRequestDelete(context) {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
   const id = parseInt(context.params.id, 10);
-  await context.env.DB.prepare(`DELETE FROM projects WHERE id=?1`).bind(id).run();
-  return json({ ok: true });
+  const url = new URL(context.request.url);
+  const purge = url.searchParams.get("purge") === "1";
+  const { DB } = context.env;
+
+  // Pull the project's lead_id + contact_id BEFORE we delete it, so we can
+  // walk the lead/lead_notes chain after the cascade runs.
+  const proj = await DB.prepare(
+    `SELECT id, lead_id, contact_id FROM projects WHERE id = ?1`
+  ).bind(id).first();
+  if (!proj) return json({ error: "Not found" }, 404);
+
+  // Collect IDs we'll need post-delete (FK SET NULL would erase them otherwise)
+  const proposals = (await DB.prepare(`SELECT id FROM proposals WHERE project_id=?1`).bind(id).all()).results || [];
+  const contracts = (await DB.prepare(`SELECT id FROM contracts WHERE project_id=?1`).bind(id).all()).results || [];
+  const summary = {
+    windows:       (await DB.prepare(`SELECT COUNT(*) AS n FROM windows WHERE project_id=?1`).bind(id).first())?.n || 0,
+    estimates:     (await DB.prepare(`SELECT COUNT(*) AS n FROM estimates WHERE project_id=?1`).bind(id).first())?.n || 0,
+    proposals:     proposals.length,
+    contracts:     contracts.length,
+    appointments:  0,
+    emails:        0,
+    lead_notes:    0,
+    lead_removed:  false,
+  };
+
+  if (purge) {
+    // 1) Email messages tied to this project (also catches messages
+    //    auto-denormalized onto the lead via lead_id).
+    let emailIds = `project_id = ?1`;
+    const emailBinds = [id];
+    if (proj.lead_id) { emailIds += ` OR lead_id = ?2`; emailBinds.push(proj.lead_id); }
+    const emailCount = await DB.prepare(`SELECT COUNT(*) AS n FROM email_messages WHERE ${emailIds}`).bind(...emailBinds).first();
+    summary.emails = emailCount?.n || 0;
+    await DB.prepare(`DELETE FROM email_messages WHERE ${emailIds}`).bind(...emailBinds).run();
+
+    // 2) Appointments linked to this project. Cancelled/no-show stay.
+    const apptCount = await DB.prepare(`SELECT COUNT(*) AS n FROM appointments WHERE project_id=?1`).bind(id).first();
+    summary.appointments = apptCount?.n || 0;
+    await DB.prepare(`DELETE FROM appointments WHERE project_id=?1`).bind(id).run();
+
+    // 3) Activity log — for the project + each descendant proposal/contract,
+    //    plus the originating lead if we're removing it.
+    await DB.prepare(`DELETE FROM activity_log WHERE entity_type='project' AND entity_id=?1`).bind(id).run();
+    for (const p of proposals) await DB.prepare(`DELETE FROM activity_log WHERE entity_type='proposal' AND entity_id=?1`).bind(p.id).run();
+    for (const k of contracts) await DB.prepare(`DELETE FROM activity_log WHERE entity_type='contract' AND entity_id=?1`).bind(k.id).run();
+
+    // 4) Originating lead — only safe to delete if NO OTHER project still
+    //    references it. lead_notes cascade-delete with the lead row.
+    if (proj.lead_id) {
+      const other = await DB.prepare(`SELECT COUNT(*) AS n FROM projects WHERE lead_id=?1 AND id<>?2`).bind(proj.lead_id, id).first();
+      if (!other?.n) {
+        const noteCount = await DB.prepare(`SELECT COUNT(*) AS n FROM lead_notes WHERE lead_id=?1`).bind(proj.lead_id).first();
+        summary.lead_notes = noteCount?.n || 0;
+        await DB.prepare(`DELETE FROM activity_log WHERE entity_type='lead' AND entity_id=?1`).bind(proj.lead_id).run();
+        await DB.prepare(`DELETE FROM lead_notes WHERE lead_id=?1`).bind(proj.lead_id).run();
+        await DB.prepare(`DELETE FROM leads WHERE id=?1`).bind(proj.lead_id).run();
+        summary.lead_removed = true;
+      }
+    }
+  }
+
+  // 5) Finally remove the project. FK cascades take care of windows,
+  //    estimates, proposals + tiers/lines/comments, contracts + lines.
+  await DB.prepare(`DELETE FROM projects WHERE id=?1`).bind(id).run();
+
+  return json({ ok: true, purge, summary });
 }

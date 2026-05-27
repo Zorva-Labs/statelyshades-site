@@ -332,6 +332,15 @@ function renderOverview(s) {
             ${project.contact_phone ? `<a class="btn ghost" href="sms:${e(project.contact_phone)}">💬 Text</a>` : ""}
           </div>
         </div>
+
+        <!-- Destructive action lives apart from the everyday quick-actions card
+             so it's harder to mis-click. Confirmation modal shows a count of
+             everything that will be wiped before the request fires. -->
+        <div class="card" style="margin-top:14px;border-color:#FEE2E2;background:#FEF2F2">
+          <div class="card-head"><h3 style="color:#991B1B">Danger zone</h3></div>
+          <p class="muted" style="font-size:12px;line-height:1.5;margin:0 0 10px;color:#991B1B">Permanently remove this job and everything tied to it — proposals, contracts, windows, appointments, emails, and the originating lead. The customer's contact record stays. This cannot be undone.</p>
+          <button class="btn danger" style="width:100%" onclick="purgeJob()">🗑 Delete &amp; purge this job</button>
+        </div>
       </div>
     </div>
   `;
@@ -345,6 +354,75 @@ async function composeFromOverview() {
     project,
   });
   if (res?.ok) render();
+}
+
+// Two-step purge: show a count summary of every dependent that'll be wiped
+// (windows, proposals, contracts, emails, appointments, lead notes), require
+// the admin to type the job's name to confirm, then hit DELETE …?purge=1.
+async function purgeJob() {
+  const { project, windows, proposals, contracts, appointments, lead, lead_notes, email_count } = state;
+  const counts = {
+    Windows:      windows.length,
+    Proposals:    proposals.length,
+    Contracts:    contracts.length,
+    Appointments: (appointments || []).length,
+    Emails:       (email_count?.sent || 0) + (email_count?.received || 0),
+    "Lead notes": (lead_notes || []).length,
+  };
+  const items = Object.entries(counts).filter(([, n]) => n > 0).map(([k, n]) =>
+    `<li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:13px"><span>${SSCrm.esc(k)}</span><strong>${n}</strong></li>`
+  ).join("");
+  const leadLine = lead ? `<li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:13px"><span>Originating lead (#${lead.id})</span><strong>1</strong></li>` : "";
+
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-head" style="background:#FEF2F2;color:#991B1B;border-bottom:1px solid #FEE2E2">🗑 Delete &amp; purge "${SSCrm.esc(project.name)}"</div>
+      <div class="modal-body">
+        <p style="margin:0 0 14px;font-size:14px;line-height:1.55">This permanently removes the job AND every related record. <strong>Cannot be undone.</strong></p>
+        <ul style="list-style:none;padding:0;margin:0 0 16px;border-top:1px solid var(--line-soft)">
+          ${items || `<li class="muted" style="padding:8px 0;font-style:italic">Nothing additional — just the project itself.</li>`}
+          ${leadLine}
+        </ul>
+        <p class="muted" style="font-size:12px;margin:0 0 8px">The contact <strong>${SSCrm.esc(project.contact_name)}</strong> stays — they may have other jobs or come back later.</p>
+        <p style="font-size:13px;margin:14px 0 6px">Type <code style="background:var(--bg-soft);padding:2px 6px;border-radius:3px;font-family:var(--font-mono,monospace);font-size:12px">${SSCrm.esc(project.name)}</code> to confirm:</p>
+        <input id="purge-confirm" autocomplete="off"
+               style="width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font:inherit;font-size:14px"
+               placeholder="${SSCrm.esc(project.name)}"/>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="px-cancel">Cancel</button>
+        <button class="btn danger" id="px-confirm" disabled>Permanently delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  const input = bg.querySelector("#purge-confirm");
+  const btn   = bg.querySelector("#px-confirm");
+  input.focus();
+  input.addEventListener("input", () => { btn.disabled = input.value.trim() !== project.name; });
+  bg.querySelector("#px-cancel").onclick = () => bg.remove();
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+  btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = "Deleting…";
+    try {
+      const res = await SSCrm.fetchJSON(`/api/projects/${project.id}?purge=1`, { method: "DELETE" });
+      bg.remove();
+      const summary = res.summary || {};
+      const parts = [];
+      if (summary.windows)      parts.push(`${summary.windows} window${summary.windows === 1 ? "" : "s"}`);
+      if (summary.proposals)    parts.push(`${summary.proposals} proposal${summary.proposals === 1 ? "" : "s"}`);
+      if (summary.contracts)    parts.push(`${summary.contracts} contract${summary.contracts === 1 ? "" : "s"}`);
+      if (summary.emails)       parts.push(`${summary.emails} email${summary.emails === 1 ? "" : "s"}`);
+      if (summary.appointments) parts.push(`${summary.appointments} appt${summary.appointments === 1 ? "" : "s"}`);
+      if (summary.lead_removed) parts.push("lead");
+      SSCrm.toast(`Purged — wiped ${parts.length ? parts.join(" · ") : "just the project"}`, "success");
+      setTimeout(() => { location.href = "/crm/projects.html"; }, 600);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Permanently delete";
+      SSCrm.toast(e.message || "Delete failed", "error");
+    }
+  };
 }
 
 function renderDocTab(docs, kind, prefix, addFn) {
