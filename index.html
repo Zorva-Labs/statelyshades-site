@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=cta-202605" />
+  <link rel="stylesheet" href="/styles.css?v=svc-202605b" />
   <link rel="alternate" type="application/rss+xml" title="Stately Shades" href="/sitemap.xml" />
 
   <!-- JSON-LD: Organization + LocalBusiness + WebSite -->
@@ -1078,54 +1078,129 @@
       </div>
     </section>
 
-    <!-- Services / Why -->
+    <!-- Services / Service Menu -->
     <section id="services" class="services section section--dark" data-reveal-group>
       <div class="container">
         <header class="section__head" data-reveal>
-          <span class="section__num" style="color: var(--color-brass-hot);">Why Stately Shades</span>
-          <h2 class="display">Showroom-quality service,<br/><em>at home.</em></h2>
+          <span class="section__num" style="color: var(--color-brass-hot);">How We Work</span>
+          <h2 class="display">Three ways to <em>start.</em></h2>
+          <p class="section__lede">
+            Most jobs come to us in one of three shapes — the whole house at once,
+            one room at a time, or "just install/fix the blinds I already have."
+            Pick the one that fits your project; we handle the rest.
+          </p>
         </header>
 
-        <div class="services__bento">
-          <div class="bento bento--feature" data-reveal>
-            <span class="eyebrow eyebrow--light">In-Home Consultation</span>
-            <h3>We come <em>to you.</em></h3>
-            <p>
-              There's no substitute for seeing your light, your sightlines, and your
-              furniture in person. We bring samples, sketch options on site, and
-              quote on the spot — at no cost.
+        <div class="svc-menu" role="list">
+
+          <!-- Tier I — Whole-Home Custom -->
+          <article class="svc-tier" role="listitem" data-reveal>
+            <header class="svc-tier__head">
+              <span class="svc-tier__eyebrow">Tier I · Premium</span>
+              <h3 class="svc-tier__name">Whole-Home <em>Project</em></h3>
+              <p class="svc-tier__price">
+                <span class="svc-tier__price-from">Typical</span>
+                <span class="svc-tier__price-num">$5K&ndash;$25K+</span>
+              </p>
+            </header>
+            <p class="svc-tier__lede">
+              New construction, full custom upgrades, designer-led builds. Plantation
+              shutters paired with motorized shades, drapery, and smart-home control.
+              One vendor for every window.
             </p>
-          </div>
+            <ul class="svc-tier__list">
+              <li>Whole-home design consultation with samples on site</li>
+              <li>Coordinated package across rooms (shutters + shades + drapery)</li>
+              <li>Smart-home programming &amp; scene setup</li>
+              <li>Phased scheduling for new builds &amp; renovations</li>
+            </ul>
+            <a class="btn btn--primary svc-tier__cta" href="#contact">
+              Plan the project <span class="arrow"></span>
+            </a>
+          </article>
 
-          <div class="bento bento--feature" data-reveal>
-            <span class="eyebrow eyebrow--light">Professional Install</span>
-            <h3>Clean, careful, <em>on time.</em></h3>
-            <p>
-              Drop cloths, vacuumed dust, walls protected. We treat your home like the
-              investment it is — and we don't leave until you've signed off on every
-              window.
+          <!-- Tier II — Room-by-Room (highlighted as most popular) -->
+          <article class="svc-tier svc-tier--featured" role="listitem" data-reveal>
+            <span class="svc-tier__ribbon" aria-label="Most popular choice">Most Popular</span>
+            <header class="svc-tier__head">
+              <span class="svc-tier__eyebrow">Tier II · Mid</span>
+              <h3 class="svc-tier__name">Room-by-Room <em>Refresh</em></h3>
+              <p class="svc-tier__price">
+                <span class="svc-tier__price-from">From</span>
+                <span class="svc-tier__price-num">$89<small>/window</small></span>
+              </p>
+            </header>
+            <p class="svc-tier__lede">
+              Swap tired builder-grade blinds for custom shutters, motorized shades,
+              cellular, or woven naturals — one room at a time, on your schedule.
+              The most common project we book.
             </p>
-          </div>
+            <ul class="svc-tier__list">
+              <li>Affordable faux wood from $89/window installed</li>
+              <li>Plantation shutters from $250&ndash;$450/window</li>
+              <li>Mix &amp; match per room — bedrooms, kitchen, living, baths</li>
+              <li>Free in-home quote, no obligation, same-day written estimate</li>
+            </ul>
+            <a class="btn btn--primary svc-tier__cta" href="#contact">
+              Start with one room <span class="arrow"></span>
+            </a>
+          </article>
 
-          <div class="bento" data-reveal>
-            <span class="eyebrow eyebrow--light">Upgrade &amp; Replace</span>
-            <h3>Refresh what's <em>already there.</em></h3>
-            <p>Builder-grade blinds, faded shades, broken cords — we replace what's no longer working with custom shutters, motorized smart shades, and modern fabrics. One room at a time, or the whole house at once.</p>
-          </div>
-
-          <div class="bento" data-reveal>
-            <span class="eyebrow eyebrow--light">Top Manufacturers</span>
-            <h3>Names you <em>trust.</em></h3>
-            <p>Hunter Douglas, Norman, Somfy, Graber, Sol-Lux — the makers who warranty their work for decades.</p>
-          </div>
-
-          <div class="bento" data-reveal>
-            <span class="eyebrow eyebrow--light">Smart Home · Voice Control</span>
-            <h3>Voice. Scene. <em>Schedule.</em></h3>
-            <p>Full home automation with Amazon Alexa, Google Home, Apple HomeKit, Lutron, and Control4 — open every shade in the house with a single command.</p>
-          </div>
+          <!-- Tier III — Install-Only & Repair -->
+          <article class="svc-tier" role="listitem" data-reveal>
+            <header class="svc-tier__head">
+              <span class="svc-tier__eyebrow">Tier III · Service</span>
+              <h3 class="svc-tier__name">Install-Only &amp; <em>Repair</em></h3>
+              <p class="svc-tier__price">
+                <span class="svc-tier__price-from">From</span>
+                <span class="svc-tier__price-num">$45<small>/window</small></span>
+              </p>
+            </header>
+            <p class="svc-tier__lede">
+              Bought blinds at Home Depot, Lowes, Costco, Blinds.com, or Amazon and
+              need a pro to install them? Or have hardware that's broken? Flat-rate
+              service across Middle Tennessee.
+            </p>
+            <ul class="svc-tier__list">
+              <li>BYO install: $45&ndash;$85 standard, $65&ndash;$140 shutters, $95&ndash;$180 motorized</li>
+              <li>Any-brand repair: restring, tilt rods, broken slats, motor service</li>
+              <li>Hunter Douglas PowerView &amp; Somfy programming</li>
+              <li>Workmanship guarantee on every install</li>
+            </ul>
+            <a class="btn btn--primary svc-tier__cta" href="#contact">
+              Get a quote <span class="arrow"></span>
+            </a>
+          </article>
 
         </div>
+
+        <!-- "On every project" proof strip — short, scannable, builds trust -->
+        <ul class="svc-promise" data-reveal aria-label="Included on every project">
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>Free in-home consult</strong> · no travel fee</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>90-mile service radius</strong> from Gallatin</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>Same-day written quote</strong></span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>Workmanship guarantee</strong></span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>Smart-home certified</strong> · Alexa, Google, HomeKit, Lutron</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span><strong>Authorized dealer</strong> · Hunter Douglas, Norman, Somfy, Graber, Sol-Lux</span>
+          </li>
+        </ul>
       </div>
     </section>
 
@@ -1575,6 +1650,6 @@
     <a href="#contact" class="mobile-cta__btn mobile-cta__btn--primary">Free Consultation</a>
   </div>
 
-  <script src="/script.js?v=cta-202605" defer></script>
+  <script src="/script.js?v=svc-202605b" defer></script>
 </body>
 </html>
