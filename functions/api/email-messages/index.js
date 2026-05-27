@@ -18,9 +18,21 @@ export async function onRequestGet(context) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "200", 10), 500);
 
   const where = []; const binds = [];
-  if (leadId    != null) { binds.push(leadId);    where.push(`lead_id=?${binds.length}`); }
+  // When the caller filters by project_id, ALSO include any messages whose
+  // lead_id matches the project's originating lead — that covers the
+  // pre-contract window where the record was still a Lead and outbound
+  // emails got lead_id but no project_id. Same idea in reverse for lead_id
+  // filters: include messages on any project that descends from the lead.
+  // This makes the thread continuous across the lead→job transition.
+  if (projectId != null) {
+    binds.push(projectId, projectId);
+    where.push(`(project_id=?${binds.length - 1} OR lead_id IN (SELECT lead_id FROM projects WHERE id=?${binds.length} AND lead_id IS NOT NULL))`);
+  }
+  if (leadId    != null) {
+    binds.push(leadId, leadId);
+    where.push(`(lead_id=?${binds.length - 1} OR project_id IN (SELECT id FROM projects WHERE lead_id=?${binds.length}))`);
+  }
   if (contactId != null) { binds.push(contactId); where.push(`contact_id=?${binds.length}`); }
-  if (projectId != null) { binds.push(projectId); where.push(`project_id=?${binds.length}`); }
   if (threadKey)         { binds.push(threadKey); where.push(`thread_key=?${binds.length}`); }
 
   // Refuse open-ended queries — too easy to dump the inbox via the public-ish
@@ -90,6 +102,22 @@ export async function onRequestPost(context) {
   const peerEmail = extractAddr(to[0]);
   const threadKey = deriveThreadKey(subject, peerEmail);
 
+  // Denormalize the entity links: if the caller passed project_id (typical
+  // for Compose from the Job page) AND that project came from a lead, also
+  // stamp the row with lead_id. Same in reverse — if lead_id is passed and
+  // the lead has a project, stamp project_id. This keeps the GET timeline
+  // queries cheap regardless of which side filters.
+  let rowLeadId    = body.lead_id    || null;
+  let rowProjectId = body.project_id || null;
+  if (rowProjectId && !rowLeadId) {
+    const proj = await DB.prepare(`SELECT lead_id FROM projects WHERE id=?1`).bind(rowProjectId).first().catch(() => null);
+    if (proj?.lead_id) rowLeadId = proj.lead_id;
+  }
+  if (rowLeadId && !rowProjectId) {
+    const proj = await DB.prepare(`SELECT id FROM projects WHERE lead_id=?1 ORDER BY id DESC LIMIT 1`).bind(rowLeadId).first().catch(() => null);
+    if (proj?.id) rowProjectId = proj.id;
+  }
+
   // Insert "queued" row first — guarantees we have a CRM record even if SMTP fails.
   const insert = await DB.prepare(
     `INSERT INTO email_messages
@@ -104,7 +132,7 @@ export async function onRequestPost(context) {
         ?14, ?15, ?16,
         ?17, ?18, ?19) RETURNING id`
   ).bind(
-    body.contact_id || null, body.lead_id || null, body.project_id || null,
+    body.contact_id || null, rowLeadId, rowProjectId,
     messageId, inReplyTo, references, threadKey,
     "Stately Shades", context.env.PURELYMAIL_USER || "hello@statelyshades.com",
     JSON.stringify(to),
