@@ -1,14 +1,13 @@
-// Shared admin JS — auth check, fetch helpers, formatting
+// Shared admin JS — auth check, fetch helpers, formatting.
+// Lead pipeline only: booked + installed are job statuses now (see Jobs).
 const STATUS_LABELS = {
   new: "New",
   replied: "Replied",
   consult: "Consult",
   proposal: "Proposal",
-  booked: "Booked",
-  installed: "Installed",
   lost: "Lost",
 };
-const STATUS_ORDER = ["new", "replied", "consult", "proposal", "booked", "installed", "lost"];
+const STATUS_ORDER = ["new", "replied", "consult", "proposal", "lost"];
 
 async function fetchJSON(url, opts = {}) {
   const res = await fetch(url, {

@@ -9,7 +9,7 @@ const NAV = [
   { href: "/crm/pipeline.html", label: "Pipeline", icon: iconKanban() },
   { href: "/crm/leads.html",  label: "Leads", icon: iconLead(), expandable: "leads" },
   { href: "/crm/contacts.html", label: "Contacts", icon: iconUsers() },
-  { href: "/crm/projects.html", label: "Jobs", icon: iconBriefcase() },
+  { href: "/crm/projects.html", label: "Jobs", icon: iconBriefcase(), expandable: "jobs" },
   { href: "/crm/calendar.html", label: "Calendar", icon: iconCal() },
   // Estimates removed — workflow is now Lead → Proposal → Contract → Booked.
   { href: "/crm/proposals.html", label: "Proposals", icon: iconDoc() },
@@ -22,14 +22,25 @@ const NAV = [
 // Lead status sub-items shown when the Leads nav row is expanded.
 // `color` lights up the left bar marker so each stage is visually distinct
 // (matches the pipeline kanban colors).
+// Lead-side pipeline only — booked + installed are now job statuses (see
+// JOB_STATUSES_NAV below). A lead automatically transitions out of the lead
+// pipeline the moment the contract is signed; from that point it lives under
+// /crm/projects.html.
 const LEAD_STATUSES_NAV = [
   { key: "new",       label: "New Leads",     color: "#94A3B8" },
   { key: "replied",   label: "Replied",       color: "#F59E0B" },
   { key: "consult",   label: "Consult",       color: "#6366F1" },
   { key: "proposal",  label: "Proposal Sent", color: "#8B5CF6" },
-  { key: "booked",    label: "Booked",        color: "#2563EB" },
-  { key: "installed", label: "Installed",     color: "#10B981" },
   { key: "lost",      label: "Lost",          color: "#94A3B8" },
+];
+
+// Job-side pipeline (parallels LEAD_STATUSES_NAV). Drives the expandable Jobs
+// drill-down in the sidebar. Statuses come from the projects table's
+// `status` column — see PROJECT_STATUSES below for the full list.
+const JOB_STATUSES_NAV = [
+  { key: "contracted", label: "Booked",       color: "#2563EB" },
+  { key: "installing", label: "Installing",   color: "#14B8A6" },
+  { key: "completed",  label: "Installed",    color: "#10B981" },
 ];
 
 // Sidebar groups — all links visible (we have room in the vertical rail)
@@ -137,6 +148,7 @@ async function mount({ title = "", subtitle = "", actions = "", wide = false } =
 function navLink(n, currentPath) {
   const matches = n.match ? n.match.includes(currentPath) : currentPath === n.href || currentPath.startsWith(n.href.replace(".html", ""));
   if (n.expandable === "leads") return leadsNav(n, currentPath, matches);
+  if (n.expandable === "jobs")  return jobsNav(n, currentPath, matches);
   return `<a class="tnav__link ${matches ? "is-active" : ""}" href="${n.href}">${n.icon}<span>${esc(n.label)}</span></a>`;
 }
 
@@ -165,6 +177,39 @@ function leadsNav(n, currentPath, matches) {
           <span class="tnav__sub-count" data-status-count="_total"></span>
         </a>
         <button type="button" class="tnav__expand-toggle" aria-label="Toggle leads list"
+                onclick="this.closest('.tnav__group').classList.toggle('is-open')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="tnav__sublist">${subItems}</div>
+    </div>
+  `;
+}
+
+// Expandable Jobs nav — parallels leadsNav() but for the project lifecycle.
+// Sub-rows link to /crm/projects.html?status=<projectStatus>.
+function jobsNav(n, currentPath, matches) {
+  const params = new URLSearchParams(location.search);
+  const activeStatus = params.get("status") || "";
+  const expanded = matches;
+  const subItems = JOB_STATUSES_NAV.map((s) => `
+    <a class="tnav__sub ${matches && activeStatus === s.key ? "is-active" : ""}"
+       href="/crm/projects.html?status=${s.key}"
+       data-status="${s.key}">
+      <span class="tnav__sub-dot" style="background:${s.color}"></span>
+      <span class="tnav__sub-label">${esc(s.label)}</span>
+      <span class="tnav__sub-count" data-job-count="${s.key}"></span>
+    </a>`).join("");
+
+  return `
+    <div class="tnav__group ${expanded ? "is-open" : ""}" data-jobs-group>
+      <div class="tnav__group-head">
+        <a class="tnav__link tnav__link--expand ${matches ? "is-active" : ""}" href="${n.href}">
+          ${n.icon}
+          <span>${esc(n.label)}</span>
+          <span class="tnav__sub-count" data-job-count="_total"></span>
+        </a>
+        <button type="button" class="tnav__expand-toggle" aria-label="Toggle jobs list"
                 onclick="this.closest('.tnav__group').classList.toggle('is-open')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
@@ -211,10 +256,28 @@ async function loadLeadCounts() {
   }
 }
 
+async function loadJobCounts() {
+  if (!document.querySelector("[data-job-count]")) return;
+  try {
+    const { counts } = await fetchJSON("/api/projects?counts_only=1");
+    const c = counts || {};
+    let total = 0;
+    document.querySelectorAll("[data-job-count]").forEach((el) => {
+      const key = el.dataset.jobCount;
+      if (key === "_total") return;
+      const n = c[key] || 0;
+      total += n;
+      if (n > 0) { el.textContent = n; el.classList.add("is-visible"); }
+    });
+    const totalEl = document.querySelector('[data-job-count="_total"]');
+    if (totalEl && total > 0) { totalEl.textContent = total; totalEl.classList.add("is-visible"); }
+  } catch (e) {}
+}
+
 function wireNav() {
-  // Populate Lead-status sub-counts in the background — never blocks render.
-  // The /api/leads endpoint returns a counts object keyed by status.
+  // Populate sub-counts in the background — never blocks render.
   loadLeadCounts();
+  loadJobCounts();
 
   // Quick-add toggle
   const qBtn = document.getElementById("quickadd-btn");

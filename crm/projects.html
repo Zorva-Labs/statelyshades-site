@@ -8,20 +8,36 @@
 // A project only counts as a "Job" once the customer signs the contract.
 // Pre-contract projects (in 'new','scheduled','measured','quoted','proposed')
 // live on their lead and aren't shown here.
+//
+// The sidebar Jobs drill-down (see crm-app.js JOB_STATUSES_NAV) deep-links
+// here with ?status=contracted | installing | completed — when present we
+// filter the list down to that single status (mirrors how the Leads page
+// honors ?status=).
 const JOB_STATUSES = new Set(["contracted", "installing", "completed"]);
+const JOB_STATUS_LABELS = { contracted: "Booked", installing: "Installing", completed: "Installed" };
 
 (async () => {
-  const user = await SSCrm.mount({ title: "Jobs", subtitle: "Booked work — contract signed",
-    actions: `<a class="btn secondary" href="/crm/pipeline.html">Pipeline (all stages) →</a>`, wide: true });
+  const params = new URLSearchParams(location.search);
+  const filterStatus = params.get("status");
+  const subtitle = filterStatus && JOB_STATUSES.has(filterStatus)
+    ? `${JOB_STATUS_LABELS[filterStatus] || filterStatus} jobs`
+    : "Booked work — contract signed";
+
+  const user = await SSCrm.mount({ title: "Jobs", subtitle,
+    actions: `${filterStatus ? `<a class="btn ghost" href="/crm/projects.html">← All jobs</a>` : ""}<a class="btn secondary" href="/crm/pipeline.html">Pipeline (all stages) →</a>`,
+    wide: true });
   if (!user) return;
   const { projects: all } = await SSCrm.fetchJSON("/api/projects");
-  const projects = all.filter((p) => JOB_STATUSES.has(p.status));
+  let projects = all.filter((p) => JOB_STATUSES.has(p.status));
+  if (filterStatus && JOB_STATUSES.has(filterStatus)) {
+    projects = projects.filter((p) => p.status === filterStatus);
+  }
   const page = document.getElementById("page");
   if (!projects.length) {
-    const pending = all.length - projects.length;
+    const pending = all.length - all.filter((p) => JOB_STATUSES.has(p.status)).length;
     page.innerHTML = `<div class="tbl"><div class="empty">
-      No booked jobs yet.
-      ${pending > 0 ? `<div style="margin-top:8px;font-size:13px">${pending} project${pending === 1 ? " is" : "s are"} in flight on the lead side — they'll appear here once the customer signs.</div>` : ""}
+      ${filterStatus ? `No ${JOB_STATUS_LABELS[filterStatus] || filterStatus} jobs.` : "No booked jobs yet."}
+      ${!filterStatus && pending > 0 ? `<div style="margin-top:8px;font-size:13px">${pending} project${pending === 1 ? " is" : "s are"} in flight on the lead side — they'll appear here once the customer signs.</div>` : ""}
     </div></div>`;
     return;
   }

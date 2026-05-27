@@ -12,14 +12,18 @@
 <script src="/crm/crm-app.js"></script>
 <script src="/crm/windows-editor.js"></script>
 <script>
+// Lead pipeline ends at "Proposal" or "Lost". Once the contract is signed
+// the lead is auto-bumped to "booked" by the contract-sign handler — at
+// that point it becomes a Job and disappears from the leads UI. We keep the
+// `booked` and `installed` keys recognized server-side (so the auto-bump
+// still works) but they're not exposed as visible choices here. View those
+// records under Jobs.
 const LEAD_STATUSES = [
-  { key: "new",        label: "New" },
-  { key: "replied",    label: "Replied" },
-  { key: "consult",    label: "Consult" },
-  { key: "proposal",   label: "Proposal" },
-  { key: "booked",     label: "Booked" },
-  { key: "installed",  label: "Installed" },
-  { key: "lost",       label: "Lost" },
+  { key: "new",       label: "New" },
+  { key: "replied",   label: "Replied" },
+  { key: "consult",   label: "Consult" },
+  { key: "proposal",  label: "Proposal" },
+  { key: "lost",      label: "Lost" },
 ];
 
 const id = parseInt(new URLSearchParams(location.search).get("id"), 10);
@@ -60,10 +64,13 @@ function render() {
   const addrLine = addrParts.length ? addrParts.join(" · ") : (l.location || "");
   const mapUrl = addrParts.length ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addrParts.join(", ")) : null;
 
-  // Pipeline stepper — every status except "lost" is on the linear flow.
-  // Lost is reachable via the inline select on the right of the bar.
-  const flow = ["new", "replied", "consult", "proposal", "booked", "installed"];
-  const isTerminal = l.status === "lost";
+  // Pipeline stepper — Lead funnel ends here. "booked" and "installed" are
+  // Job statuses and shouldn't appear in the lead-side stepper; if a record
+  // somehow has one (auto-bump just fired but the page hasn't been reloaded
+  // to the Jobs view), the stepper still renders sensibly because indexOf
+  // returns -1 → no stage is highlighted.
+  const flow = ["new", "replied", "consult", "proposal"];
+  const isTerminal = l.status === "lost" || l.status === "booked" || l.status === "installed";
   const currentIdx = flow.indexOf(l.status);
   const stepper = `
     <div class="pipeline-bar">

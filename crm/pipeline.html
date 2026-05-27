@@ -11,15 +11,15 @@
 <body>
 <script src="/crm/crm-app.js"></script>
 <script>
-// Lead pipeline — kanban board of leads grouped by status.
-// Stages: New → Replied → Consult → Proposal → Booked → Installed (with Lost as an off-track column).
+// Lead pipeline — kanban of LEADS only. Once a contract is signed the lead
+// auto-transitions to a Job (project.status='contracted', shown on the
+// /crm/projects.html page) and disappears from this board. The "lost" column
+// stays here as the off-track terminal for the lead funnel.
 const PIPELINE_STAGES = [
   { key: "new",       label: "New",       color: "#94A3B8" },
   { key: "replied",   label: "Replied",   color: "#F59E0B" },
   { key: "consult",   label: "Consult",   color: "#6366F1" },
   { key: "proposal",  label: "Proposal",  color: "#8B5CF6" },
-  { key: "booked",    label: "Booked",    color: "#2563EB" },
-  { key: "installed", label: "Installed", color: "#10B981" },
   { key: "lost",      label: "Lost",      color: "#94A3B8" },
 ];
 
